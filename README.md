@@ -1,97 +1,173 @@
-<p align="center">
-  <p align="center">
-   <img width="150" height="150" src="./apps/desktop/src-tauri/icons/Square310x310Logo.png" alt="Logo">
-  </p>
-	<h1 align="center"><b>Cap 中文版</b></h1>
-	<p align="center">
-		开源屏幕录制工具，基于原项目汉化并优化
-    <br />
-    <a href="https://github.com/Lkkisme/Cap"><strong>GitHub 仓库 »</strong></a>
-    <br />
-    <br />
-    <b>支持平台：</b>
-		macOS & Windows
-    <br />
-  </p>
-</p>
-<br/>
+# Cap 中文版
 
-## 📖 项目简介
+Cap 中文版是基于 [Cap 官方项目](https://github.com/CapSoftware/Cap) 汉化和调整的开源屏幕录制工具。本仓库当前重点整理了 Windows 可下载发布、代码签名、SmartScreen 声誉建立和发布验证流程。
 
-Cap 中文版是基于 <a href="https://github.com/CapSoftware/Cap">Cap 官方项目</a> 进行汉化和优化的开源屏幕录制工具，是 Loom 的开源替代方案。它允许您在几秒钟内录制、编辑和分享视频。
+仓库地址：[https://github.com/Lkkisme/Cap](https://github.com/Lkkisme/Cap)
 
-## ✨ 主要特性
+## 当前状态
 
-- **完全汉化**：界面和功能说明已全部汉化，提供更友好的中文用户体验
-- **移除登录限制**：无需登录即可使用所有功能
-- **去除付费板块**：所有功能完全免费使用
-- **同步官方版本**：已同步官方 0.4.3 版本
-- **编辑器优化**：优化了视频编辑功能，使用更流畅
-- **多平台支持**：支持 macOS 和 Windows 系统
+- GitHub 仓库：公开仓库
+- 主要发布目标：Windows x64
+- 下载入口：[GitHub Releases](https://github.com/Lkkisme/Cap/releases)
+- 当前已生成过的公开 Release：[cap-v0.4.3-cn](https://github.com/Lkkisme/Cap/releases/tag/cap-v0.4.3-cn)
+- 当前 `cap-v0.4.3-cn` 的 Windows EXE/MSI 尚未签名，因此 Windows SmartScreen 仍可能提示
 
-## 📸 界面预览
+Windows 用户下载 Release 里的 `windows-x64.exe` 或 `windows-x64.msi` 即可安装，不需要安装 Node.js、Rust、pnpm 或开发环境。
 
-### 首页
-<img src="./UI界面/首页.png" alt="首页" width="800" />
+## Windows SmartScreen 说明
 
-### 编辑器页面
-<img src="./UI界面/编辑器页面.png" alt="编辑器页面" width="800" />
+SmartScreen 不能靠项目配置强行关闭。微软当前机制主要看下载来源、文件 hash、发布者签名和发布者声誉。要减少 SmartScreen 警告，需要走正规信任链路：
 
-### 设置页面
-<img src="./UI界面/设置页面.png" alt="设置页面" width="800" />
+1. 使用 Microsoft Store 发布，这是最接近普通用户无警告安装的方式。
+2. 使用 Azure Artifact Signing、SignPath 或代码签名证书签名 Windows EXE/MSI。
+3. 保持同一个发布者身份、同一个官方下载入口和稳定的 Release 文件。
+4. 如果签名后仍被误拦截，把签名后的安装包提交到 Microsoft WDSI 复核。
 
-## 🚀 安装使用
+详细操作文档见 [docs/windows-smartscreen.md](docs/windows-smartscreen.md)。
 
-### 方法一：直接运行
-1. 打开 <a href="https://github.com/Lkkisme/Cap/releases">GitHub Releases</a>
-2. Windows 下载 `windows-x64.exe` 或 `windows-x64.msi`
-3. Apple Silicon Mac 下载 `macos-arm64.dmg`
-4. Intel Mac 下载 `macos-x64.dmg`
-5. 安装后直接运行，无需安装 Node.js、Rust、pnpm 或其他开发环境
+## 我做出的主要改动
 
-> Windows SmartScreen 处理和代码签名配置见 [Windows SmartScreen 处理方案](docs/windows-smartscreen.md)。
+### 1. Windows Release 发布链路
 
-### 方法二：源码构建
+- 新增并调整 `.github/workflows/release-desktop.yml`，现在 workflow 名称为 `Windows Release`。
+- Release 构建矩阵已收窄到 Windows x64：`x86_64-pc-windows-msvc`。
+- Windows Release 只产出 Windows 安装包，不再把 macOS DMG 作为本目标的一部分。
+- Release 产物会收集 NSIS `.exe` 和 MSI `.msi`。
+- Release 会生成 `SHA256SUMS.txt`，方便用户校验下载文件。
+- Release 会生成 GitHub artifact attestations，用于证明产物来自本仓库 GitHub Actions 构建。
+- Release 文案已更新为 Windows 下载说明。
+
+### 2. Windows 代码签名支持
+
+Release workflow 已支持三种 Windows 签名方式：
+
+- `azure-artifact-signing`：使用 Azure Artifact Signing 在 GitHub Actions 中签名。
+- `signpath`：把 Windows EXE/MSI 提交给 SignPath 签名。
+- `pfx`：使用已有 PFX 代码签名证书和 `signtool.exe` 签名。
+
+签名链路覆盖两层文件：
+
+- 主程序和 DLL。
+- 最终上传到 GitHub Release 的 EXE/MSI 安装包。
+
+签名完成后 workflow 会用 `Get-AuthenticodeSignature` 验证签名状态，签名无效会直接失败。
+
+### 3. Windows 签名配置检查
+
+- 新增 `.github/workflows/windows-signing-check.yml`。
+- 新增 `scripts/validate-windows-signing.ps1`。
+- 配置签名前可以先手动运行 `Windows Signing Check`，它会检查 GitHub Variables 和 Secrets 是否齐全。
+- 如果设置 `WINDOWS_REQUIRE_SIGNING=true`，Release 会拒绝发布未签名 Windows 包。
+
+### 4. Microsoft Store 准备
+
+- 新增 `.github/workflows/windows-store-package.yml`。
+- 新增 `apps/desktop/src-tauri/tauri.microsoft-store.conf.json`。
+- Store workflow 会生成适合 Microsoft Store 提交的 Windows 离线安装包。
+- Store 配置使用离线 WebView2 安装模式，减少用户机器缺少 WebView2 时的安装问题。
+- Store 产物同样支持签名、签名验证、SHA256 和 artifact attestation。
+
+### 5. 发布后验证和 WDSI 提交流程
+
+- 新增 `scripts/verify-windows-release.ps1`。
+- 脚本可以下载指定 GitHub Release 的 Windows EXE/MSI。
+- 脚本会计算 SHA256。
+- 脚本会检查 Authenticode 签名状态。
+- 脚本会生成 `.release-verification/<tag>/windows-smartscreen-report.md`。
+- 文档中加入了 Microsoft WDSI 提交说明和可复制的开发者说明模板。
+
+### 6. CI 和 Windows 构建稳定性
+
+- CI 的 Windows runner 固定为 `windows-2022`，避免 `windows-latest` 切换到更新系统镜像后带来的 FFmpeg/bindgen 不稳定问题。
+- Rust cache job 安装 `clippy` component，避免 macOS/Windows cache 流程在 Clippy 步骤缺组件。
+- 修复了 Windows Clippy 中的 dead code 问题，让 macOS 专用 FFmpeg helper 只在 macOS 编译。
+- 修复了 desktop Rust 代码里的 Clippy 警告。
+- 修复了当前语言 accessor 的调用方式。
+- 保留了仓库 workspace lints 的严格设置，不通过 `allow(dead_code)` 这类豁免绕过问题。
+
+### 7. SmartScreen 文档
+
+- 新增 [docs/windows-smartscreen.md](docs/windows-smartscreen.md)。
+- 文档说明了 Microsoft Store、Azure Artifact Signing、SignPath、PFX/signtool、WDSI 的适用场景。
+- 文档列出了需要配置的 GitHub Variables 和 Secrets。
+- 文档说明了现实预期：签名能建立发布者信任，但新发布者或新文件仍可能短期出现 SmartScreen 提示。
+- 文档明确说明 EV 证书已经不再保证自动绕过 SmartScreen。
+
+## 需要你继续配置的内容
+
+代码和 workflow 已经准备好，但真正减少 SmartScreen 还需要一个可信发布者身份。推荐优先选择：
+
+### 方案 A：Microsoft Store
+
+1. 注册 Microsoft Partner Center。
+2. 创建 `EXE or MSI app`。
+3. 运行 `Windows Store Package` workflow。
+4. 上传 workflow 生成的 Windows 安装包。
+5. 提交审核。
+
+### 方案 B：Azure Artifact Signing
+
+在 GitHub 仓库 Variables 中配置：
+
+| Name | Example |
+| --- | --- |
+| `WINDOWS_SIGNING_PROVIDER` | `azure-artifact-signing` |
+| `WINDOWS_REQUIRE_SIGNING` | `true` |
+| `AZURE_ARTIFACT_SIGNING_ENDPOINT` | `https://eus.codesigning.azure.net/` |
+| `AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME` | Azure Artifact Signing account name |
+| `AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME` | Certificate profile name |
+
+在 GitHub 仓库 Secrets 中配置：
+
+| Name | Purpose |
+| --- | --- |
+| `AZURE_CLIENT_ID` | Microsoft Entra app registration client ID |
+| `AZURE_TENANT_ID` | Azure tenant ID |
+| `AZURE_SUBSCRIPTION_ID` | Azure subscription ID |
+
+配置完成后：
+
+1. 手动运行 `Windows Signing Check`。
+2. 确认通过。
+3. 手动运行 `Windows Release` 或创建新的 `cap-v*` tag。
+4. 下载 EXE/MSI，用 `Get-AuthenticodeSignature` 确认签名为 `Valid`。
+5. 如仍出现 SmartScreen 误拦截，提交到 Microsoft WDSI。
+
+### 方案 C：SignPath 或 PFX
+
+如果你已经有 SignPath 账号或 PFX 代码签名证书，可以按 [docs/windows-smartscreen.md](docs/windows-smartscreen.md) 配置对应 Secrets，然后运行 `Windows Signing Check` 和 `Windows Release`。
+
+## 本地开发
+
 ```bash
-# 克隆仓库
-git clone https://github.com/Lkkisme/Cap.git
-cd Cap
-
-# 安装依赖
 pnpm install
-
-# 构建桌面应用
-pnpm tauri:build
-
-# 运行开发版本
+pnpm env-setup
+pnpm cap-setup
 pnpm dev:desktop
 ```
 
-## 🛠️ 技术栈
+构建 Windows 桌面应用：
 
-- **前端**：React (Next.js)、TypeScript、SolidStart、TailwindCSS
-- **后端**：Rust、Tauri、Drizzle (ORM)、MySQL
-- **构建工具**：Turborepo
+```bash
+pnpm tauri:build
+```
 
-## 📄 许可证
+## 技术栈
 
-本项目基于原项目的许可证进行分发：
+- Tauri v2
+- Rust
+- SolidStart
+- Next.js
+- TypeScript
+- Turborepo
+- pnpm
 
-- `cap-camera*` 和 `scap-*` 系列代码使用 MIT 许可证
-- 第三方组件使用其原始许可证
-- 其他内容使用 AGPLv3 许可证
+## 许可证
 
-详细信息请查看 [LICENSE](LICENSE) 文件。
+本项目基于原项目许可证继续分发。详细信息见 [LICENSE](LICENSE)。
 
-## 🔗 相关链接
+## 相关链接
 
-- **官方项目**：<a href="https://github.com/CapSoftware/Cap">https://github.com/CapSoftware/Cap</a>
-- **本项目**：<a href="https://github.com/Lkkisme/Cap">https://github.com/Lkkisme/Cap</a>
-
-## 🤝 贡献
-
-欢迎提交 Issue 和 Pull Request 来帮助改进这个项目！
-
-## 📞 联系方式
-
-如有问题或建议，请在 GitHub 仓库中提交 Issue。
+- 原始 Cap 项目：[https://github.com/CapSoftware/Cap](https://github.com/CapSoftware/Cap)
+- 本仓库：[https://github.com/Lkkisme/Cap](https://github.com/Lkkisme/Cap)
+- Windows SmartScreen 文档：[docs/windows-smartscreen.md](docs/windows-smartscreen.md)
