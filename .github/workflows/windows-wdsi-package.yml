@@ -1,6 +1,8 @@
 name: Windows WDSI Package
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
@@ -16,9 +18,14 @@ on:
 permissions:
   contents: read
 
+env:
+  RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
+  EXPECTED_PUBLISHER_PATTERN: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_publisher_pattern || vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
+
 jobs:
   package:
     name: Generate WDSI submission package
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'cap-v')
     runs-on: windows-2022
     timeout-minutes: 60
     steps:
@@ -28,8 +35,6 @@ jobs:
       - name: Generate WDSI package
         shell: pwsh
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
-          EXPECTED_PUBLISHER_PATTERN: ${{ inputs.expected_publisher_pattern || vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $params = @{
@@ -50,6 +55,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: windows-wdsi-package-${{ inputs.tag }}
+          name: windows-wdsi-package-${{ env.RELEASE_TAG }}
           path: windows-wdsi-package/**
           if-no-files-found: ignore

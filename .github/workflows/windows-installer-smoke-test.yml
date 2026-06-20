@@ -1,6 +1,8 @@
 name: Windows Installer Smoke Test
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
@@ -21,9 +23,15 @@ on:
 permissions:
   contents: read
 
+env:
+  RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
+  EXPECTED_PUBLISHER_PATTERN: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_publisher_pattern || vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
+  PRODUCT_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.product_name || vars.WINDOWS_PACKAGE_NAME || 'Cap 中文版' }}
+
 jobs:
   smoke:
     name: Test Windows installer install and uninstall
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'cap-v')
     runs-on: windows-2022
     timeout-minutes: 90
     steps:
@@ -33,8 +41,6 @@ jobs:
       - name: Verify release assets
         shell: pwsh
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
-          EXPECTED_PUBLISHER_PATTERN: ${{ inputs.expected_publisher_pattern || vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:EXPECTED_PUBLISHER_PATTERN)) {
@@ -54,14 +60,12 @@ jobs:
 
       - name: Test silent install and uninstall
         shell: pwsh
-        env:
-          PRODUCT_NAME: ${{ inputs.product_name }}
         run: .\scripts\test-windows-installers.ps1 -Path windows-installer-smoke-test -ProductName $env:PRODUCT_NAME -RemoveExisting
 
       - name: Upload smoke test evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: windows-installer-smoke-test-${{ inputs.tag }}
+          name: windows-installer-smoke-test-${{ env.RELEASE_TAG }}
           path: windows-installer-smoke-test/**
           if-no-files-found: ignore

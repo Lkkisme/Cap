@@ -86,8 +86,8 @@ Release workflow 已支持三种 Windows 签名方式：
 - 新增 `scripts/test-windows-authenticode.ps1`。
 - 新增 `scripts/test-windows-installers.ps1`。
 - `Windows Release Audit` 会在 `cap-v*` Release published 后自动审计，也可以手动对指定 Release tag 执行审计。
-- `Windows Installer Smoke Test` 会下载已签名 Release，审计签名/checksum/attestation 后测试 EXE/MSI 静默安装和卸载。
-- `Windows WDSI Package` 可以为已签名、已审计的 Release 生成微软复核材料包。
+- `Windows Installer Smoke Test` 会在 `cap-v*` Release 发布后自动下载已签名 Release，审计签名/checksum/attestation 后测试 EXE/MSI 静默安装和卸载。
+- `Windows WDSI Package` 会在 `cap-v*` Release 发布后自动为已签名、已审计的 Release 生成微软复核材料包。
 - `Windows Release` 和 `Windows Store Package` 会在上传产物前用 Microsoft Defender 扫描 Windows EXE/MSI。
 - 脚本可以下载指定 GitHub Release 的 Windows EXE/MSI。
 - 脚本会计算 SHA256。
@@ -103,7 +103,8 @@ Release workflow 已支持三种 Windows 签名方式：
 
 - 新增 `.github/workflows/windows-winget-manifest.yml`。
 - 新增 `scripts/generate-winget-manifest.ps1`。
-- `Windows WinGet Manifest` 会先审计 Release 签名、可信时间戳、SignTool 复核和 SHA256，再生成 WinGet manifest。
+- `cap-v*` Release 发布后会自动运行 `Windows WinGet Manifest`；也可以手动输入 tag 重跑。
+- `Windows WinGet Manifest` 会先审计 Release 签名、可信时间戳、SignTool 复核、SHA256 和 artifact attestation，再生成 WinGet manifest。
 - 默认生成 `Lkkisme.CapCN` 的 Windows x64 MSI manifest。
 - 生成器会下载安装包并按 `SHA256SUMS.txt` 复核 hash；MSI manifest 会写入静默安装参数、`ProductCode`、固定 `UpgradeCode` 和 Add/Remove Programs 升级身份，EXE manifest 会写入 NSIS 静默安装参数。
 - 生成的文件位于 `packaging/winget/manifests/...`，可用于提交到 `microsoft/winget-pkgs`。
@@ -165,10 +166,10 @@ Release workflow 已支持三种 Windows 签名方式：
 2. 确认通过。
 3. 手动运行 `Windows Release` 或创建新的 `cap-v*` tag；正式发布保持 `require_signing=true`，未签名测试只能作为 draft。
 4. 等待自动触发的 `Windows Release Audit` 通过，或手动输入刚发布的 tag 重新审计，确认签名发布者、可信时间戳、SignTool 复核、SHA256 和 artifact attestation 都通过。
-5. 手动运行 `Windows Installer Smoke Test`，确认 EXE/MSI 可以静默安装和卸载。
-6. 如需 WinGet 分发，手动运行 `Windows WinGet Manifest`，下载生成的 manifest，运行 `winget validate`，再提交到 `microsoft/winget-pkgs`。
+5. 等待自动触发的 `Windows Installer Smoke Test` 通过，确认 EXE/MSI 可以静默安装和卸载。
+6. 如需 WinGet 分发，下载自动生成的 `winget-manifest-<tag>` artifact，运行 `winget validate`，再提交到 `microsoft/winget-pkgs`。
 7. 下载 EXE/MSI，用 `Get-AuthenticodeSignature` 确认签名为 `Valid`，并确认存在 `TimeStamperCertificate`。
-8. 如仍出现 SmartScreen 误拦截，运行 `Windows WDSI Package`，再把安装包和生成的说明文本提交到 Microsoft WDSI。
+8. 如仍出现 SmartScreen 误拦截，下载自动生成的 `windows-wdsi-package-<tag>` artifact，再把安装包和生成的说明文本提交到 Microsoft WDSI。
 
 ### 方案 C：SignPath 或 PFX
 

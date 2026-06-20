@@ -1,6 +1,8 @@
 name: Windows WinGet Manifest
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
@@ -31,9 +33,17 @@ on:
 permissions:
   contents: read
 
+env:
+  RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
+  EXPECTED_PUBLISHER_PATTERN: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_publisher_pattern || vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
+  PACKAGE_IDENTIFIER: ${{ github.event_name == 'workflow_dispatch' && inputs.package_identifier || vars.WINDOWS_WINGET_PACKAGE_IDENTIFIER || 'Lkkisme.CapCN' }}
+  PUBLISHER: ${{ github.event_name == 'workflow_dispatch' && inputs.publisher || vars.WINDOWS_PACKAGE_PUBLISHER || 'Lkkisme' }}
+  PACKAGE_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.package_name || vars.WINDOWS_PACKAGE_NAME || 'Cap 中文版' }}
+
 jobs:
   generate:
     name: Generate WinGet manifest
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'cap-v')
     runs-on: windows-2022
     timeout-minutes: 60
     steps:
@@ -43,8 +53,6 @@ jobs:
       - name: Audit release before WinGet manifest
         shell: pwsh
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
-          EXPECTED_PUBLISHER_PATTERN: ${{ inputs.expected_publisher_pattern || vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $params = @{
@@ -69,10 +77,6 @@ jobs:
       - name: Generate WinGet manifest files
         shell: pwsh
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
-          PACKAGE_IDENTIFIER: ${{ inputs.package_identifier }}
-          PUBLISHER: ${{ inputs.publisher }}
-          PACKAGE_NAME: ${{ inputs.package_name }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           & .\scripts\generate-winget-manifest.ps1 `
@@ -99,6 +103,6 @@ jobs:
       - name: Upload WinGet manifest
         uses: actions/upload-artifact@v4
         with:
-          name: winget-manifest-${{ inputs.tag }}
+          name: winget-manifest-${{ env.RELEASE_TAG }}
           path: packaging/winget/manifests/**
           if-no-files-found: error
