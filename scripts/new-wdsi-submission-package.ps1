@@ -35,6 +35,7 @@ $verifyParams = @{
     RequireSignToolVerification = $true
     VerifyChecksums = $true
     VerifyAttestations = $true
+    ScanWithDefender = $true
     GitHubToken = $GitHubToken
 }
 
@@ -89,6 +90,9 @@ foreach ($asset in @($metadata.Assets)) {
     if ($asset.AttestationStatus -ne "Valid") {
         throw "$($asset.File) is not ready for WDSI because its attestation status is $($asset.AttestationStatus)."
     }
+    if ($asset.DefenderStatus -ne "Valid") {
+        throw "$($asset.File) is not ready for WDSI because its Microsoft Defender scan status is $($asset.DefenderStatus)."
+    }
 
     Copy-Item -LiteralPath $asset.LocalPath -Destination (Join-Path $installersDir $asset.File) -Force
 
@@ -106,10 +110,11 @@ foreach ($asset in @($metadata.Assets)) {
         "Signature timestamp: $($asset.TimestampStatus)",
         "Timestamp authority: $($asset.TimestampAuthority)",
         "SignTool verification: $($asset.SignToolStatus)",
+        "Microsoft Defender scan: $($asset.DefenderStatus)",
         "Certificate thumbprint: $($asset.CertificateThumbprint)",
         "GitHub artifact attestation: $($asset.AttestationStatus)",
         "",
-        "This is an open-source screen recording application distributed from the official GitHub repository. The submitted installer was built by GitHub Actions from the tagged release, is signed by the publisher with a trusted timestamp, has a matching release checksum, and has a valid GitHub artifact attestation for the official repository. Please review it as a false positive / SmartScreen reputation issue."
+        "This is an open-source screen recording application distributed from the official GitHub repository. The submitted installer was built by GitHub Actions from the tagged release, is signed by the publisher with a trusted timestamp, has a matching release checksum, passed Microsoft Defender scanning on the audit runner, and has a valid GitHub artifact attestation for the official repository. Please review it as a false positive / SmartScreen reputation issue."
     ) | Set-Content -Encoding UTF8 -LiteralPath $submissionTextPath
 }
 
@@ -128,7 +133,7 @@ $checklistPath = Join-Path $packageRoot "wdsi-submission-checklist.md"
     "4. Paste the matching text from the submission-text directory.",
     "5. Attach or reference the evidence files if Microsoft asks for more context.",
     "",
-    "The installers in this package have valid Authenticode signatures, trusted Authenticode timestamps, passing signtool verify /pa /tw results, matching release checksums, and valid GitHub artifact attestations."
+    "The installers in this package have valid Authenticode signatures, trusted Authenticode timestamps, passing signtool verify /pa /tw results, matching release checksums, passing Microsoft Defender scans, and valid GitHub artifact attestations."
 ) | Set-Content -Encoding UTF8 -LiteralPath $checklistPath
 
 $zipPath = Join-Path $OutputDirectory "wdsi-submission-package-$Tag.zip"

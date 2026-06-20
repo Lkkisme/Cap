@@ -63,6 +63,7 @@ jobs:
             -RequireSignToolVerification `
             -VerifyChecksums `
             -VerifyAttestations `
+            -ScanWithDefender `
             -ExpectedPublisherPattern $env:EXPECTED_PUBLISHER_PATTERN
 
       - name: Test silent install and uninstall

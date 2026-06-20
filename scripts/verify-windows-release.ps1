@@ -8,6 +8,7 @@ param(
     [switch]$RequireSignToolVerification,
     [switch]$VerifyChecksums,
     [switch]$VerifyAttestations,
+    [switch]$ScanWithDefender,
     [string]$ExpectedPublisherPattern = "",
     [string]$GitHubToken = $env:GITHUB_TOKEN
 )
@@ -149,6 +150,7 @@ if ($VerifyAttestations) {
 
 $rows = @()
 $authenticodeVerifier = Join-Path $PSScriptRoot "test-windows-authenticode.ps1"
+$defenderScanner = Join-Path $PSScriptRoot "scan-windows-assets.ps1"
 
 foreach ($asset in $assets) {
     $filePath = Join-Path $OutputDirectory $asset.name
@@ -187,11 +189,18 @@ foreach ($asset in $assets) {
         $attestationStatus = "Valid"
     }
 
+    $defenderStatus = if ($ScanWithDefender) { "NotScanned" } else { "NotRequested" }
+    if ($ScanWithDefender) {
+        & $defenderScanner -Path $filePath -RequireScanner
+        $defenderStatus = "Valid"
+    }
+
     $rows += [pscustomobject]@{
         File = $asset.name
         Sha256 = $hash.Hash
         ChecksumStatus = $checksumStatus
         AttestationStatus = $attestationStatus
+        DefenderStatus = $defenderStatus
         SignatureStatus = $signatureReport.SignatureStatus
         SignatureMessage = $signatureReport.SignatureMessage
         TimestampStatus = $signatureReport.TimestampStatus
@@ -234,11 +243,11 @@ $lines += "Generated: $((Get-Date).ToUniversalTime().ToString("u"))"
 $lines += ""
 $lines += "## Assets"
 $lines += ""
-$lines += "| File | SHA256 | Release checksum | Attestation | Signature | Timestamp | SignTool | Publisher |"
-$lines += "| --- | --- | --- | --- | --- | --- | --- | --- |"
+$lines += "| File | SHA256 | Release checksum | Attestation | Defender | Signature | Timestamp | SignTool | Publisher |"
+$lines += "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"
 
 foreach ($row in $rows) {
-    $lines += '| `{0}` | `{1}` | `{2}` | `{3}` | `{4}` | `{5}` | `{6}` | {7} |' -f $row.File, $row.Sha256, $row.ChecksumStatus, $row.AttestationStatus, $row.SignatureStatus, $row.TimestampStatus, $row.SignToolStatus, $row.Publisher
+    $lines += '| `{0}` | `{1}` | `{2}` | `{3}` | `{4}` | `{5}` | `{6}` | `{7}` | {8} |' -f $row.File, $row.Sha256, $row.ChecksumStatus, $row.AttestationStatus, $row.DefenderStatus, $row.SignatureStatus, $row.TimestampStatus, $row.SignToolStatus, $row.Publisher
 }
 
 $lines += ""
@@ -250,6 +259,7 @@ $missingTimestamps = @($rows | Where-Object { $_.TimestampStatus -ne "Present" }
 $invalidSignTool = @($rows | Where-Object { $_.SignToolStatus -notin @("Valid", "NotRequested") })
 $invalidChecksums = @($rows | Where-Object { $_.ChecksumStatus -ne "Valid" })
 $invalidAttestations = @($rows | Where-Object { $_.AttestationStatus -notin @("Valid", "NotRequested") })
+$invalidDefenderScans = @($rows | Where-Object { $_.DefenderStatus -notin @("Valid", "NotRequested") })
 
 if ($invalidSignatures.Count -eq 0) {
     $lines += "All Windows installers have valid Authenticode signatures."
@@ -293,6 +303,16 @@ if ($VerifyAttestations) {
     $lines += "GitHub artifact attestations were not verified in this run."
 }
 
+if ($ScanWithDefender) {
+    if ($invalidDefenderScans.Count -eq 0) {
+        $lines += "All Windows installers passed Microsoft Defender scanning on the audit runner."
+    } else {
+        $lines += "One or more Windows installers did not complete Microsoft Defender scanning."
+    }
+} else {
+    $lines += "Microsoft Defender scanning was not requested in this run."
+}
+
 if (-not [string]::IsNullOrWhiteSpace($ExpectedPublisherPattern)) {
     $lines += "Expected publisher pattern: $ExpectedPublisherPattern"
 }
@@ -321,16 +341,17 @@ foreach ($row in $rows) {
     $lines += "Signature timestamp: $($row.TimestampStatus)"
     $lines += "Timestamp authority: $($row.TimestampAuthority)"
     $lines += "SignTool verification: $($row.SignToolStatus)"
+    $lines += "Microsoft Defender scan: $($row.DefenderStatus)"
     $lines += "Certificate thumbprint: $($row.CertificateThumbprint)"
     $lines += ""
-    $lines += "This is an open-source screen recording application distributed from the official GitHub repository. The submitted installer was built by GitHub Actions from the tagged release, is signed by the publisher with a trusted timestamp, and should be classified as safe. Please review it as a false positive / SmartScreen reputation issue."
+    $lines += "This is an open-source screen recording application distributed from the official GitHub repository. The submitted installer was built by GitHub Actions from the tagged release, is signed by the publisher with a trusted timestamp, passed Microsoft Defender scanning on the audit runner, and should be classified as safe. Please review it as a false positive / SmartScreen reputation issue."
     $lines += '```'
     $lines += ""
 }
 
 $lines | Set-Content -Encoding UTF8 -Path $reportPath
 
-$rows | Format-Table File, Sha256, ChecksumStatus, AttestationStatus, SignatureStatus, TimestampStatus, SignToolStatus, Publisher -AutoSize
+$rows | Format-Table File, Sha256, ChecksumStatus, AttestationStatus, DefenderStatus, SignatureStatus, TimestampStatus, SignToolStatus, Publisher -AutoSize
 if ($releaseChecksumPath) {
     Write-Output "Release checksums: $releaseChecksumPath"
 }

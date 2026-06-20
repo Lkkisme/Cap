@@ -71,6 +71,7 @@ jobs:
             RequireSignToolVerification = $true
             VerifyChecksums = $true
             VerifyAttestations = $true
+            ScanWithDefender = $true
           }
 
           if (-not [string]::IsNullOrWhiteSpace($env:EXPECTED_PUBLISHER_PATTERN)) {
