@@ -76,6 +76,8 @@ PFX/signtool 需要这些 Secrets：
 
 配置好任一签名后端后，先手动运行 GitHub Actions 中的 `Windows Signing Check` workflow。它不会构建安装包，只检查 `WINDOWS_SIGNING_PROVIDER` 与对应 Variables/Secrets 是否齐全。检查通过后再创建新的 `cap-v*` tag 或手动运行 `Windows Release`。正式发布不要把 `require_signing` 改成 `false`。
 
+旧的 `publish` workflow 已禁用。Windows 正式发布只使用 `Windows Release` workflow，避免绕过签名检查。
+
 ## 现实预期
 
 - 未签名或自签名：基本一定出现强警告，企业策略下可能无法继续运行。
