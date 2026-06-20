@@ -353,20 +353,18 @@ impl FfmpegDecoder {
                             let too_small_for_cache_bounds = current_frame < cache_min;
 
                             let cache_frame = if !too_small_for_cache_bounds {
-                                if current_frame == requested_frame {
-                                    if respond_sender.is_some() {
-                                        let data = cache_frame.process(&mut converter);
-                                        if let Some(sender) = respond_sender.take() {
-                                            if sender.send(data.to_decoded_frame()).is_err() {
-                                                tracing::debug!(
-                                                    "Failed to send decoded frame {requested_frame}: receiver dropped"
-                                                );
-                                            }
+                                if current_frame == requested_frame && respond_sender.is_some() {
+                                    let data = cache_frame.process(&mut converter);
+                                    if let Some(sender) = respond_sender.take() {
+                                        if sender.send(data.to_decoded_frame()).is_err() {
+                                            tracing::debug!(
+                                                "Failed to send decoded frame {requested_frame}: receiver dropped"
+                                            );
                                         }
-                                        *last_sent_frame.borrow_mut() = Some(data);
-
-                                        break;
                                     }
+                                    *last_sent_frame.borrow_mut() = Some(data);
+
+                                    break;
                                 }
 
                                 if cache.len() >= FRAME_CACHE_SIZE {
