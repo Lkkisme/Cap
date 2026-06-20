@@ -18,7 +18,7 @@ on:
       - "cap-v*"
 
 permissions:
-  actions: read
+  actions: write
   attestations: write
   contents: write
   id-token: write
@@ -552,3 +552,19 @@ jobs:
             If Windows signing is configured, the EXE and MSI are Authenticode signed and verified before upload. New publishers or new files can still show SmartScreen warnings until Microsoft reputation builds.
 
             SHA256SUMS.txt can be used to verify downloaded files.
+
+      - name: Dispatch Windows release evidence workflows
+        if: needs.metadata.outputs.draft != 'true' && needs.metadata.outputs.require_signing == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ needs.metadata.outputs.tag_name }}
+          PACKAGE_IDENTIFIER: ${{ vars.WINDOWS_WINGET_PACKAGE_IDENTIFIER || 'Lkkisme.CapCN' }}
+          PRODUCT_NAME: ${{ vars.WINDOWS_PACKAGE_NAME || 'Cap 中文版' }}
+          PUBLISHER: ${{ vars.WINDOWS_PACKAGE_PUBLISHER || 'Lkkisme' }}
+        run: |
+          set -euo pipefail
+          gh workflow run "windows-release-audit.yml" --ref "$GITHUB_REF_NAME" -f tag="$TAG_NAME"
+          gh workflow run "windows-installer-smoke-test.yml" --ref "$GITHUB_REF_NAME" -f tag="$TAG_NAME" -f product_name="$PRODUCT_NAME"
+          gh workflow run "windows-winget-manifest.yml" --ref "$GITHUB_REF_NAME" -f tag="$TAG_NAME" -f package_identifier="$PACKAGE_IDENTIFIER" -f publisher="$PUBLISHER" -f package_name="$PRODUCT_NAME"
+          gh workflow run "windows-wdsi-package.yml" --ref "$GITHUB_REF_NAME" -f tag="$TAG_NAME"
