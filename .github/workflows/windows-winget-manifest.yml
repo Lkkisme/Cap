@@ -52,6 +52,7 @@ jobs:
             Repository = "${{ github.repository }}"
             OutputDirectory = "windows-release-audit"
             RequireValidSignatures = $true
+            RequireTimestampedSignatures = $true
             VerifyChecksums = $true
             VerifyAttestations = $true
           }

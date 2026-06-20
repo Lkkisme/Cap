@@ -374,6 +374,10 @@ jobs:
             if ($signature.Status -ne "Valid") {
               throw "$($file.FullName) signature is $($signature.Status): $($signature.StatusMessage)"
             }
+            if (-not $signature.TimeStamperCertificate) {
+              throw "$($file.FullName) signature does not include a trusted timestamp."
+            }
+            Write-Host "$($file.Name) timestamp: $($signature.TimeStamperCertificate.Subject)"
           }
 
       - name: Scan Windows release assets with Microsoft Defender

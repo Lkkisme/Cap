@@ -4,6 +4,7 @@ param(
     [string]$Repository = "Lkkisme/Cap",
     [string]$OutputDirectory = "",
     [switch]$RequireValidSignatures,
+    [switch]$RequireTimestampedSignatures,
     [switch]$VerifyChecksums,
     [switch]$VerifyAttestations,
     [string]$ExpectedPublisherPattern = "",
@@ -89,12 +90,27 @@ foreach ($asset in $assets) {
     $thumbprint = ""
     $notBefore = ""
     $notAfter = ""
+    $timestampStatus = "Unavailable"
+    $timestampAuthority = ""
+    $timestampThumbprint = ""
+    $timestampNotBefore = ""
+    $timestampNotAfter = ""
 
     if ($signature.SignerCertificate) {
         $publisher = $signature.SignerCertificate.Subject
         $thumbprint = $signature.SignerCertificate.Thumbprint
         $notBefore = $signature.SignerCertificate.NotBefore.ToString("u")
         $notAfter = $signature.SignerCertificate.NotAfter.ToString("u")
+    }
+
+    if ($signature.TimeStamperCertificate) {
+        $timestampStatus = "Present"
+        $timestampAuthority = $signature.TimeStamperCertificate.Subject
+        $timestampThumbprint = $signature.TimeStamperCertificate.Thumbprint
+        $timestampNotBefore = $signature.TimeStamperCertificate.NotBefore.ToString("u")
+        $timestampNotAfter = $signature.TimeStamperCertificate.NotAfter.ToString("u")
+    } elseif ($signature.Status -eq "Valid") {
+        $timestampStatus = "Missing"
     }
 
     $attestationStatus = if ($VerifyAttestations) { "NotVerified" } else { "NotRequested" }
@@ -120,6 +136,10 @@ foreach ($asset in $assets) {
         throw "$($asset.name) signature is $($signature.Status): $($signature.StatusMessage)"
     }
 
+    if ($RequireTimestampedSignatures -and $timestampStatus -ne "Present") {
+        throw "$($asset.name) signature does not include a trusted timestamp."
+    }
+
     if (-not [string]::IsNullOrWhiteSpace($ExpectedPublisherPattern) -and $signature.Status -eq "Valid" -and $publisher -notmatch $ExpectedPublisherPattern) {
         throw "$($asset.name) publisher '$publisher' does not match expected pattern '$ExpectedPublisherPattern'."
     }
@@ -139,6 +159,11 @@ foreach ($asset in $assets) {
         AttestationStatus = $attestationStatus
         SignatureStatus = $signature.Status.ToString()
         SignatureMessage = $signature.StatusMessage
+        TimestampStatus = $timestampStatus
+        TimestampAuthority = $timestampAuthority
+        TimestampCertificateThumbprint = $timestampThumbprint
+        TimestampCertificateNotBefore = $timestampNotBefore
+        TimestampCertificateNotAfter = $timestampNotAfter
         Publisher = $publisher
         CertificateThumbprint = $thumbprint
         CertificateNotBefore = $notBefore
@@ -172,11 +197,11 @@ $lines += "Generated: $((Get-Date).ToUniversalTime().ToString("u"))"
 $lines += ""
 $lines += "## Assets"
 $lines += ""
-$lines += "| File | SHA256 | Release checksum | Attestation | Signature | Publisher |"
-$lines += "| --- | --- | --- | --- | --- | --- |"
+$lines += "| File | SHA256 | Release checksum | Attestation | Signature | Timestamp | Publisher |"
+$lines += "| --- | --- | --- | --- | --- | --- | --- |"
 
 foreach ($row in $rows) {
-    $lines += '| `{0}` | `{1}` | `{2}` | `{3}` | `{4}` | {5} |' -f $row.File, $row.Sha256, $row.ChecksumStatus, $row.AttestationStatus, $row.SignatureStatus, $row.Publisher
+    $lines += '| `{0}` | `{1}` | `{2}` | `{3}` | `{4}` | `{5}` | {6} |' -f $row.File, $row.Sha256, $row.ChecksumStatus, $row.AttestationStatus, $row.SignatureStatus, $row.TimestampStatus, $row.Publisher
 }
 
 $lines += ""
@@ -184,6 +209,7 @@ $lines += "## SmartScreen Readiness"
 $lines += ""
 
 $invalidSignatures = @($rows | Where-Object { $_.SignatureStatus -ne "Valid" })
+$missingTimestamps = @($rows | Where-Object { $_.TimestampStatus -ne "Present" })
 $invalidChecksums = @($rows | Where-Object { $_.ChecksumStatus -ne "Valid" })
 $invalidAttestations = @($rows | Where-Object { $_.AttestationStatus -notin @("Valid", "NotRequested") })
 
@@ -191,6 +217,12 @@ if ($invalidSignatures.Count -eq 0) {
     $lines += "All Windows installers have valid Authenticode signatures."
 } else {
     $lines += "Not ready for public Windows distribution: one or more installers do not have valid Authenticode signatures."
+}
+
+if ($missingTimestamps.Count -eq 0) {
+    $lines += "All Windows installers have trusted Authenticode timestamps."
+} else {
+    $lines += "One or more Windows installers are missing trusted Authenticode timestamps."
 }
 
 if ($checksumAsset) {
@@ -238,16 +270,18 @@ foreach ($row in $rows) {
     $lines += "File: $($row.File)"
     $lines += "SHA256: $($row.Sha256)"
     $lines += "Signature status: $($row.SignatureStatus)"
+    $lines += "Signature timestamp: $($row.TimestampStatus)"
+    $lines += "Timestamp authority: $($row.TimestampAuthority)"
     $lines += "Certificate thumbprint: $($row.CertificateThumbprint)"
     $lines += ""
-    $lines += "This is an open-source screen recording application distributed from the official GitHub repository. The submitted installer was built by GitHub Actions from the tagged release, is signed by the publisher, and should be classified as safe. Please review it as a false positive / SmartScreen reputation issue."
+    $lines += "This is an open-source screen recording application distributed from the official GitHub repository. The submitted installer was built by GitHub Actions from the tagged release, is signed by the publisher with a trusted timestamp, and should be classified as safe. Please review it as a false positive / SmartScreen reputation issue."
     $lines += '```'
     $lines += ""
 }
 
 $lines | Set-Content -Encoding UTF8 -Path $reportPath
 
-$rows | Format-Table File, Sha256, ChecksumStatus, AttestationStatus, SignatureStatus, Publisher -AutoSize
+$rows | Format-Table File, Sha256, ChecksumStatus, AttestationStatus, SignatureStatus, TimestampStatus, Publisher -AutoSize
 if ($releaseChecksumPath) {
     Write-Output "Release checksums: $releaseChecksumPath"
 }

@@ -30,6 +30,7 @@ $verifyParams = @{
     Repository = $Repository
     OutputDirectory = $OutputDirectory
     RequireValidSignatures = $true
+    RequireTimestampedSignatures = $true
     VerifyChecksums = $true
     VerifyAttestations = $true
     GitHubToken = $GitHubToken
@@ -74,6 +75,9 @@ foreach ($asset in @($metadata.Assets)) {
     if ($asset.SignatureStatus -ne "Valid") {
         throw "$($asset.File) is not ready for WDSI because its signature status is $($asset.SignatureStatus)."
     }
+    if ($asset.TimestampStatus -ne "Present") {
+        throw "$($asset.File) is not ready for WDSI because its timestamp status is $($asset.TimestampStatus)."
+    }
     if ($asset.ChecksumStatus -ne "Valid") {
         throw "$($asset.File) is not ready for WDSI because its checksum status is $($asset.ChecksumStatus)."
     }
@@ -94,10 +98,12 @@ foreach ($asset in @($metadata.Assets)) {
         "File: $($asset.File)",
         "SHA256: $($asset.Sha256)",
         "Signature status: $($asset.SignatureStatus)",
+        "Signature timestamp: $($asset.TimestampStatus)",
+        "Timestamp authority: $($asset.TimestampAuthority)",
         "Certificate thumbprint: $($asset.CertificateThumbprint)",
         "GitHub artifact attestation: $($asset.AttestationStatus)",
         "",
-        "This is an open-source screen recording application distributed from the official GitHub repository. The submitted installer was built by GitHub Actions from the tagged release, is signed by the publisher, has a matching release checksum, and has a valid GitHub artifact attestation for the official repository. Please review it as a false positive / SmartScreen reputation issue."
+        "This is an open-source screen recording application distributed from the official GitHub repository. The submitted installer was built by GitHub Actions from the tagged release, is signed by the publisher with a trusted timestamp, has a matching release checksum, and has a valid GitHub artifact attestation for the official repository. Please review it as a false positive / SmartScreen reputation issue."
     ) | Set-Content -Encoding UTF8 -Path $submissionTextPath
 }
 
@@ -115,7 +121,7 @@ $checklistPath = Join-Path $packageRoot "wdsi-submission-checklist.md"
     "4. Paste the matching text from the submission-text directory.",
     "5. Attach or reference the evidence files if Microsoft asks for more context.",
     "",
-    "The installers in this package have valid Authenticode signatures, matching release checksums, and valid GitHub artifact attestations."
+    "The installers in this package have valid Authenticode signatures, trusted Authenticode timestamps, matching release checksums, and valid GitHub artifact attestations."
 ) | Set-Content -Encoding UTF8 -Path $checklistPath
 
 $zipPath = Join-Path $OutputDirectory "wdsi-submission-package-$Tag.zip"
