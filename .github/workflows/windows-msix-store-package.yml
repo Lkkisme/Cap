@@ -1,0 +1,183 @@
+name: Windows MSIX Store Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_name:
+        description: "MSIX package identity name"
+        required: true
+        default: "Lkkisme.CapCN"
+        type: string
+      publisher_name:
+        description: "MSIX publisher subject"
+        required: true
+        default: "CN=Lkkisme"
+        type: string
+      publisher_display_name:
+        description: "MSIX publisher display name"
+        required: true
+        default: "Lkkisme"
+        type: string
+
+permissions:
+  actions: read
+  attestations: write
+  contents: read
+  id-token: write
+
+env:
+  APP_CARGO_TOML: apps/desktop/src-tauri/Cargo.toml
+  RUST_BACKTRACE: "1"
+  TARGET: x86_64-pc-windows-msvc
+  TURBO_TELEMETRY_DISABLED: "1"
+
+jobs:
+  build:
+    name: Build Microsoft Store MSIX package
+    runs-on: windows-2022
+    timeout-minutes: 180
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Windows package metadata
+        shell: pwsh
+        env:
+          WINDOWS_PACKAGE_PUBLISHER: ${{ vars.WINDOWS_PACKAGE_PUBLISHER }}
+        run: .\scripts\validate-windows-app-metadata.ps1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.5.2
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@1.88.0
+        with:
+          targets: ${{ env.TARGET }}
+
+      - name: Cache Rust dependencies
+        uses: swatinem/rust-cache@v2
+        with:
+          shared-key: windows-msix-${{ env.TARGET }}
+
+      - name: Setup WinApp CLI
+        uses: microsoft/setup-WinAppCli@v0.1
+
+      - name: Configure LLVM
+        shell: pwsh
+        run: |
+          $llvmBin = "C:\Program Files\LLVM\bin"
+          if (-not (Test-Path (Join-Path $llvmBin "libclang.dll"))) {
+            choco install llvm -y --no-progress
+          }
+          "LIBCLANG_PATH=$llvmBin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Read desktop version
+        id: version
+        shell: pwsh
+        run: |
+          $cargoToml = Get-Content -Raw -Encoding UTF8 -LiteralPath $env:APP_CARGO_TOML
+          if ($cargoToml -notmatch '(?m)^version\s*=\s*"([^"]+)"') {
+            throw "Unable to read version from $env:APP_CARGO_TOML"
+          }
+          $version = $matches[1]
+          $numbers = @([regex]::Matches($version, "\d+") | ForEach-Object { $_.Value })
+          if ($numbers.Count -eq 0) {
+            throw "Version '$version' does not contain numeric components for MSIX."
+          }
+          while ($numbers.Count -lt 4) {
+            $numbers += "0"
+          }
+          if ($numbers.Count -gt 4) {
+            $numbers = $numbers[0..3]
+          }
+          $msixVersion = $numbers -join "."
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "msix_version=$msixVersion"
+
+      - name: Create build environment
+        shell: pwsh
+        run: |
+          Set-Content -Path .env -Encoding utf8 -Value @(
+            "appVersion=${{ steps.version.outputs.version }}",
+            "VITE_ENVIRONMENT=production",
+            "VITE_SERVER_URL=https://cap.so",
+            "NEXT_PUBLIC_WEB_URL=https://cap.so"
+          )
+
+      - name: Prepare native dependencies
+        run: pnpm -w cap-setup
+        env:
+          RUST_TARGET_TRIPLE: ${{ env.TARGET }}
+
+      - name: Build Windows app without bundling
+        working-directory: apps/desktop
+        run: pnpm build:tauri --target ${{ env.TARGET }} --config src-tauri/tauri.microsoft-store.conf.json --no-bundle
+        env:
+          CI: "false"
+          RUST_TARGET_TRIPLE: ${{ env.TARGET }}
+
+      - name: Stage MSIX layout
+        shell: pwsh
+        run: |
+          .\scripts\new-windows-msix-layout.ps1 `
+            -Target $env:TARGET `
+            -OutputDirectory msix-layout `
+            -PackageName "${{ inputs.package_name }}" `
+            -PublisherName "${{ inputs.publisher_name }}" `
+            -PublisherDisplayName "${{ inputs.publisher_display_name }}" `
+            -Version "${{ steps.version.outputs.msix_version }}"
+
+      - name: Generate MSIX image assets
+        shell: pwsh
+        run: winapp manifest update-assets apps\desktop\src-tauri\icons\icon.png --manifest msix-layout\Package.appxmanifest
+
+      - name: Pack MSIX
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path msix-assets -Force | Out-Null
+          $output = Join-Path "msix-assets" "Cap-CN-${{ steps.version.outputs.version }}-x64.msix"
+          winapp pack msix-layout --manifest msix-layout\Package.appxmanifest --executable Cap-CN.exe --output $output
+          Get-ChildItem -LiteralPath msix-assets -File | Select-Object FullName, Length | Format-Table -AutoSize
+
+      - name: Scan MSIX layout with Microsoft Defender
+        shell: pwsh
+        run: .\scripts\scan-windows-assets.ps1 -Path msix-layout -Include *.exe,*.dll -RequireScanner
+
+      - name: Scan MSIX package with Microsoft Defender
+        shell: pwsh
+        run: .\scripts\scan-windows-assets.ps1 -Path msix-assets -Include *.msix -RequireScanner
+
+      - name: Generate checksums
+        shell: pwsh
+        run: |
+          $lines = Get-ChildItem -Path msix-assets -File | ForEach-Object {
+            $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName
+            "$($hash.Hash)  $($_.Name)"
+          }
+          $lines | Set-Content -Encoding UTF8 -Path "msix-assets/SHA256SUMS.txt"
+          Get-Content -Path "msix-assets/SHA256SUMS.txt"
+
+      - name: Generate artifact attestations
+        uses: actions/attest@v4
+        with:
+          subject-path: msix-assets/*
+
+      - name: Upload Microsoft Store MSIX package
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msix-store-package-${{ steps.version.outputs.version }}
+          path: |
+            msix-assets/*
+            msix-layout/Package.appxmanifest
+            msix-layout/windows-msix-layout.json
+          if-no-files-found: error
