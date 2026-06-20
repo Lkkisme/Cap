@@ -46,6 +46,13 @@ function DownloadLinks({
 					<WindowsIcon />
 					Windows
 				</a>
+				<a
+					href="/download/windows-msi"
+					className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-3 text-gray-12 hover:bg-gray-4 transition-colors"
+				>
+					<WindowsIcon />
+					Windows MSI
+				</a>
 			</div>
 		);
 	}
@@ -81,6 +88,15 @@ function DownloadLinks({
 				>
 					<WindowsIcon />
 					Windows
+				</a>
+			)}
+			{downloads["windows-msi"] && (
+				<a
+					href={downloads["windows-msi"]}
+					className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-3 text-gray-12 hover:bg-gray-4 transition-colors"
+				>
+					<WindowsIcon />
+					Windows MSI
 				</a>
 			)}
 		</div>

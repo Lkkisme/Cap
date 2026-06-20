@@ -41,23 +41,11 @@ export const DownloadPage = () => {
 							{getVersionText(platform)}
 						</div>
 
-						{/* Windows SmartScreen video and instructions */}
 						{platform === "windows" && (
-							<div className="mt-4 max-w-md">
-								<video
-									src="/windows-smartscreen.mp4"
-									autoPlay
-									loop
-									muted
-									playsInline
-									className="mx-auto w-full rounded-md shadow-md"
-									style={{ maxWidth: "300px" }}
-								/>
-								<p className="mt-2 text-sm text-gray-8">
-									Whilst Cap for Windows is in early beta, after downloading and
-									running the app, follow the steps above to whitelist Cap on
-									your PC.
-								</p>
+							<div className="mt-4 max-w-md text-sm text-gray-8">
+								Windows downloads are served from verified GitHub Releases when
+								checksums are available. Microsoft Store distribution is the
+								recommended path for the smoothest install.
 							</div>
 						)}
 					</div>
@@ -121,7 +109,6 @@ export const DownloadPage = () => {
 					</div>
 				</div>
 
-				{/* Discreet SEO Links */}
 				<div className="pt-8 mt-32 text-xs border-t border-gray-5 text-gray-12">
 					<div className="flex flex-wrap gap-y-2 gap-x-4 justify-center items-center mx-auto max-w-lg">
 						<Link

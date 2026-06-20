@@ -1,4 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
+import {
+	GITHUB_RELEASES_URL,
+	getLatestWindowsDownload,
+} from "@/utils/releases";
 
 export const runtime = "edge";
 
@@ -9,34 +13,42 @@ export async function GET(
 	const params = await props.params;
 	const platform = params.platform.toLowerCase();
 
-	// Define download URLs for different platforms
+	if (
+		platform === "windows" ||
+		platform === "win" ||
+		platform === "windows-exe" ||
+		platform === "win-exe"
+	) {
+		const downloadUrl = await getLatestWindowsDownload("exe").catch(() => null);
+		return NextResponse.redirect(downloadUrl || GITHUB_RELEASES_URL);
+	}
+
+	if (platform === "windows-msi" || platform === "win-msi") {
+		const downloadUrl = await getLatestWindowsDownload("msi").catch(() => null);
+		return NextResponse.redirect(downloadUrl || GITHUB_RELEASES_URL);
+	}
+
 	const downloadUrls: Record<string, string> = {
 		"apple-intel":
 			"https://cdn.crabnebula.app/download/cap/cap/latest/platform/dmg-x86_64",
 		intel:
-			"https://cdn.crabnebula.app/download/cap/cap/latest/platform/dmg-x86_64", // Keep for backward compatibility
-		mac: "https://cdn.crabnebula.app/download/cap/cap/latest/platform/dmg-aarch64", // Default to Apple Silicon
+			"https://cdn.crabnebula.app/download/cap/cap/latest/platform/dmg-x86_64",
+		mac: "https://cdn.crabnebula.app/download/cap/cap/latest/platform/dmg-aarch64",
 		macos:
-			"https://cdn.crabnebula.app/download/cap/cap/latest/platform/dmg-aarch64", // Default to Apple Silicon
+			"https://cdn.crabnebula.app/download/cap/cap/latest/platform/dmg-aarch64",
 		"apple-silicon":
 			"https://cdn.crabnebula.app/download/cap/cap/latest/platform/dmg-aarch64",
 		aarch64:
 			"https://cdn.crabnebula.app/download/cap/cap/latest/platform/dmg-aarch64",
 		x86_64:
 			"https://cdn.crabnebula.app/download/cap/cap/latest/platform/dmg-x86_64",
-		windows:
-			"https://cdn.crabnebula.app/download/cap/cap/latest/platform/nsis-x86_64",
-		win: "https://cdn.crabnebula.app/download/cap/cap/latest/platform/nsis-x86_64",
 	};
 
-	// Get the download URL for the requested platform
 	const downloadUrl = downloadUrls[platform];
 
-	// If the platform is not supported, redirect to the main download page
 	if (!downloadUrl) {
 		return NextResponse.redirect(new URL("/download", request.url));
 	}
 
-	// Redirect to the appropriate download URL
 	return NextResponse.redirect(downloadUrl);
 }

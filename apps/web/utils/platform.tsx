@@ -9,7 +9,6 @@ export const getDownloadUrl = (
 	} else if (platform === "macos") {
 		return isIntel ? "/download/apple-intel" : "/download/apple-silicon";
 	} else {
-		// Default to Apple Silicon
 		return "/download/apple-silicon";
 	}
 };
@@ -83,7 +82,7 @@ export const PlatformIcons: React.FC = () => {
 			</div>
 			<div>
 				<a
-					href="/download"
+					href="/download/windows"
 					className="focus:outline-none"
 					aria-label="Download for Windows"
 				>

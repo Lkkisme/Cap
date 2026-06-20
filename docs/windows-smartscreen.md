@@ -113,7 +113,7 @@ Windows 安装包需要长期保持同一个应用身份，否则 SmartScreen、
 - 每个 Windows Release 都使用同一个已验证发布者签名，并带可信时间戳。
 - 每个正式构建都让 `WINDOWS_SIGNING_PUBLISHER_PATTERN` 匹配同一个 Authenticode subject，避免签名证书身份漂移导致声誉重新积累。
 - GitHub Release 和 Microsoft Store 包都使用离线 WebView2 安装模式，避免用户机器缺少 WebView2 时安装器还要联网下载依赖。
-- 优先推广 GitHub Release 的同一个安装包链接，让同一文件 hash 积累下载声誉。
+- 优先推广 GitHub Release 的同一个安装包链接，让同一文件 hash 积累下载声誉。Web 下载入口中的 `/download/windows` 和 `/download/windows-msi` 已改为读取 `Lkkisme/Cap` Release，并且只会直跳带 `SHA256SUMS.txt` 的 Windows 资产；如果当前最新公开 Release 仍是未签名旧包，则回到 Releases 页面而不是自动下载。
 - 已公开的 `cap-v*` Release 不要替换 EXE/MSI；如果需要重新发布安装包，创建新的 tag，让用户和微软都能看到清晰版本边界。
 - 保留源码、release notes、hash、签名信息，方便微软人工复核。
 - 发布后下载 Windows EXE/MSI，用 `Get-AuthenticodeSignature` 确认状态是 `Valid`，确认存在 `TimeStamperCertificate`，并用 Windows SDK `signtool verify /pa /tw` 复核。
