@@ -5,8 +5,8 @@ import {
 	getGitHubReleases,
 	getWindowsStoreDownloadUrl,
 	hasDownloads,
+	hasVerifiedWindowsEvidence,
 	type Release,
-	type ReleaseDownloads,
 } from "@/utils/releases";
 
 export const metadata: Metadata = {
@@ -17,14 +17,18 @@ export const metadata: Metadata = {
 export const revalidate = 3600;
 
 function DownloadLinks({
-	downloads,
+	release,
 	isLatest,
 	hasWindowsStoreUrl,
 }: {
-	downloads: ReleaseDownloads;
+	release: Release;
 	isLatest: boolean;
 	hasWindowsStoreUrl: boolean;
 }) {
+	const downloads = release.downloads;
+	const hasVerifiedWindowsDownloads = hasVerifiedWindowsEvidence(release);
+	const hasWindowsDownloads = !!(downloads.windows || downloads["windows-msi"]);
+
 	if (isLatest) {
 		return (
 			<div className="flex flex-wrap gap-2">
@@ -42,29 +46,38 @@ function DownloadLinks({
 					<AppleIcon />
 					Intel
 				</a>
-				<a
-					href="/download/windows"
-					className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-3 text-gray-12 hover:bg-gray-4 transition-colors"
-				>
-					<WindowsIcon />
-					{hasWindowsStoreUrl ? "Windows Store" : "Windows"}
-				</a>
-				{hasWindowsStoreUrl && (
+				{hasWindowsStoreUrl || hasVerifiedWindowsDownloads ? (
 					<a
-						href="/download/windows-exe"
+						href="/download/windows"
 						className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-3 text-gray-12 hover:bg-gray-4 transition-colors"
 					>
 						<WindowsIcon />
-						Windows EXE
+						{hasWindowsStoreUrl ? "Windows Store" : "Windows"}
 					</a>
+				) : (
+					<span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-2 text-gray-9">
+						<WindowsIcon />
+						Windows pending verification
+					</span>
 				)}
-				<a
-					href="/download/windows-msi"
-					className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-3 text-gray-12 hover:bg-gray-4 transition-colors"
-				>
-					<WindowsIcon />
-					Windows MSI
-				</a>
+				{hasVerifiedWindowsDownloads && (
+					<>
+						<a
+							href="/download/windows-exe"
+							className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-3 text-gray-12 hover:bg-gray-4 transition-colors"
+						>
+							<WindowsIcon />
+							Windows EXE
+						</a>
+						<a
+							href="/download/windows-msi"
+							className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-3 text-gray-12 hover:bg-gray-4 transition-colors"
+						>
+							<WindowsIcon />
+							Windows MSI
+						</a>
+					</>
+				)}
 			</div>
 		);
 	}
@@ -93,7 +106,7 @@ function DownloadLinks({
 					Intel
 				</a>
 			)}
-			{downloads.windows && (
+			{hasVerifiedWindowsDownloads && downloads.windows && (
 				<a
 					href={downloads.windows}
 					className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-3 text-gray-12 hover:bg-gray-4 transition-colors"
@@ -102,7 +115,7 @@ function DownloadLinks({
 					Windows
 				</a>
 			)}
-			{downloads["windows-msi"] && (
+			{hasVerifiedWindowsDownloads && downloads["windows-msi"] && (
 				<a
 					href={downloads["windows-msi"]}
 					className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-3 text-gray-12 hover:bg-gray-4 transition-colors"
@@ -110,6 +123,12 @@ function DownloadLinks({
 					<WindowsIcon />
 					Windows MSI
 				</a>
+			)}
+			{hasWindowsDownloads && !hasVerifiedWindowsDownloads && (
+				<span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-2 text-gray-9">
+					<WindowsIcon />
+					Windows pending verification
+				</span>
 			)}
 		</div>
 	);
@@ -166,7 +185,7 @@ function ReleaseRow({
 				</div>
 			</div>
 			<DownloadLinks
-				downloads={release.downloads}
+				release={release}
 				isLatest={isLatest}
 				hasWindowsStoreUrl={hasWindowsStoreUrl}
 			/>

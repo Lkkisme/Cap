@@ -258,20 +258,32 @@ export function hasDownloads(downloads: ReleaseDownloads): boolean {
 	);
 }
 
+export function hasVerifiedWindowsEvidence(
+	release: Pick<
+		Release,
+		| "hasChecksums"
+		| "hasWindowsAuditEvidence"
+		| "hasWindowsSmokeTestEvidence"
+		| "hasWindowsWingetEvidence"
+		| "hasWindowsWdsiEvidence"
+	>,
+): boolean {
+	return (
+		release.hasChecksums &&
+		release.hasWindowsAuditEvidence &&
+		release.hasWindowsSmokeTestEvidence &&
+		release.hasWindowsWingetEvidence &&
+		release.hasWindowsWdsiEvidence
+	);
+}
+
 export async function getLatestWindowsDownload(
 	installer: "exe" | "msi" = "exe",
 ): Promise<string | null> {
 	const releases = await getGitHubReleases();
 
 	for (const release of releases) {
-		if (
-			!release.hasChecksums ||
-			!release.hasWindowsAuditEvidence ||
-			!release.hasWindowsSmokeTestEvidence ||
-			!release.hasWindowsWingetEvidence ||
-			!release.hasWindowsWdsiEvidence
-		)
-			continue;
+		if (!hasVerifiedWindowsEvidence(release)) continue;
 
 		const download =
 			installer === "msi"
