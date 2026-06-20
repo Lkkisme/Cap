@@ -57,12 +57,10 @@ function Invoke-GitHubApi {
 function Test-EvidenceAsset {
   param(
     [string[]]$Names,
-    [string]$ExactName,
-    [string]$Prefix,
-    [string]$Suffix
+    [string]$AssetName
   )
 
-  @($Names | Where-Object { $_ -eq $ExactName -or ($_.StartsWith($Prefix) -and $_.EndsWith($Suffix)) }).Count -gt 0
+  $Names -contains $AssetName.ToLowerInvariant()
 }
 
 function Assert-Confirmation {
@@ -76,6 +74,7 @@ function Assert-Confirmation {
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 
 $encodedTag = [System.Uri]::EscapeDataString($Tag)
+$safeTag = ($Tag -replace '[^A-Za-z0-9._-]', '-').ToLowerInvariant()
 $release = Invoke-GitHubApi -Method "GET" -Path "releases/tags/$encodedTag"
 $assets = @($release.assets)
 $assetNames = @($assets | ForEach-Object { $_.name.ToLowerInvariant() })
@@ -88,14 +87,14 @@ $windowsAssets = @(
 
 $evidence = [ordered]@{
   hasChecksums = $assetNames -contains "sha256sums.txt"
-  hasWindowsAuditReport = Test-EvidenceAsset -Names $assetNames -ExactName "windows-smartscreen-report.md" -Prefix "windows-smartscreen-report-" -Suffix ".md"
-  hasWindowsAuditAssets = Test-EvidenceAsset -Names $assetNames -ExactName "windows-release-assets.json" -Prefix "windows-release-assets-" -Suffix ".json"
-  hasInstallerSmokeReport = Test-EvidenceAsset -Names $assetNames -ExactName "windows-installer-smoke-test-report.md" -Prefix "windows-installer-smoke-test-report-" -Suffix ".md"
-  hasInstallerSmokeResults = Test-EvidenceAsset -Names $assetNames -ExactName "windows-installer-smoke-test-results.json" -Prefix "windows-installer-smoke-test-results-" -Suffix ".json"
-  hasWingetManifest = Test-EvidenceAsset -Names $assetNames -ExactName "windows-winget-manifest.zip" -Prefix "windows-winget-manifest-" -Suffix ".zip"
-  hasWingetSubmission = Test-EvidenceAsset -Names $assetNames -ExactName "windows-winget-submission.md" -Prefix "windows-winget-submission-" -Suffix ".md"
-  hasWdsiChecklist = Test-EvidenceAsset -Names $assetNames -ExactName "windows-wdsi-submission-checklist.md" -Prefix "windows-wdsi-submission-checklist-" -Suffix ".md"
-  hasWdsiSubmissionText = Test-EvidenceAsset -Names $assetNames -ExactName "windows-wdsi-submission-text.zip" -Prefix "windows-wdsi-submission-text-" -Suffix ".zip"
+  hasWindowsAuditReport = Test-EvidenceAsset -Names $assetNames -AssetName "windows-smartscreen-report-$safeTag.md"
+  hasWindowsAuditAssets = Test-EvidenceAsset -Names $assetNames -AssetName "windows-release-assets-$safeTag.json"
+  hasInstallerSmokeReport = Test-EvidenceAsset -Names $assetNames -AssetName "windows-installer-smoke-test-report-$safeTag.md"
+  hasInstallerSmokeResults = Test-EvidenceAsset -Names $assetNames -AssetName "windows-installer-smoke-test-results-$safeTag.json"
+  hasWingetManifest = Test-EvidenceAsset -Names $assetNames -AssetName "windows-winget-manifest-$safeTag.zip"
+  hasWingetSubmission = Test-EvidenceAsset -Names $assetNames -AssetName "windows-winget-submission-$safeTag.md"
+  hasWdsiChecklist = Test-EvidenceAsset -Names $assetNames -AssetName "windows-wdsi-submission-checklist-$safeTag.md"
+  hasWdsiSubmissionText = Test-EvidenceAsset -Names $assetNames -AssetName "windows-wdsi-submission-text-$safeTag.zip"
 }
 
 $verifiedWindowsRelease = -not ($evidence.Values -contains $false)

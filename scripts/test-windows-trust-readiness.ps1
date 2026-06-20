@@ -247,18 +247,19 @@ if (-not [string]::IsNullOrWhiteSpace($Repository)) {
         $releases = @(Get-GitHubJson -Uri "https://api.github.com/repos/$Repository/releases?per_page=20" | Where-Object { -not $_.draft -and -not $_.prerelease -and $_.tag_name -like "cap-v*" })
         $latestRelease = $releases | Select-Object -First 1
         if ($latestRelease) {
-            $assetNames = @($latestRelease.assets | ForEach-Object { $_.name })
+            $assetNames = @($latestRelease.assets | ForEach-Object { $_.name.ToLowerInvariant() })
+            $safeTag = ($latestRelease.tag_name -replace '[^A-Za-z0-9._-]', '-').ToLowerInvariant()
             $hasExe = @($assetNames | Where-Object { $_ -match "windows.*\.exe$" }).Count -gt 0
             $hasMsi = @($assetNames | Where-Object { $_ -match "windows.*\.msi$" }).Count -gt 0
-            $hasChecksums = $assetNames -contains "SHA256SUMS.txt"
-            $hasAuditReport = @($assetNames | Where-Object { $_ -match "^windows-smartscreen-report.*\.md$" }).Count -gt 0
-            $hasAuditJson = @($assetNames | Where-Object { $_ -match "^windows-release-assets.*\.json$" }).Count -gt 0
-            $hasSmokeReport = @($assetNames | Where-Object { $_ -match "^windows-installer-smoke-test-report.*\.md$" }).Count -gt 0
-            $hasSmokeJson = @($assetNames | Where-Object { $_ -match "^windows-installer-smoke-test-results.*\.json$" }).Count -gt 0
-            $hasWingetManifest = @($assetNames | Where-Object { $_ -match "^windows-winget-manifest.*\.zip$" }).Count -gt 0
-            $hasWingetSubmission = @($assetNames | Where-Object { $_ -match "^windows-winget-submission.*\.md$" }).Count -gt 0
-            $hasWdsiChecklist = @($assetNames | Where-Object { $_ -match "^windows-wdsi-submission-checklist.*\.md$" }).Count -gt 0
-            $hasWdsiText = @($assetNames | Where-Object { $_ -match "^windows-wdsi-submission-text.*\.zip$" }).Count -gt 0
+            $hasChecksums = $assetNames -contains "sha256sums.txt"
+            $hasAuditReport = $assetNames -contains "windows-smartscreen-report-$safeTag.md"
+            $hasAuditJson = $assetNames -contains "windows-release-assets-$safeTag.json"
+            $hasSmokeReport = $assetNames -contains "windows-installer-smoke-test-report-$safeTag.md"
+            $hasSmokeJson = $assetNames -contains "windows-installer-smoke-test-results-$safeTag.json"
+            $hasWingetManifest = $assetNames -contains "windows-winget-manifest-$safeTag.zip"
+            $hasWingetSubmission = $assetNames -contains "windows-winget-submission-$safeTag.md"
+            $hasWdsiChecklist = $assetNames -contains "windows-wdsi-submission-checklist-$safeTag.md"
+            $hasWdsiText = $assetNames -contains "windows-wdsi-submission-text-$safeTag.zip"
 
             $missingEvidence = @()
             if (-not $hasExe) { $missingEvidence += "Windows EXE" }

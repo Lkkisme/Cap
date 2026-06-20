@@ -99,6 +99,10 @@ function extractVersionFromTag(tagName: string): string {
 	return tagName.replace(/^cap-v/, "").replace(/^v/, "");
 }
 
+function safeReleaseTag(tagName: string): string {
+	return tagName.replace(/[^A-Za-z0-9._-]/g, "-").toLowerCase();
+}
+
 function normalizeMicrosoftStoreUrl(value: string | undefined): string | null {
 	if (!value) return null;
 
@@ -127,75 +131,56 @@ export function getWindowsStoreDownloadUrl(): string | null {
 	return null;
 }
 
-function hasWindowsAuditEvidence(assets: GitHubReleaseAsset[]): boolean {
+function hasAssetNamed(assets: GitHubReleaseAsset[], name: string): boolean {
 	const names = assets.map((asset) => asset.name.toLowerCase());
-	const hasReport = names.some(
-		(name) =>
-			name === "windows-smartscreen-report.md" ||
-			(name.startsWith("windows-smartscreen-report-") &&
-				name.endsWith(".md")),
-	);
-	const hasAssetManifest = names.some(
-		(name) =>
-			name === "windows-release-assets.json" ||
-			(name.startsWith("windows-release-assets-") && name.endsWith(".json")),
-	);
-
-	return hasReport && hasAssetManifest;
+	return names.includes(name.toLowerCase());
 }
 
-function hasWindowsSmokeTestEvidence(assets: GitHubReleaseAsset[]): boolean {
-	const names = assets.map((asset) => asset.name.toLowerCase());
-	const hasReport = names.some(
-		(name) =>
-			name === "windows-installer-smoke-test-report.md" ||
-			(name.startsWith("windows-installer-smoke-test-report-") &&
-				name.endsWith(".md")),
+function hasWindowsAuditEvidence(
+	assets: GitHubReleaseAsset[],
+	tagName: string,
+): boolean {
+	const safeTag = safeReleaseTag(tagName);
+	return (
+		hasAssetNamed(assets, `windows-smartscreen-report-${safeTag}.md`) &&
+		hasAssetNamed(assets, `windows-release-assets-${safeTag}.json`)
 	);
-	const hasResults = names.some(
-		(name) =>
-			name === "windows-installer-smoke-test-results.json" ||
-			(name.startsWith("windows-installer-smoke-test-results-") &&
-				name.endsWith(".json")),
-	);
-
-	return hasReport && hasResults;
 }
 
-function hasWindowsWdsiEvidence(assets: GitHubReleaseAsset[]): boolean {
-	const names = assets.map((asset) => asset.name.toLowerCase());
-	const hasChecklist = names.some(
-		(name) =>
-			name === "windows-wdsi-submission-checklist.md" ||
-			(name.startsWith("windows-wdsi-submission-checklist-") &&
-				name.endsWith(".md")),
+function hasWindowsSmokeTestEvidence(
+	assets: GitHubReleaseAsset[],
+	tagName: string,
+): boolean {
+	const safeTag = safeReleaseTag(tagName);
+	return (
+		hasAssetNamed(assets, `windows-installer-smoke-test-report-${safeTag}.md`) &&
+		hasAssetNamed(
+			assets,
+			`windows-installer-smoke-test-results-${safeTag}.json`,
+		)
 	);
-	const hasSubmissionText = names.some(
-		(name) =>
-			name === "windows-wdsi-submission-text.zip" ||
-			(name.startsWith("windows-wdsi-submission-text-") &&
-				name.endsWith(".zip")),
-	);
-
-	return hasChecklist && hasSubmissionText;
 }
 
-function hasWindowsWingetEvidence(assets: GitHubReleaseAsset[]): boolean {
-	const names = assets.map((asset) => asset.name.toLowerCase());
-	const hasManifest = names.some(
-		(name) =>
-			name === "windows-winget-manifest.zip" ||
-			(name.startsWith("windows-winget-manifest-") &&
-				name.endsWith(".zip")),
+function hasWindowsWdsiEvidence(
+	assets: GitHubReleaseAsset[],
+	tagName: string,
+): boolean {
+	const safeTag = safeReleaseTag(tagName);
+	return (
+		hasAssetNamed(assets, `windows-wdsi-submission-checklist-${safeTag}.md`) &&
+		hasAssetNamed(assets, `windows-wdsi-submission-text-${safeTag}.zip`)
 	);
-	const hasSubmission = names.some(
-		(name) =>
-			name === "windows-winget-submission.md" ||
-			(name.startsWith("windows-winget-submission-") &&
-				name.endsWith(".md")),
-	);
+}
 
-	return hasManifest && hasSubmission;
+function hasWindowsWingetEvidence(
+	assets: GitHubReleaseAsset[],
+	tagName: string,
+): boolean {
+	const safeTag = safeReleaseTag(tagName);
+	return (
+		hasAssetNamed(assets, `windows-winget-manifest-${safeTag}.zip`) &&
+		hasAssetNamed(assets, `windows-winget-submission-${safeTag}.md`)
+	);
 }
 
 export async function getGitHubReleases(): Promise<Release[]> {
@@ -237,12 +222,22 @@ export async function getGitHubReleases(): Promise<Release[]> {
 				hasChecksums: (release.assets || []).some(
 					(asset) => asset.name === "SHA256SUMS.txt",
 				),
-				hasWindowsAuditEvidence: hasWindowsAuditEvidence(release.assets || []),
+				hasWindowsAuditEvidence: hasWindowsAuditEvidence(
+					release.assets || [],
+					release.tag_name,
+				),
 				hasWindowsSmokeTestEvidence: hasWindowsSmokeTestEvidence(
 					release.assets || [],
+					release.tag_name,
 				),
-				hasWindowsWingetEvidence: hasWindowsWingetEvidence(release.assets || []),
-				hasWindowsWdsiEvidence: hasWindowsWdsiEvidence(release.assets || []),
+				hasWindowsWingetEvidence: hasWindowsWingetEvidence(
+					release.assets || [],
+					release.tag_name,
+				),
+				hasWindowsWdsiEvidence: hasWindowsWdsiEvidence(
+					release.assets || [],
+					release.tag_name,
+				),
 			};
 		});
 }

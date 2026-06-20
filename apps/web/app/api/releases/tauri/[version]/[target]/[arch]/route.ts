@@ -16,71 +16,34 @@ function assetNames(assets: ReleaseAsset[]) {
 	return assets.map((asset) => asset.name.toLowerCase());
 }
 
-function hasEvidenceAsset(
-	names: string[],
-	exactName: string,
-	prefix: string,
-	suffix: string,
-) {
-	return names.some(
-		(name) =>
-			name === exactName || (name.startsWith(prefix) && name.endsWith(suffix)),
-	);
+function safeReleaseTag(tagName: string) {
+	return tagName.replace(/[^A-Za-z0-9._-]/g, "-").toLowerCase();
 }
 
-function hasVerifiedWindowsEvidence(assets: ReleaseAsset[]) {
+function hasAssetNamed(names: string[], name: string) {
+	return names.includes(name.toLowerCase());
+}
+
+function hasVerifiedWindowsEvidence(assets: ReleaseAsset[], tagName: string) {
 	const names = assetNames(assets);
+	const safeTag = safeReleaseTag(tagName);
 
 	return (
 		names.includes("sha256sums.txt") &&
-		hasEvidenceAsset(
+		hasAssetNamed(names, `windows-smartscreen-report-${safeTag}.md`) &&
+		hasAssetNamed(names, `windows-release-assets-${safeTag}.json`) &&
+		hasAssetNamed(
 			names,
-			"windows-smartscreen-report.md",
-			"windows-smartscreen-report-",
-			".md",
+			`windows-installer-smoke-test-report-${safeTag}.md`,
 		) &&
-		hasEvidenceAsset(
+		hasAssetNamed(
 			names,
-			"windows-release-assets.json",
-			"windows-release-assets-",
-			".json",
+			`windows-installer-smoke-test-results-${safeTag}.json`,
 		) &&
-		hasEvidenceAsset(
-			names,
-			"windows-installer-smoke-test-report.md",
-			"windows-installer-smoke-test-report-",
-			".md",
-		) &&
-		hasEvidenceAsset(
-			names,
-			"windows-installer-smoke-test-results.json",
-			"windows-installer-smoke-test-results-",
-			".json",
-		) &&
-		hasEvidenceAsset(
-			names,
-			"windows-winget-manifest.zip",
-			"windows-winget-manifest-",
-			".zip",
-		) &&
-		hasEvidenceAsset(
-			names,
-			"windows-winget-submission.md",
-			"windows-winget-submission-",
-			".md",
-		) &&
-		hasEvidenceAsset(
-			names,
-			"windows-wdsi-submission-checklist.md",
-			"windows-wdsi-submission-checklist-",
-			".md",
-		) &&
-		hasEvidenceAsset(
-			names,
-			"windows-wdsi-submission-text.zip",
-			"windows-wdsi-submission-text-",
-			".zip",
-		)
+		hasAssetNamed(names, `windows-winget-manifest-${safeTag}.zip`) &&
+		hasAssetNamed(names, `windows-winget-submission-${safeTag}.md`) &&
+		hasAssetNamed(names, `windows-wdsi-submission-checklist-${safeTag}.md`) &&
+		hasAssetNamed(names, `windows-wdsi-submission-text-${safeTag}.zip`)
 	);
 }
 
@@ -137,7 +100,10 @@ export async function GET(
 		});
 		const assets = release.assets as ReleaseAsset[];
 
-		if (isWindowsTarget(target, arch) && !hasVerifiedWindowsEvidence(assets)) {
+		if (
+			isWindowsTarget(target, arch) &&
+			!hasVerifiedWindowsEvidence(assets, release.tag_name)
+		) {
 			return new Response(null, {
 				status: 204,
 			});
