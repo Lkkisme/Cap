@@ -15,6 +15,7 @@ export interface Release {
 	hasChecksums: boolean;
 	hasWindowsAuditEvidence: boolean;
 	hasWindowsSmokeTestEvidence: boolean;
+	hasWindowsWingetEvidence: boolean;
 	hasWindowsWdsiEvidence: boolean;
 }
 
@@ -181,6 +182,24 @@ function hasWindowsWdsiEvidence(assets: GitHubReleaseAsset[]): boolean {
 	return hasChecklist && hasSubmissionText;
 }
 
+function hasWindowsWingetEvidence(assets: GitHubReleaseAsset[]): boolean {
+	const names = assets.map((asset) => asset.name.toLowerCase());
+	const hasManifest = names.some(
+		(name) =>
+			name === "windows-winget-manifest.zip" ||
+			(name.startsWith("windows-winget-manifest-") &&
+				name.endsWith(".zip")),
+	);
+	const hasSubmission = names.some(
+		(name) =>
+			name === "windows-winget-submission.md" ||
+			(name.startsWith("windows-winget-submission-") &&
+				name.endsWith(".md")),
+	);
+
+	return hasManifest && hasSubmission;
+}
+
 export async function getGitHubReleases(): Promise<Release[]> {
 	const response = await fetch(
 		"https://api.github.com/repos/Lkkisme/Cap/releases?per_page=100",
@@ -224,6 +243,7 @@ export async function getGitHubReleases(): Promise<Release[]> {
 				hasWindowsSmokeTestEvidence: hasWindowsSmokeTestEvidence(
 					release.assets || [],
 				),
+				hasWindowsWingetEvidence: hasWindowsWingetEvidence(release.assets || []),
 				hasWindowsWdsiEvidence: hasWindowsWdsiEvidence(release.assets || []),
 			};
 		});
@@ -248,6 +268,7 @@ export async function getLatestWindowsDownload(
 			!release.hasChecksums ||
 			!release.hasWindowsAuditEvidence ||
 			!release.hasWindowsSmokeTestEvidence ||
+			!release.hasWindowsWingetEvidence ||
 			!release.hasWindowsWdsiEvidence
 		)
 			continue;

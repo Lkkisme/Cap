@@ -38,7 +38,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
@@ -106,6 +106,46 @@ jobs:
           } else {
             Write-Host "winget is not available on this runner; upload the manifest artifact and run winget validate locally or in winget-pkgs."
           }
+
+      - name: Attach WinGet manifest to release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $manifestRoot = "packaging\winget\manifests"
+          if (-not (Test-Path -LiteralPath $manifestRoot)) {
+            throw "Missing WinGet manifest directory."
+          }
+
+          $manifestFiles = @(Get-ChildItem -LiteralPath $manifestRoot -Filter *.yaml -File -Recurse)
+          if ($manifestFiles.Count -eq 0) {
+            throw "No WinGet manifest YAML files were generated."
+          }
+
+          $safeTag = $env:RELEASE_TAG -replace "[^A-Za-z0-9._-]", "-"
+          $manifestUpload = "windows-winget-manifest-$safeTag.zip"
+          $submissionUpload = "windows-winget-submission-$safeTag.md"
+
+          Compress-Archive -Path (Join-Path $manifestRoot "*") -DestinationPath $manifestUpload -Force
+
+          @(
+            "# Windows WinGet Submission",
+            "",
+            "Package identifier: $env:PACKAGE_IDENTIFIER",
+            "Package name: $env:PACKAGE_NAME",
+            "Publisher: $env:PUBLISHER",
+            "Release tag: $env:RELEASE_TAG",
+            "Repository: https://github.com/${{ github.repository }}",
+            "",
+            "1. Download and extract ``$manifestUpload``.",
+            "2. Copy the extracted manifest directory into a fork of ``microsoft/winget-pkgs``.",
+            "3. Run ``winget validate <manifest-folder>``.",
+            "4. Open a pull request to ``microsoft/winget-pkgs``.",
+            "",
+            "The manifest generator verified the signed Windows installer, release checksum, and GitHub artifact attestation before producing these files."
+          ) | Set-Content -Encoding UTF8 -LiteralPath $submissionUpload
+
+          gh release upload $env:RELEASE_TAG $manifestUpload $submissionUpload --repo $env:GITHUB_REPOSITORY --clobber
 
       - name: Upload WinGet manifest
         uses: actions/upload-artifact@v4
