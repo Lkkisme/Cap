@@ -65,4 +65,15 @@ if ($missing.Count -gt 0) {
     throw "Windows signing provider '$provider' is missing: $($missing -join ', ')."
 }
 
+$publisherPattern = $env:WINDOWS_SIGNING_PUBLISHER_PATTERN
+if ([string]::IsNullOrWhiteSpace($publisherPattern)) {
+    throw "WINDOWS_SIGNING_PUBLISHER_PATTERN must be set to a regex matching the Authenticode publisher subject."
+}
+
+try {
+    [regex]::new($publisherPattern) | Out-Null
+} catch {
+    throw "WINDOWS_SIGNING_PUBLISHER_PATTERN is not a valid regex: $($_.Exception.Message)"
+}
+
 Write-Host "Windows signing provider '$provider' is configured."

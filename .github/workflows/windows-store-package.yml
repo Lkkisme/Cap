@@ -42,6 +42,7 @@ jobs:
         shell: pwsh
         env:
           WINDOWS_SIGNING_PROVIDER: ${{ vars.WINDOWS_SIGNING_PROVIDER }}
+          WINDOWS_SIGNING_PUBLISHER_PATTERN: ${{ vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
           AZURE_ARTIFACT_SIGNING_ENDPOINT: ${{ vars.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
           AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME: ${{ vars.AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME }}
           AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME: ${{ vars.AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME }}
@@ -308,14 +309,17 @@ jobs:
       - name: Verify store signatures
         if: steps.signing.outputs.provider == 'azure-artifact-signing' || steps.signing.outputs.provider == 'pfx' || steps.signing.outputs.provider == 'signpath'
         shell: pwsh
+        env:
+          WINDOWS_SIGNING_PUBLISHER_PATTERN: ${{ vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
         run: |
           $files = Get-ChildItem -Path store-assets -Include *.exe,*.msi -File -Recurse
           if (-not $files) {
             throw "No Windows Store installers found to verify."
           }
           foreach ($file in $files) {
-            $result = .\scripts\test-windows-authenticode.ps1 -Path $file.FullName -RequireValidSignature -RequireTimestamp -RequireSignToolVerification
+            $result = .\scripts\test-windows-authenticode.ps1 -Path $file.FullName -RequireValidSignature -RequireTimestamp -RequireSignToolVerification -ExpectedPublisherPattern $env:WINDOWS_SIGNING_PUBLISHER_PATTERN
             Write-Host "$($file.Name): $($result.SignatureStatus)"
+            Write-Host "$($file.Name) publisher: $($result.Publisher)"
             Write-Host "$($file.Name) timestamp: $($result.TimestampAuthority)"
             Write-Host "$($file.Name) signtool: $($result.SignToolStatus)"
           }

@@ -10,7 +10,7 @@ on:
         required: true
         type: string
       expected_publisher_pattern:
-        description: "Optional regex for the Authenticode publisher subject"
+        description: "Optional override for vars.WINDOWS_SIGNING_PUBLISHER_PATTERN"
         required: false
         default: ""
         type: string
@@ -20,7 +20,7 @@ permissions:
 
 env:
   RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
-  EXPECTED_PUBLISHER_PATTERN: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_publisher_pattern || '' }}
+  EXPECTED_PUBLISHER_PATTERN: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_publisher_pattern || vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
 
 jobs:
   audit:
@@ -50,6 +50,8 @@ jobs:
 
           if (-not [string]::IsNullOrWhiteSpace($env:EXPECTED_PUBLISHER_PATTERN)) {
             $params.ExpectedPublisherPattern = $env:EXPECTED_PUBLISHER_PATTERN
+          } else {
+            throw "Set expected_publisher_pattern or vars.WINDOWS_SIGNING_PUBLISHER_PATTERN before auditing Windows release assets."
           }
 
           & .\scripts\verify-windows-release.ps1 @params

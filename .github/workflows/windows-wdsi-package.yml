@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       expected_publisher_pattern:
-        description: "Optional regex for the Authenticode publisher subject"
+        description: "Optional override for vars.WINDOWS_SIGNING_PUBLISHER_PATTERN"
         required: false
         default: ""
         type: string
@@ -29,7 +29,7 @@ jobs:
         shell: pwsh
         env:
           RELEASE_TAG: ${{ inputs.tag }}
-          EXPECTED_PUBLISHER_PATTERN: ${{ inputs.expected_publisher_pattern }}
+          EXPECTED_PUBLISHER_PATTERN: ${{ inputs.expected_publisher_pattern || vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $params = @{
@@ -40,6 +40,8 @@ jobs:
 
           if (-not [string]::IsNullOrWhiteSpace($env:EXPECTED_PUBLISHER_PATTERN)) {
             $params.ExpectedPublisherPattern = $env:EXPECTED_PUBLISHER_PATTERN
+          } else {
+            throw "Set expected_publisher_pattern or vars.WINDOWS_SIGNING_PUBLISHER_PATTERN before generating a WDSI package."
           }
 
           & .\scripts\new-wdsi-submission-package.ps1 @params
