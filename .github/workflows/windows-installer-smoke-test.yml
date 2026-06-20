@@ -1,0 +1,67 @@
+name: Windows Installer Smoke Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Signed Windows release tag"
+        required: true
+        type: string
+      expected_publisher_pattern:
+        description: "Optional override for vars.WINDOWS_SIGNING_PUBLISHER_PATTERN"
+        required: false
+        default: ""
+        type: string
+      product_name:
+        description: "Windows Add/Remove Programs product name"
+        required: true
+        default: "Cap 中文版"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Test Windows installer install and uninstall
+    runs-on: windows-2022
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify release assets
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          EXPECTED_PUBLISHER_PATTERN: ${{ inputs.expected_publisher_pattern || vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:EXPECTED_PUBLISHER_PATTERN)) {
+            throw "Set expected_publisher_pattern or vars.WINDOWS_SIGNING_PUBLISHER_PATTERN before running the installer smoke test."
+          }
+
+          & .\scripts\verify-windows-release.ps1 `
+            -Tag $env:RELEASE_TAG `
+            -Repository "${{ github.repository }}" `
+            -OutputDirectory "windows-installer-smoke-test" `
+            -RequireValidSignatures `
+            -RequireTimestampedSignatures `
+            -RequireSignToolVerification `
+            -VerifyChecksums `
+            -VerifyAttestations `
+            -ExpectedPublisherPattern $env:EXPECTED_PUBLISHER_PATTERN
+
+      - name: Test silent install and uninstall
+        shell: pwsh
+        env:
+          PRODUCT_NAME: ${{ inputs.product_name }}
+        run: .\scripts\test-windows-installers.ps1 -Path windows-installer-smoke-test -ProductName $env:PRODUCT_NAME -RemoveExisting
+
+      - name: Upload smoke test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer-smoke-test-${{ inputs.tag }}
+          path: windows-installer-smoke-test/**
+          if-no-files-found: ignore

@@ -78,12 +78,15 @@ Release workflow 已支持三种 Windows 签名方式：
 ### 5. 发布后验证和 WDSI 提交流程
 
 - 新增 `.github/workflows/windows-release-audit.yml`。
+- 新增 `.github/workflows/windows-installer-smoke-test.yml`。
 - 新增 `.github/workflows/windows-wdsi-package.yml`。
 - 新增 `scripts/verify-windows-release.ps1`。
 - 新增 `scripts/scan-windows-assets.ps1`。
 - 新增 `scripts/new-wdsi-submission-package.ps1`。
 - 新增 `scripts/test-windows-authenticode.ps1`。
+- 新增 `scripts/test-windows-installers.ps1`。
 - `Windows Release Audit` 会在 `cap-v*` Release published 后自动审计，也可以手动对指定 Release tag 执行审计。
+- `Windows Installer Smoke Test` 会下载已签名 Release，审计签名/checksum/attestation 后测试 EXE/MSI 静默安装和卸载。
 - `Windows WDSI Package` 可以为已签名、已审计的 Release 生成微软复核材料包。
 - `Windows Release` 和 `Windows Store Package` 会在上传产物前用 Microsoft Defender 扫描 Windows EXE/MSI。
 - 脚本可以下载指定 GitHub Release 的 Windows EXE/MSI。
@@ -161,9 +164,10 @@ Release workflow 已支持三种 Windows 签名方式：
 2. 确认通过。
 3. 手动运行 `Windows Release` 或创建新的 `cap-v*` tag；正式发布保持 `require_signing=true`，未签名测试只能作为 draft。
 4. 等待自动触发的 `Windows Release Audit` 通过，或手动输入刚发布的 tag 重新审计，确认签名发布者、可信时间戳、SignTool 复核、SHA256 和 artifact attestation 都通过。
-5. 如需 WinGet 分发，手动运行 `Windows WinGet Manifest`，下载生成的 manifest 并提交到 `microsoft/winget-pkgs`。
-6. 下载 EXE/MSI，用 `Get-AuthenticodeSignature` 确认签名为 `Valid`，并确认存在 `TimeStamperCertificate`。
-7. 如仍出现 SmartScreen 误拦截，运行 `Windows WDSI Package`，再把安装包和生成的说明文本提交到 Microsoft WDSI。
+5. 手动运行 `Windows Installer Smoke Test`，确认 EXE/MSI 可以静默安装和卸载。
+6. 如需 WinGet 分发，手动运行 `Windows WinGet Manifest`，下载生成的 manifest 并提交到 `microsoft/winget-pkgs`。
+7. 下载 EXE/MSI，用 `Get-AuthenticodeSignature` 确认签名为 `Valid`，并确认存在 `TimeStamperCertificate`。
+8. 如仍出现 SmartScreen 误拦截，运行 `Windows WDSI Package`，再把安装包和生成的说明文本提交到 Microsoft WDSI。
 
 ### 方案 C：SignPath 或 PFX
 

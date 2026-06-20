@@ -115,6 +115,7 @@ Windows 安装包需要长期保持同一个应用身份，否则 SmartScreen、
 - 保留源码、release notes、hash、签名信息，方便微软人工复核。
 - 发布后下载 Windows EXE/MSI，用 `Get-AuthenticodeSignature` 确认状态是 `Valid`，确认存在 `TimeStamperCertificate`，并用 Windows SDK `signtool verify /pa /tw` 复核。
 - 发布后等待自动触发的 `Windows Release Audit` workflow 通过，确认 Release 中的 Windows EXE/MSI 签名发布者匹配、带可信时间戳、通过 SignTool 复核、匹配 `SHA256SUMS.txt`，并且通过 GitHub artifact attestation 验证。
+- 发布后手动运行 `Windows Installer Smoke Test` workflow，确认 Release 中的 EXE/MSI 能在干净 Windows runner 上静默安装并卸载。
 - 需要 WinGet 分发时，在审计通过后运行 `Windows WinGet Manifest` workflow，并把生成的 manifest 提交到 `microsoft/winget-pkgs`。
 - 如果 Windows 包开始被拦截，运行 `Windows WDSI Package` 生成复核材料，再提交签名后的 EXE/MSI 到 https://www.microsoft.com/en-us/wdsi/filesubmission。
 
@@ -167,6 +168,17 @@ powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag
 
 当前 `cap-v0.4.3-cn` 的 Windows EXE/MSI 验证结果是 `NotSigned`。启用任一签名后端并重新发布后，应重新运行该脚本并确认状态为 `Valid`。
 
+## 安装器静默安装测试
+
+手动运行 GitHub Actions 中的 `Windows Installer Smoke Test` workflow，输入已签名 Release tag。它会先复用发布后验证脚本确认签名、可信时间戳、SignTool、`SHA256SUMS.txt` 和 GitHub artifact attestation 都通过，然后在 Windows runner 上测试：
+
+1. NSIS EXE 使用 `/S` 静默安装
+2. MSI 使用 `/quiet /norestart` 静默安装
+3. 安装后能在 Windows uninstall registry 中找到产品项
+4. 安装器能静默卸载并清理产品项
+
+这个测试不能代替真实用户机器覆盖，但能提前发现 Store 提交和企业部署最容易卡住的静默安装问题。
+
 ## WDSI 复核材料包
 
 如果签名后的安装包仍被 SmartScreen 或 Microsoft Defender 误拦截，可以手动运行 GitHub Actions 中的 `Windows WDSI Package` workflow。输入已通过 `Windows Release Audit` 的 Release tag 后，它会：
@@ -186,10 +198,11 @@ powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag
 1. 完成 Windows 签名配置。
 2. 运行 `Windows Release` 生成签名后的公开 Release。
 3. 等待自动触发的 `Windows Release Audit` 通过，确认签名、可信时间戳、SignTool 复核、`SHA256SUMS.txt` 和 GitHub artifact attestation 都通过。
-4. 运行 `Windows WinGet Manifest`，输入刚发布的 tag。
-5. 下载 workflow artifact `winget-manifest-<tag>`。
-6. 在本地或 `microsoft/winget-pkgs` fork 中运行 `winget validate <manifest-folder>`。
-7. 按 Windows Package Manager 文档把 manifest 提交到 `microsoft/winget-pkgs`。
+4. 运行 `Windows Installer Smoke Test`，确认静默安装和卸载通过。
+5. 运行 `Windows WinGet Manifest`，输入刚发布的 tag。
+6. 下载 workflow artifact `winget-manifest-<tag>`。
+7. 在本地或 `microsoft/winget-pkgs` fork 中运行 `winget validate <manifest-folder>`。
+8. 按 Windows Package Manager 文档把 manifest 提交到 `microsoft/winget-pkgs`。
 
 生成器默认使用 Windows x64 MSI，因为 MSI 更适合包管理器安装和升级。默认包名是 `Lkkisme.CapCN`，如果最终签名发布者名称不是 `Lkkisme`，运行 workflow 时应把 `package_identifier` 和 `publisher` 改成与签名发布者和 Add/Remove Programs 中显示的名称一致。
 
@@ -210,7 +223,8 @@ attestation 不能代替代码签名，但能证明产物来自该仓库的 GitH
 5. 在 Partner Center 上传或链接离线安装包。
 6. 如果使用 NSIS EXE，静默安装参数填写 `/S`。
 7. 如果使用 MSI，静默安装参数填写 `/quiet`。
-8. 提交审核。
+8. 对同版本 Release 运行 `Windows Installer Smoke Test`，确认静默安装参数已通过真实安装测试。
+9. 提交审核。
 
 Store workflow 使用 `apps/desktop/src-tauri/tauri.microsoft-store.conf.json`，其中设置了离线 WebView2 安装模式。Store 提交仍要求安装包签名，所以推荐先配置 `azure-artifact-signing` 或 `signpath`。
 
