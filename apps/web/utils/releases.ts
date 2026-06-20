@@ -19,6 +19,12 @@ export interface Release {
 
 export const GITHUB_RELEASES_URL = "https://github.com/Lkkisme/Cap/releases";
 
+const MICROSOFT_STORE_HOSTS = new Set([
+	"apps.microsoft.com",
+	"www.microsoft.com",
+	"microsoft.com",
+]);
+
 interface GitHubRelease {
 	tag_name: string;
 	name: string;
@@ -91,6 +97,34 @@ function parseDownloadsFromAssets(assets: GitHubReleaseAsset[]): ReleaseDownload
 
 function extractVersionFromTag(tagName: string): string {
 	return tagName.replace(/^cap-v/, "").replace(/^v/, "");
+}
+
+function normalizeMicrosoftStoreUrl(value: string | undefined): string | null {
+	if (!value) return null;
+
+	try {
+		const url = new URL(value.trim());
+		if (url.protocol !== "https:") return null;
+		if (!MICROSOFT_STORE_HOSTS.has(url.hostname.toLowerCase())) return null;
+		return url.toString();
+	} catch {
+		return null;
+	}
+}
+
+export function getWindowsStoreDownloadUrl(): string | null {
+	const candidates = [
+		process.env.NEXT_PUBLIC_WINDOWS_STORE_URL,
+		process.env.WINDOWS_STORE_URL,
+		process.env.CAP_WINDOWS_STORE_URL,
+	];
+
+	for (const candidate of candidates) {
+		const url = normalizeMicrosoftStoreUrl(candidate);
+		if (url) return url;
+	}
+
+	return null;
 }
 
 function hasWindowsAuditEvidence(assets: GitHubReleaseAsset[]): boolean {

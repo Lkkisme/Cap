@@ -43,10 +43,9 @@ export const DownloadPage = () => {
 
 						{platform === "windows" && (
 							<div className="mt-4 max-w-md text-sm text-gray-8">
-								Windows downloads are served from verified GitHub Releases when
-								checksums, SmartScreen audit evidence, and installer smoke test
-								evidence are available. Microsoft Store distribution is the
-								recommended path for the smoothest install.
+								Windows downloads prefer Microsoft Store when available, then
+								verified GitHub Releases with checksums, SmartScreen audit
+								evidence, and installer smoke test evidence.
 							</div>
 						)}
 					</div>

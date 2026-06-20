@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import {
 	getGitHubReleases,
+	getWindowsStoreDownloadUrl,
 	hasDownloads,
 	type Release,
 	type ReleaseDownloads,
@@ -18,9 +19,11 @@ export const revalidate = 3600;
 function DownloadLinks({
 	downloads,
 	isLatest,
+	hasWindowsStoreUrl,
 }: {
 	downloads: ReleaseDownloads;
 	isLatest: boolean;
+	hasWindowsStoreUrl: boolean;
 }) {
 	if (isLatest) {
 		return (
@@ -44,8 +47,17 @@ function DownloadLinks({
 					className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-3 text-gray-12 hover:bg-gray-4 transition-colors"
 				>
 					<WindowsIcon />
-					Windows
+					{hasWindowsStoreUrl ? "Windows Store" : "Windows"}
 				</a>
+				{hasWindowsStoreUrl && (
+					<a
+						href="/download/windows-exe"
+						className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-3 text-gray-12 hover:bg-gray-4 transition-colors"
+					>
+						<WindowsIcon />
+						Windows EXE
+					</a>
+				)}
 				<a
 					href="/download/windows-msi"
 					className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-3 text-gray-12 hover:bg-gray-4 transition-colors"
@@ -122,9 +134,11 @@ function WindowsIcon() {
 function ReleaseRow({
 	release,
 	isLatest,
+	hasWindowsStoreUrl,
 }: {
 	release: Release;
 	isLatest: boolean;
+	hasWindowsStoreUrl: boolean;
 }) {
 	return (
 		<div className="flex flex-col gap-3 p-4 rounded-lg border border-gray-5 bg-gray-1 md:flex-row md:items-center md:justify-between">
@@ -151,7 +165,11 @@ function ReleaseRow({
 					</a>
 				</div>
 			</div>
-			<DownloadLinks downloads={release.downloads} isLatest={isLatest} />
+			<DownloadLinks
+				downloads={release.downloads}
+				isLatest={isLatest}
+				hasWindowsStoreUrl={hasWindowsStoreUrl}
+			/>
 		</div>
 	);
 }
@@ -159,6 +177,7 @@ function ReleaseRow({
 export default async function VersionsPage() {
 	let releases: Release[] = [];
 	let error: string | null = null;
+	const hasWindowsStoreUrl = !!getWindowsStoreDownloadUrl();
 
 	try {
 		releases = await getGitHubReleases();
@@ -208,6 +227,7 @@ export default async function VersionsPage() {
 								key={release.tagName}
 								release={release}
 								isLatest={index === 0}
+								hasWindowsStoreUrl={hasWindowsStoreUrl}
 							/>
 						))}
 					</div>

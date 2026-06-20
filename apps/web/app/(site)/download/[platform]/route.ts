@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import {
 	GITHUB_RELEASES_URL,
 	getLatestWindowsDownload,
+	getWindowsStoreDownloadUrl,
 } from "@/utils/releases";
 
 export const runtime = "edge";
@@ -13,12 +14,20 @@ export async function GET(
 	const params = await props.params;
 	const platform = params.platform.toLowerCase();
 
-	if (
-		platform === "windows" ||
-		platform === "win" ||
-		platform === "windows-exe" ||
-		platform === "win-exe"
-	) {
+	if (platform === "windows" || platform === "win") {
+		const storeUrl = getWindowsStoreDownloadUrl();
+		if (storeUrl) return NextResponse.redirect(storeUrl);
+
+		const downloadUrl = await getLatestWindowsDownload("exe").catch(() => null);
+		return NextResponse.redirect(downloadUrl || GITHUB_RELEASES_URL);
+	}
+
+	if (platform === "windows-store" || platform === "win-store") {
+		const storeUrl = getWindowsStoreDownloadUrl();
+		return NextResponse.redirect(storeUrl || GITHUB_RELEASES_URL);
+	}
+
+	if (platform === "windows-exe" || platform === "win-exe") {
 		const downloadUrl = await getLatestWindowsDownload("exe").catch(() => null);
 		return NextResponse.redirect(downloadUrl || GITHUB_RELEASES_URL);
 	}
