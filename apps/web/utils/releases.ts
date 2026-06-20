@@ -13,6 +13,7 @@ export interface Release {
 	htmlUrl: string;
 	downloads: ReleaseDownloads;
 	hasChecksums: boolean;
+	hasWindowsAuditEvidence: boolean;
 }
 
 export const GITHUB_RELEASES_URL = "https://github.com/Lkkisme/Cap/releases";
@@ -91,6 +92,23 @@ function extractVersionFromTag(tagName: string): string {
 	return tagName.replace(/^cap-v/, "").replace(/^v/, "");
 }
 
+function hasWindowsAuditEvidence(assets: GitHubReleaseAsset[]): boolean {
+	const names = assets.map((asset) => asset.name.toLowerCase());
+	const hasReport = names.some(
+		(name) =>
+			name === "windows-smartscreen-report.md" ||
+			(name.startsWith("windows-smartscreen-report-") &&
+				name.endsWith(".md")),
+	);
+	const hasAssetManifest = names.some(
+		(name) =>
+			name === "windows-release-assets.json" ||
+			(name.startsWith("windows-release-assets-") && name.endsWith(".json")),
+	);
+
+	return hasReport && hasAssetManifest;
+}
+
 export async function getGitHubReleases(): Promise<Release[]> {
 	const response = await fetch(
 		"https://api.github.com/repos/Lkkisme/Cap/releases?per_page=100",
@@ -130,6 +148,7 @@ export async function getGitHubReleases(): Promise<Release[]> {
 				hasChecksums: (release.assets || []).some(
 					(asset) => asset.name === "SHA256SUMS.txt",
 				),
+				hasWindowsAuditEvidence: hasWindowsAuditEvidence(release.assets || []),
 			};
 		});
 }
@@ -149,7 +168,7 @@ export async function getLatestWindowsDownload(
 	const releases = await getGitHubReleases();
 
 	for (const release of releases) {
-		if (!release.hasChecksums) continue;
+		if (!release.hasChecksums || !release.hasWindowsAuditEvidence) continue;
 
 		const download =
 			installer === "msi"

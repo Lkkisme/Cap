@@ -23,7 +23,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
@@ -63,10 +63,39 @@ jobs:
 
           & .\scripts\verify-windows-release.ps1 @params
 
+      - name: Attach audit evidence to release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $report = "windows-release-audit\windows-smartscreen-report.md"
+          $assetManifest = "windows-release-audit\windows-release-assets.json"
+
+          if (-not (Test-Path -LiteralPath $report)) {
+            throw "Missing Windows SmartScreen report."
+          }
+
+          if (-not (Test-Path -LiteralPath $assetManifest)) {
+            throw "Missing Windows release asset manifest."
+          }
+
+          $safeTag = $env:RELEASE_TAG -replace "[^A-Za-z0-9._-]", "-"
+          $reportUpload = "windows-smartscreen-report-$safeTag.md"
+          $assetManifestUpload = "windows-release-assets-$safeTag.json"
+
+          Copy-Item -LiteralPath $report -Destination $reportUpload -Force
+          Copy-Item -LiteralPath $assetManifest -Destination $assetManifestUpload -Force
+
+          gh release upload $env:RELEASE_TAG $reportUpload $assetManifestUpload --repo $env:GITHUB_REPOSITORY --clobber
+
       - name: Upload audit report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: windows-release-audit-${{ env.RELEASE_TAG }}
-          path: windows-release-audit/*
+          path: |
+            windows-release-audit/windows-smartscreen-report.md
+            windows-release-audit/windows-release-assets.json
+            windows-release-audit/SHA256SUMS.txt
+            windows-release-audit/release-SHA256SUMS.txt
           if-no-files-found: ignore
