@@ -507,6 +507,7 @@ impl AsyncVideoDecoderHandle {
     }
 }
 
+#[cfg(target_os = "macos")]
 async fn spawn_ffmpeg_decoder(
     name: &'static str,
     path: PathBuf,
