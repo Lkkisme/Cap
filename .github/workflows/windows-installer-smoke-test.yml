@@ -28,7 +28,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
@@ -67,12 +67,51 @@ jobs:
 
       - name: Test silent install and uninstall
         shell: pwsh
-        run: .\scripts\test-windows-installers.ps1 -Path windows-installer-smoke-test -ProductName $env:PRODUCT_NAME -RemoveExisting
+        run: |
+          .\scripts\test-windows-installers.ps1 `
+            -Path windows-installer-smoke-test `
+            -ProductName $env:PRODUCT_NAME `
+            -RemoveExisting `
+            -ReportPath "windows-installer-smoke-test\windows-installer-smoke-test-report.md" `
+            -JsonPath "windows-installer-smoke-test\windows-installer-smoke-test-results.json"
+
+      - name: Attach smoke test evidence to release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $report = "windows-installer-smoke-test\windows-installer-smoke-test-report.md"
+          $results = "windows-installer-smoke-test\windows-installer-smoke-test-results.json"
+
+          if (-not (Test-Path -LiteralPath $report)) {
+            throw "Missing Windows installer smoke test report."
+          }
+
+          if (-not (Test-Path -LiteralPath $results)) {
+            throw "Missing Windows installer smoke test results."
+          }
+
+          $safeTag = $env:RELEASE_TAG -replace "[^A-Za-z0-9._-]", "-"
+          $reportUpload = "windows-installer-smoke-test-report-$safeTag.md"
+          $resultsUpload = "windows-installer-smoke-test-results-$safeTag.json"
+
+          Copy-Item -LiteralPath $report -Destination $reportUpload -Force
+          Copy-Item -LiteralPath $results -Destination $resultsUpload -Force
+
+          gh release upload $env:RELEASE_TAG $reportUpload $resultsUpload --repo $env:GITHUB_REPOSITORY --clobber
 
       - name: Upload smoke test evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer-smoke-test-${{ env.RELEASE_TAG }}
-          path: windows-installer-smoke-test/**
+          path: |
+            windows-installer-smoke-test/windows-installer-smoke-test-report.md
+            windows-installer-smoke-test/windows-installer-smoke-test-results.json
+            windows-installer-smoke-test/windows-smartscreen-report.md
+            windows-installer-smoke-test/windows-release-assets.json
+            windows-installer-smoke-test/SHA256SUMS.txt
+            windows-installer-smoke-test/release-SHA256SUMS.txt
+            windows-installer-smoke-test/*-install.log
+            windows-installer-smoke-test/*-uninstall.log
           if-no-files-found: ignore

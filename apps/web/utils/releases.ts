@@ -14,6 +14,7 @@ export interface Release {
 	downloads: ReleaseDownloads;
 	hasChecksums: boolean;
 	hasWindowsAuditEvidence: boolean;
+	hasWindowsSmokeTestEvidence: boolean;
 }
 
 export const GITHUB_RELEASES_URL = "https://github.com/Lkkisme/Cap/releases";
@@ -109,6 +110,24 @@ function hasWindowsAuditEvidence(assets: GitHubReleaseAsset[]): boolean {
 	return hasReport && hasAssetManifest;
 }
 
+function hasWindowsSmokeTestEvidence(assets: GitHubReleaseAsset[]): boolean {
+	const names = assets.map((asset) => asset.name.toLowerCase());
+	const hasReport = names.some(
+		(name) =>
+			name === "windows-installer-smoke-test-report.md" ||
+			(name.startsWith("windows-installer-smoke-test-report-") &&
+				name.endsWith(".md")),
+	);
+	const hasResults = names.some(
+		(name) =>
+			name === "windows-installer-smoke-test-results.json" ||
+			(name.startsWith("windows-installer-smoke-test-results-") &&
+				name.endsWith(".json")),
+	);
+
+	return hasReport && hasResults;
+}
+
 export async function getGitHubReleases(): Promise<Release[]> {
 	const response = await fetch(
 		"https://api.github.com/repos/Lkkisme/Cap/releases?per_page=100",
@@ -149,6 +168,9 @@ export async function getGitHubReleases(): Promise<Release[]> {
 					(asset) => asset.name === "SHA256SUMS.txt",
 				),
 				hasWindowsAuditEvidence: hasWindowsAuditEvidence(release.assets || []),
+				hasWindowsSmokeTestEvidence: hasWindowsSmokeTestEvidence(
+					release.assets || [],
+				),
 			};
 		});
 }
@@ -168,7 +190,12 @@ export async function getLatestWindowsDownload(
 	const releases = await getGitHubReleases();
 
 	for (const release of releases) {
-		if (!release.hasChecksums || !release.hasWindowsAuditEvidence) continue;
+		if (
+			!release.hasChecksums ||
+			!release.hasWindowsAuditEvidence ||
+			!release.hasWindowsSmokeTestEvidence
+		)
+			continue;
 
 		const download =
 			installer === "msi"

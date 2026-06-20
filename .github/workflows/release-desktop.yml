@@ -551,7 +551,7 @@ jobs:
 
             If Windows signing is configured, the EXE and MSI are Authenticode signed and verified before upload. New publishers or new files can still show SmartScreen warnings until Microsoft reputation builds.
 
-            SHA256SUMS.txt can be used to verify downloaded files. Verified public releases also include windows-smartscreen-report-<tag>.md and windows-release-assets-<tag>.json after the Windows release audit passes.
+            SHA256SUMS.txt can be used to verify downloaded files. Verified public releases also include windows-smartscreen-report-<tag>.md, windows-release-assets-<tag>.json, windows-installer-smoke-test-report-<tag>.md, and windows-installer-smoke-test-results-<tag>.json after the Windows release audit and installer smoke test pass.
 
       - name: Run Windows release evidence workflows
         if: needs.metadata.outputs.draft != 'true' && needs.metadata.outputs.require_signing == 'true'
@@ -636,6 +636,8 @@ jobs:
           require_asset "SHA256SUMS.txt"
           require_asset "windows-smartscreen-report-$safe_tag.md"
           require_asset "windows-release-assets-$safe_tag.json"
+          require_asset "windows-installer-smoke-test-report-$safe_tag.md"
+          require_asset "windows-installer-smoke-test-results-$safe_tag.json"
 
       - name: Publish verified GitHub release
         if: needs.metadata.outputs.draft != 'true'

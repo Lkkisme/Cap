@@ -3,10 +3,13 @@ param(
     [string]$Path,
     [string]$ProductName = "Cap $([char]0x4E2D)$([char]0x6587)$([char]0x7248)",
     [int]$TimeoutSeconds = 600,
-    [switch]$RemoveExisting
+    [switch]$RemoveExisting,
+    [string]$ReportPath = "",
+    [string]$JsonPath = ""
 )
 
 $ErrorActionPreference = "Stop"
+$startedAt = (Get-Date).ToUniversalTime()
 
 function Quote-Argument {
     param([string]$Value)
@@ -196,3 +199,48 @@ foreach ($installer in $installers) {
 
 $results | Format-Table File, Type, InstallExitCode, UninstallExitCode -AutoSize
 Write-Host "Silent installer smoke test passed for $($results.Count) installer(s)."
+
+$completedAt = (Get-Date).ToUniversalTime()
+
+if (-not [string]::IsNullOrWhiteSpace($JsonPath)) {
+    $jsonDirectory = Split-Path -Parent $JsonPath
+    if (-not [string]::IsNullOrWhiteSpace($jsonDirectory)) {
+        New-Item -ItemType Directory -Path $jsonDirectory -Force | Out-Null
+    }
+
+    [pscustomobject]@{
+        ProductName = $ProductName
+        Path = $item.FullName
+        TimeoutSeconds = $TimeoutSeconds
+        StartedAt = $startedAt.ToString("o")
+        CompletedAt = $completedAt.ToString("o")
+        InstallerCount = $results.Count
+        Results = $results
+    } | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 -LiteralPath $JsonPath
+}
+
+if (-not [string]::IsNullOrWhiteSpace($ReportPath)) {
+    $reportDirectory = Split-Path -Parent $ReportPath
+    if (-not [string]::IsNullOrWhiteSpace($reportDirectory)) {
+        New-Item -ItemType Directory -Path $reportDirectory -Force | Out-Null
+    }
+
+    $lines = @()
+    $lines += "# Windows Installer Smoke Test Report"
+    $lines += ""
+    $lines += "Product: $ProductName"
+    $lines += "Started: $($startedAt.ToString("o"))"
+    $lines += "Completed: $($completedAt.ToString("o"))"
+    $lines += "Installer count: $($results.Count)"
+    $lines += ""
+    $lines += "## Results"
+    $lines += ""
+    $lines += "| File | Type | Install exit code | Uninstall exit code |"
+    $lines += "| --- | --- | --- | --- |"
+    foreach ($result in $results) {
+        $lines += "| $($result.File) | $($result.Type) | $($result.InstallExitCode) | $($result.UninstallExitCode) |"
+    }
+    $lines += ""
+    $lines += "All listed installers completed silent install, created an Add/Remove Programs entry, completed silent uninstall, and removed the Add/Remove Programs entry on the Windows runner."
+    $lines | Set-Content -Encoding UTF8 -LiteralPath $ReportPath
+}
