@@ -7,12 +7,15 @@ $ErrorActionPreference = "Stop"
 
 $provider = $env:WINDOWS_SIGNING_PROVIDER
 if ($provider) {
-    $provider = $provider.Trim()
+    $provider = $provider.Trim().ToLowerInvariant()
 }
 
 $allowedProviders = @("azure-artifact-signing", "signpath", "pfx")
 
 if ([string]::IsNullOrWhiteSpace($provider)) {
+    if ($env:GITHUB_OUTPUT) {
+        "provider=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+    }
     if ($RequireSigning -or -not $AllowUnsigned) {
         throw "WINDOWS_SIGNING_PROVIDER must be set to azure-artifact-signing, signpath, or pfx."
     }
@@ -22,6 +25,10 @@ if ([string]::IsNullOrWhiteSpace($provider)) {
 
 if (-not $allowedProviders.Contains($provider)) {
     throw "Unsupported WINDOWS_SIGNING_PROVIDER '$provider'. Use azure-artifact-signing, signpath, or pfx."
+}
+
+if ($env:GITHUB_OUTPUT) {
+    "provider=$provider" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 }
 
 $requiredByProvider = @{
