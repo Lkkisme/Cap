@@ -3049,7 +3049,7 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: PathBuf) {
                                 tokio::spawn(cleanup_camera_window(app.clone()));
                             }
                             CapWindowId::Main => {
-                                if CapWindowId::Settings.get(&app).is_some() {
+                                if CapWindowId::Settings.get(app).is_some() {
                                     api.prevent_close();
                                     return;
                                 }
