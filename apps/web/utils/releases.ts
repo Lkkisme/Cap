@@ -18,6 +18,7 @@ export interface Release {
 	hasWindowsSmokeTestEvidence: boolean;
 	hasWindowsWingetEvidence: boolean;
 	hasWindowsWdsiEvidence: boolean;
+	hasWindowsPackageSet: boolean;
 }
 
 interface GitHubRelease {
@@ -217,6 +218,24 @@ function getWindowsPackageAssetNames(assets: GitHubReleaseAsset[]): string[] {
 		.map((asset) => asset.name);
 }
 
+function hasWindowsPackageSet(assets: GitHubReleaseAsset[]): boolean {
+	const names = assets.map((asset) => asset.name.toLowerCase());
+	const hasExe = names.some(
+		(name) => name.includes("windows") && name.endsWith(".exe"),
+	);
+	const hasMsi = names.some(
+		(name) => name.includes("windows") && name.endsWith(".msi"),
+	);
+	const hasPortableZip = names.some(
+		(name) =>
+			name.includes("windows") &&
+			name.includes("portable") &&
+			name.endsWith(".zip"),
+	);
+
+	return hasExe && hasMsi && hasPortableZip;
+}
+
 async function fetchJsonAsset<T>(asset: GitHubReleaseAsset): Promise<T | null> {
 	try {
 		const response = await fetch(asset.browser_download_url, {
@@ -259,6 +278,7 @@ export async function hasVerifiedWindowsReleaseAssetEvidence(
 	tagName: string,
 ): Promise<boolean> {
 	return (
+		hasWindowsPackageSet(assets) &&
 		hasAssetNamed(assets, "SHA256SUMS.txt") &&
 		(await hasWindowsAuditEvidence(assets, tagName)) &&
 		hasWindowsSmokeTestEvidence(assets, tagName) &&
@@ -410,6 +430,7 @@ export async function getGitHubReleases(): Promise<Release[]> {
 					assets,
 					release.tag_name,
 				),
+				hasWindowsPackageSet: hasWindowsPackageSet(assets),
 			};
 		}),
 	);
@@ -433,9 +454,11 @@ export function hasVerifiedWindowsEvidence(
 		| "hasWindowsSmokeTestEvidence"
 		| "hasWindowsWingetEvidence"
 		| "hasWindowsWdsiEvidence"
+		| "hasWindowsPackageSet"
 	>,
 ): boolean {
 	return (
+		release.hasWindowsPackageSet &&
 		release.hasChecksums &&
 		release.hasWindowsAuditEvidence &&
 		release.hasWindowsSmokeTestEvidence &&
