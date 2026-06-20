@@ -310,7 +310,9 @@ Test-WorkflowFile -Path (Join-Path $repoRoot ".github\workflows\windows-msix-sto
 Test-WorkflowFile -Path (Join-Path $repoRoot ".github\workflows\windows-store-package.yml") -Name "Windows Store Package"
 Test-WorkflowFile -Path (Join-Path $repoRoot ".github\workflows\windows-winget-manifest.yml") -Name "Windows WinGet Manifest"
 Test-WorkflowFile -Path (Join-Path $repoRoot ".github\workflows\windows-wdsi-package.yml") -Name "Windows WDSI Package"
+Test-WorkflowFile -Path (Join-Path $repoRoot ".github\workflows\windows-release-asset-mirror.yml") -Name "Windows Release Asset Mirror"
 Test-WorkflowFile -Path (Join-Path $repoRoot "scripts\write-windows-build-env.ps1") -Name "Windows build environment writer"
+Test-WorkflowFile -Path (Join-Path $repoRoot "scripts\sync-windows-release-assets.ps1") -Name "Windows release asset mirror script"
 
 Test-WorkflowContainsText -Path (Join-Path $repoRoot "scripts\write-windows-build-env.ps1") -Name "Windows Release updater check" -Text "VITE_DISABLE_UPDATER=true" -Detail "Windows Release builds disable the desktop updater UI and use the guarded download page for manual downloads." -NextAction "Restore VITE_DISABLE_UPDATER=true in the Windows Release build environment writer."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\release-desktop.yml") -Name "Windows Release download URL writer" -Text "write-windows-build-env.ps1" -Detail "Windows Release writes download URLs through the shared validation script." -NextAction "Use scripts/write-windows-build-env.ps1 when creating the Windows Release .env file."
@@ -331,6 +333,10 @@ Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-
 Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-installer-smoke-test.yml") -Name "Windows Installer Smoke Test attestations permission" -Text "attestations: read" -Detail "Windows Installer Smoke Test can verify GitHub artifact attestations before installing assets." -NextAction "Grant attestations: read before calling gh attestation verify."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-winget-manifest.yml") -Name "Windows WinGet Manifest attestations permission" -Text "attestations: read" -Detail "Windows WinGet Manifest can verify GitHub artifact attestations before generating package metadata." -NextAction "Grant attestations: read before calling gh attestation verify."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-wdsi-package.yml") -Name "Windows WDSI Package attestations permission" -Text "attestations: read" -Detail "Windows WDSI Package can verify GitHub artifact attestations before preparing Defender submission evidence." -NextAction "Grant attestations: read before calling gh attestation verify."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-release-asset-mirror.yml") -Name "Windows Release Asset Mirror evidence gate" -Text "protect-windows-release-assets.ps1" -Detail "Windows Release Asset Mirror verifies release evidence before uploading Windows packages to the trusted mirror." -NextAction "Verify release evidence with protect-windows-release-assets.ps1 before mirroring assets."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-release-asset-mirror.yml") -Name "Windows Release Asset Mirror sync script" -Text "sync-windows-release-assets.ps1" -Detail "Windows Release Asset Mirror uploads only the verified Windows package and evidence asset set." -NextAction "Restore scripts/sync-windows-release-assets.ps1 in the mirror workflow."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot "scripts\sync-windows-release-assets.ps1") -Name "Windows Release Asset Mirror package set gate" -Text "Windows EXE, MSI, and portable ZIP are all required before mirroring." -Detail "The mirror upload script refuses incomplete Windows package sets." -NextAction "Restore the complete Windows package set gate in scripts/sync-windows-release-assets.ps1."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot "scripts\sync-windows-release-assets.ps1") -Name "Windows Release Asset Mirror evidence set gate" -Text 'windows-wdsi-submission-text-$safeTag.zip' -Detail "The mirror upload script requires SmartScreen, smoke test, WinGet, and WDSI evidence before uploading." -NextAction "Restore the required evidence asset list in scripts/sync-windows-release-assets.ps1."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-store-package.yml") -Name "Windows Store signing gate" -Text ".\scripts\validate-windows-signing.ps1 -RequireSigning" -Detail "Windows Store EXE/MSI packages always require a configured Windows signing provider." -NextAction "Restore the required signing gate before generating Store EXE/MSI submission packages."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-store-package.yml") -Name "Windows Store signature manifest gate" -Text '$params.RequireValidSignature = $true' -Detail "Windows Store submission packages require valid Authenticode signatures in the generated package manifest." -NextAction "Restore RequireValidSignature for Store EXE/MSI submission package generation."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot "scripts\new-windows-store-submission-package.ps1") -Name "Windows Store product update JSON" -Text "microsoft-store-product-update.json" -Detail "Windows Store submission packages include the product-update JSON used by Microsoft Store Submission." -NextAction "Restore microsoft-store-product-update.json generation in scripts/new-windows-store-submission-package.ps1."
@@ -384,6 +390,30 @@ if (Test-TrustedWindowsAssetBaseUrl -Value $windowsAssetBaseUrl) {
     Add-Check -Area "Distribution path" -Item "Windows release asset mirror" -Status "fail" -Detail "Windows release asset mirror URL is not a trusted public HTTPS base URL." -NextAction "Set WINDOWS_RELEASE_ASSET_BASE_URL to your own versioned CDN or deployed website URL, not GitHub Releases, localhost, or upstream cap.so."
 } else {
     Add-Check -Area "Distribution path" -Item "Windows release asset mirror" -Status "warning" -Detail "No project-controlled Windows release asset mirror is configured." -NextAction "Set WINDOWS_RELEASE_ASSET_BASE_URL after publishing signed release assets to your own versioned HTTPS CDN or website path."
+}
+
+$mirrorUploadInputNames = @(
+    "WINDOWS_RELEASE_ASSET_BUCKET",
+    "WINDOWS_RELEASE_ASSET_AWS_ACCESS_KEY_ID_SET",
+    "WINDOWS_RELEASE_ASSET_AWS_SECRET_ACCESS_KEY_SET"
+)
+$missingMirrorUploadInputs = @()
+foreach ($name in $mirrorUploadInputNames) {
+    if ($name.EndsWith("_SET")) {
+        if (-not (ConvertTo-Bool ([Environment]::GetEnvironmentVariable($name)))) {
+            $missingMirrorUploadInputs += $name
+        }
+    } elseif ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+        $missingMirrorUploadInputs += $name
+    }
+}
+
+if (Test-TrustedWindowsAssetBaseUrl -Value $windowsAssetBaseUrl -and $missingMirrorUploadInputs.Count -eq 0) {
+    Add-Check -Area "Distribution path" -Item "Windows release asset mirror upload" -Status "pass" -Detail "Windows release asset mirror upload inputs are configured."
+} elseif (Test-TrustedWindowsAssetBaseUrl -Value $windowsAssetBaseUrl) {
+    Add-Check -Area "Distribution path" -Item "Windows release asset mirror upload" -Status "fail" -Detail "Missing Windows release asset mirror upload inputs: $($missingMirrorUploadInputs -join ', ')." -NextAction "Configure WINDOWS_RELEASE_ASSET_BUCKET and the Windows release asset AWS access key secrets before publishing mirrored downloads."
+} else {
+    Add-Check -Area "Distribution path" -Item "Windows release asset mirror upload" -Status "warning" -Detail "Windows release asset mirror upload is not configured." -NextAction "Configure the mirror URL, bucket, and upload secrets before using Windows Release Asset Mirror."
 }
 
 $storeCredentialNames = @(

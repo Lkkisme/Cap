@@ -1,0 +1,131 @@
+name: Windows Release Asset Mirror
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to mirror"
+        required: true
+        type: string
+      dry_run:
+        description: "Validate and report without uploading"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  actions: read
+  attestations: read
+  contents: read
+
+env:
+  WINDOWS_RELEASE_ASSET_BUCKET: ${{ vars.WINDOWS_RELEASE_ASSET_BUCKET }}
+  WINDOWS_RELEASE_ASSET_PREFIX: ${{ vars.WINDOWS_RELEASE_ASSET_PREFIX }}
+  WINDOWS_RELEASE_ASSET_BASE_URL: ${{ vars.WINDOWS_RELEASE_ASSET_BASE_URL }}
+  WINDOWS_RELEASE_ASSET_S3_ENDPOINT_URL: ${{ vars.WINDOWS_RELEASE_ASSET_S3_ENDPOINT_URL }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.WINDOWS_RELEASE_ASSET_AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.WINDOWS_RELEASE_ASSET_AWS_SECRET_ACCESS_KEY }}
+  AWS_REGION: ${{ vars.WINDOWS_RELEASE_ASSET_AWS_REGION || 'auto' }}
+
+jobs:
+  mirror:
+    name: Mirror verified Windows release assets
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve release tag
+        id: release
+        shell: bash
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "release" ]; then
+            tag="${{ github.event.release.tag_name }}"
+            dry_run="false"
+          else
+            tag="${{ inputs.tag }}"
+            dry_run="${{ inputs.dry_run }}"
+          fi
+
+          if [ -z "$tag" ]; then
+            echo "Release tag is required." >&2
+            exit 1
+          fi
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "dry_run=$dry_run" >> "$GITHUB_OUTPUT"
+
+      - name: Validate mirror configuration
+        shell: bash
+        run: |
+          missing=()
+          [ -n "$WINDOWS_RELEASE_ASSET_BUCKET" ] || missing+=("WINDOWS_RELEASE_ASSET_BUCKET")
+          [ -n "$WINDOWS_RELEASE_ASSET_BASE_URL" ] || missing+=("WINDOWS_RELEASE_ASSET_BASE_URL")
+
+          if [ "${{ steps.release.outputs.dry_run }}" != "true" ]; then
+            [ -n "$AWS_ACCESS_KEY_ID" ] || missing+=("WINDOWS_RELEASE_ASSET_AWS_ACCESS_KEY_ID")
+            [ -n "$AWS_SECRET_ACCESS_KEY" ] || missing+=("WINDOWS_RELEASE_ASSET_AWS_SECRET_ACCESS_KEY")
+          fi
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            printf 'Missing mirror configuration: %s\n' "${missing[*]}" >&2
+            exit 1
+          fi
+
+      - name: Verify release evidence gate
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ steps.release.outputs.tag }}
+        run: |
+          $params = @{
+            Repository = $env:GITHUB_REPOSITORY
+            Tag = $env:TAG_NAME
+            Mode = "report"
+            OutputDirectory = "windows-release-asset-mirror-gate"
+            FailOnUnsafe = $true
+          }
+          .\scripts\protect-windows-release-assets.ps1 @params
+
+      - name: Download release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ steps.release.outputs.tag }}
+        run: |
+          mkdir -p windows-release-asset-mirror-downloads
+          gh release download "$TAG_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir windows-release-asset-mirror-downloads \
+            --clobber
+          find windows-release-asset-mirror-downloads -maxdepth 1 -type f -print
+
+      - name: Mirror Windows release assets
+        shell: pwsh
+        env:
+          TAG_NAME: ${{ steps.release.outputs.tag }}
+          DRY_RUN: ${{ steps.release.outputs.dry_run }}
+        run: |
+          $params = @{
+            Tag = $env:TAG_NAME
+            Path = "windows-release-asset-mirror-downloads"
+            OutputDirectory = "windows-release-asset-mirror-report"
+          }
+          if ($env:DRY_RUN -eq "true") {
+            $params.DryRun = $true
+          }
+          .\scripts\sync-windows-release-assets.ps1 @params
+
+      - name: Upload mirror report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-asset-mirror-${{ steps.release.outputs.tag }}
+          path: |
+            windows-release-asset-mirror-gate/*
+            windows-release-asset-mirror-report/*
+          if-no-files-found: ignore
+          retention-days: 14
