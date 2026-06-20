@@ -278,6 +278,7 @@ jobs:
           name: signpath-windows-app-binaries-${{ matrix.slug }}
           path: signpath-windows-app-binaries/*
           if-no-files-found: error
+          retention-days: 1
 
       - name: Submit SignPath app binary signing request
         if: runner.os == 'Windows' && steps.signing.outputs.provider == 'signpath'
@@ -402,6 +403,7 @@ jobs:
           name: signpath-windows-installers-${{ matrix.slug }}
           path: release-assets/*
           if-no-files-found: error
+          retention-days: 1
 
       - name: Submit SignPath signing request
         if: runner.os == 'Windows' && steps.signing.outputs.provider == 'signpath'
@@ -471,6 +473,7 @@ jobs:
           name: desktop-${{ matrix.slug }}
           path: release-assets/*
           if-no-files-found: error
+          retention-days: 1
 
   publish:
     name: Publish GitHub release
@@ -668,6 +671,7 @@ jobs:
           name: windows-release-publish-gate-${{ needs.metadata.outputs.tag_name }}
           path: windows-release-publish-gate/*
           if-no-files-found: ignore
+          retention-days: 14
 
       - name: Publish verified GitHub release
         if: needs.metadata.outputs.draft != 'true'

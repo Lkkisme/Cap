@@ -87,6 +87,7 @@ Release workflow 已支持三种 Windows 签名方式：
 - `apps/desktop/src-tauri/tauri.conf.json` 已固定 `bundle.publisher`、homepage、license、description 和稳定 MSI `upgradeCode`。
 - `apps/desktop/src-tauri/Cargo.toml` 已移除 `authors = ["you"]` 占位值，改为稳定发布者元数据。
 - Store workflow 会生成适合 Microsoft Store 提交的 Windows 离线安装包。
+- Store EXE/MSI workflow 始终要求 Windows Authenticode 签名，并会校验提交清单里的每个安装包签名有效，不再产出 unsigned Store installer artifact。
 - Store workflow 会额外生成 `store-submission-package`，里面包含 Partner Center 可照填的安装包 URL、架构、语言、静默安装参数、SHA256、签名状态和发布者信息。
 - `Windows MSIX Store Package` 会用 Microsoft WinApp CLI 生成 MSIX layout、`Package.appxmanifest` 和 Store 用 `.msix` 包，作为 Microsoft Store 直接重新签名路线的优先尝试；配置 Partner Center secrets 后，也可以把生成的 MSIX 直接提交到 Microsoft Store。
 - `Windows MSIX Store Package` 会在打包前校验 MSIX layout、package identity、publisher、version、主程序、Store logo、tile logo、splash asset、protocol 和 `runFullTrust` capability，避免把缺图标或 manifest 不完整的包提交到 Store。
@@ -117,6 +118,7 @@ Release workflow 已支持三种 Windows 签名方式：
 - `Windows Release Quarantine` 会在 Release 发布或编辑时自动检查是否仍挂着未验证 Windows EXE/MSI，并会读取 `windows-release-assets-<tag>.json` 确认每个安装包的签名、时间戳、SignTool、checksum、attestation 和 Defender 状态都有效；自动触发时如果发现 unsafe Windows 安装包，会把该 Release 标记为 prerelease，避免它继续作为普通最新版本被用户下载。
 - `Windows Release Quarantine` 也会在 `main` 更新后和每天定时扫描所有普通公开 `cap-v*` Release，把仍带 unsafe Windows 安装包的旧 Release 自动标记为 prerelease；手动运行时默认只生成报告，只有输入 `mark-prerelease:<tag>` 或 `delete-windows-assets:<tag>` 确认字符串时才会把指定旧 Release 标记为 prerelease 或删除 Windows 安装资产。
 - `Windows Release` 和 `Windows Store Package` 会在上传产物前用 Microsoft Defender 扫描 Windows EXE/MSI；`Windows Release Audit`、`Windows Installer Smoke Test`、`Windows WinGet Manifest` 和 `Windows WDSI Package` 会重新下载 Release 资产并再次扫描，避免被替换或误报的安装包进入公开证据链。
+- Windows Release 的内部传递 artifact 和 SignPath unsigned 中间 artifact 只保留 1 天；Store/MSIX 提交 artifact 只保留 14 天，避免 Actions artifacts 变成长期公开下载渠道。
 - 脚本可以下载指定 GitHub Release 的 Windows EXE/MSI。
 - 脚本通过 GitHub Release Asset API 下载资产，正式 Release 还处于 draft 门禁阶段时也能验证安装包。
 - 脚本会计算 SHA256。
@@ -168,7 +170,7 @@ Release workflow 已支持三种 Windows 签名方式：
    如果 Store 应用已经创建并且 GitHub secrets 已配置，可以把 `publish_to_store` 设为 `true`，填写 `store_product_id`，让 workflow 直接提交 MSIX。
 3. Store 上架后，把 `NEXT_PUBLIC_WINDOWS_STORE_URL`、`WINDOWS_STORE_URL` 或 `CAP_WINDOWS_STORE_URL` 配置为官方 Microsoft Store HTTPS 链接，让 `/download/windows` 默认跳 Store。
 4. 如果 MSIX 认证不适合当前 Tauri 构建，再创建 `EXE or MSI app`。
-5. 运行 `Windows Store Package` workflow；如果已经把签名安装包放到版本化 HTTPS 下载地址，可以填写 `package_url_base`。
+5. 配置 Windows 签名后运行 `Windows Store Package` workflow；如果已经把签名安装包放到版本化 HTTPS 下载地址，可以填写 `package_url_base`。
 6. 下载 workflow 生成的 `windows-store-package-<version>` artifact。
 7. 按 `store-submission-package` 里的 checklist、JSON 或 CSV 填写 Partner Center 包信息。
 8. 提交审核。

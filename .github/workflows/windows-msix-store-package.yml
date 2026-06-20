@@ -256,3 +256,4 @@ jobs:
             msix-layout/Package.appxmanifest
             msix-layout/windows-msix-layout.json
           if-no-files-found: error
+          retention-days: 14

@@ -3,11 +3,6 @@ name: Windows Store Package
 on:
   workflow_dispatch:
     inputs:
-      require_signing:
-        description: "Fail if Windows code signing is not configured"
-        required: true
-        default: true
-        type: boolean
       package_url_base:
         description: "Optional versioned HTTPS URL prefix for Partner Center package URLs"
         required: false
@@ -76,12 +71,7 @@ jobs:
           SIGNPATH_ARTIFACT_CONFIGURATION_SLUG: ${{ secrets.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
           WINDOWS_CERTIFICATE_PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_PFX_BASE64 }}
           WINDOWS_CERTIFICATE_PFX_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PFX_PASSWORD }}
-        run: |
-          if ("${{ inputs.require_signing }}" -eq "true") {
-            & .\scripts\validate-windows-signing.ps1 -RequireSigning
-          } else {
-            & .\scripts\validate-windows-signing.ps1 -AllowUnsigned
-          }
+        run: .\scripts\validate-windows-signing.ps1 -RequireSigning
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -142,18 +132,9 @@ jobs:
         env:
           RUST_TARGET_TRIPLE: ${{ env.TARGET }}
 
-      - name: Build signed app without bundling
-        if: steps.signing.outputs.provider == 'azure-artifact-signing' || steps.signing.outputs.provider == 'pfx' || steps.signing.outputs.provider == 'signpath'
+      - name: Build app without bundling
         working-directory: apps/desktop
         run: pnpm build:tauri --target ${{ env.TARGET }} --config src-tauri/tauri.microsoft-store.conf.json --no-bundle
-        env:
-          CI: "false"
-          RUST_TARGET_TRIPLE: ${{ env.TARGET }}
-
-      - name: Build unsigned store installer
-        if: steps.signing.outputs.provider != 'azure-artifact-signing' && steps.signing.outputs.provider != 'pfx' && steps.signing.outputs.provider != 'signpath'
-        working-directory: apps/desktop
-        run: pnpm build:tauri --target ${{ env.TARGET }} --config src-tauri/tauri.microsoft-store.conf.json
         env:
           CI: "false"
           RUST_TARGET_TRIPLE: ${{ env.TARGET }}
@@ -249,6 +230,7 @@ jobs:
           name: signpath-store-app-binaries
           path: signpath-app-binaries/*
           if-no-files-found: error
+          retention-days: 1
 
       - name: Submit SignPath app binary signing request
         if: steps.signing.outputs.provider == 'signpath'
@@ -368,6 +350,7 @@ jobs:
           name: signpath-store-installers
           path: store-assets/*
           if-no-files-found: error
+          retention-days: 1
 
       - name: Submit SignPath signing request
         if: steps.signing.outputs.provider == 'signpath'
@@ -448,9 +431,7 @@ jobs:
             SupportContact = "${{ inputs.support_contact }}"
             ExpectedPublisherPattern = $env:WINDOWS_SIGNING_PUBLISHER_PATTERN
           }
-          if ("${{ inputs.require_signing }}" -eq "true") {
-            $params.RequireValidSignature = $true
-          }
+          $params.RequireValidSignature = $true
           .\scripts\new-windows-store-submission-package.ps1 @params
 
       - name: Generate artifact attestations
@@ -475,3 +456,4 @@ jobs:
             store-assets/*
             store-submission-package/*
           if-no-files-found: error
+          retention-days: 14
