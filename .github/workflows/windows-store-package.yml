@@ -118,14 +118,14 @@ jobs:
 
       - name: Create build environment
         shell: pwsh
+        env:
+          WINDOWS_DOWNLOAD_URL: ${{ vars.WINDOWS_DOWNLOAD_URL }}
+          WINDOWS_PREVIOUS_VERSIONS_URL: ${{ vars.WINDOWS_PREVIOUS_VERSIONS_URL }}
+          WINDOWS_PUBLIC_WEB_URL: ${{ vars.WINDOWS_PUBLIC_WEB_URL }}
+          NEXT_PUBLIC_WEB_URL: ${{ vars.NEXT_PUBLIC_WEB_URL }}
+          WEB_URL: ${{ vars.WEB_URL }}
         run: |
-          Set-Content -Path .env -Encoding utf8 -Value @(
-            "appVersion=${{ steps.version.outputs.version }}",
-            "VITE_ENVIRONMENT=production",
-            "VITE_SERVER_URL=https://cap.so",
-            "VITE_DISABLE_UPDATER=true",
-            "NEXT_PUBLIC_WEB_URL=https://cap.so"
-          )
+          .\scripts\write-windows-build-env.ps1 -AppVersion "${{ steps.version.outputs.version }}"
 
       - name: Prepare native dependencies
         run: pnpm -w cap-setup

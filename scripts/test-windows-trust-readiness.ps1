@@ -101,6 +101,34 @@ function Get-ConfiguredStoreUrl {
     $null
 }
 
+function Test-TrustedWindowsDownloadUrl {
+    param([string]$Value)
+
+    if (Test-OfficialMicrosoftStoreUrl -Value $Value) {
+        return $true
+    }
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return $false
+    }
+
+    try {
+        $uri = [System.Uri]::new($Value.Trim())
+        if ($uri.Scheme -ne "https") {
+            return $false
+        }
+
+        $hostName = $uri.Host.ToLowerInvariant()
+        if ($uri.IsLoopback -or $hostName -eq "cap.so" -or $hostName -eq "www.cap.so" -or $hostName -eq "github.com") {
+            return $false
+        }
+
+        return $uri.AbsolutePath.ToLowerInvariant().StartsWith("/download")
+    } catch {
+        return $false
+    }
+}
+
 function Test-RegexValue {
     param([string]$Value)
 
@@ -241,10 +269,17 @@ Test-WorkflowFile -Path (Join-Path $repoRoot ".github\workflows\windows-msix-sto
 Test-WorkflowFile -Path (Join-Path $repoRoot ".github\workflows\windows-store-package.yml") -Name "Windows Store Package"
 Test-WorkflowFile -Path (Join-Path $repoRoot ".github\workflows\windows-winget-manifest.yml") -Name "Windows WinGet Manifest"
 Test-WorkflowFile -Path (Join-Path $repoRoot ".github\workflows\windows-wdsi-package.yml") -Name "Windows WDSI Package"
+Test-WorkflowFile -Path (Join-Path $repoRoot "scripts\write-windows-build-env.ps1") -Name "Windows build environment writer"
 
-Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\release-desktop.yml") -Name "Windows Release updater check" -Text "VITE_DISABLE_UPDATER=true" -Detail "Windows Release builds disable the desktop updater UI and use the guarded download page for manual downloads." -NextAction "Restore VITE_DISABLE_UPDATER=true in the Windows Release build environment."
-Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-store-package.yml") -Name "Windows Store updater check" -Text "VITE_DISABLE_UPDATER=true" -Detail "Windows Store EXE/MSI packages disable the desktop updater UI and rely on Store or verified release distribution." -NextAction "Restore VITE_DISABLE_UPDATER=true in the Windows Store Package build environment."
-Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-msix-store-package.yml") -Name "Windows MSIX updater check" -Text "VITE_DISABLE_UPDATER=true" -Detail "Windows MSIX packages disable the desktop updater UI and rely on Microsoft Store distribution." -NextAction "Restore VITE_DISABLE_UPDATER=true in the Windows MSIX Store Package build environment."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot "scripts\write-windows-build-env.ps1") -Name "Windows Release updater check" -Text "VITE_DISABLE_UPDATER=true" -Detail "Windows Release builds disable the desktop updater UI and use the guarded download page for manual downloads." -NextAction "Restore VITE_DISABLE_UPDATER=true in the Windows Release build environment writer."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\release-desktop.yml") -Name "Windows Release download URL writer" -Text "write-windows-build-env.ps1" -Detail "Windows Release writes download URLs through the shared validation script." -NextAction "Use scripts/write-windows-build-env.ps1 when creating the Windows Release .env file."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-store-package.yml") -Name "Windows Store download URL writer" -Text "write-windows-build-env.ps1" -Detail "Windows Store Package writes download URLs through the shared validation script." -NextAction "Use scripts/write-windows-build-env.ps1 when creating the Windows Store Package .env file."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-msix-store-package.yml") -Name "Windows MSIX download URL writer" -Text "write-windows-build-env.ps1" -Detail "Windows MSIX Store Package writes download URLs through the shared validation script." -NextAction "Use scripts/write-windows-build-env.ps1 when creating the Windows MSIX Store Package .env file."
+Test-WorkflowOmitsText -Path (Join-Path $repoRoot ".github\workflows\release-desktop.yml") -Name "Windows Release upstream web URL" -Text "VITE_SERVER_URL=https://cap.so" -Detail "Windows Release no longer hardcodes the upstream cap.so URL into signed desktop builds." -NextAction "Remove hardcoded cap.so from Windows Release build environment."
+Test-WorkflowOmitsText -Path (Join-Path $repoRoot ".github\workflows\windows-store-package.yml") -Name "Windows Store upstream web URL" -Text "VITE_SERVER_URL=https://cap.so" -Detail "Windows Store Package no longer hardcodes the upstream cap.so URL into signed desktop builds." -NextAction "Remove hardcoded cap.so from Windows Store Package build environment."
+Test-WorkflowOmitsText -Path (Join-Path $repoRoot ".github\workflows\windows-msix-store-package.yml") -Name "Windows MSIX upstream web URL" -Text "VITE_SERVER_URL=https://cap.so" -Detail "Windows MSIX Store Package no longer hardcodes the upstream cap.so URL into Store packages." -NextAction "Remove hardcoded cap.so from Windows MSIX Store Package build environment."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot "scripts\write-windows-build-env.ps1") -Name "Windows Store updater check" -Text "VITE_DISABLE_UPDATER=true" -Detail "Windows Store EXE/MSI packages disable the desktop updater UI and rely on Store or verified release distribution." -NextAction "Restore VITE_DISABLE_UPDATER=true in the Windows build environment writer."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot "scripts\write-windows-build-env.ps1") -Name "Windows MSIX updater check" -Text "VITE_DISABLE_UPDATER=true" -Detail "Windows MSIX packages disable the desktop updater UI and rely on Microsoft Store distribution." -NextAction "Restore VITE_DISABLE_UPDATER=true in the Windows build environment writer."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\release-desktop.yml") -Name "Windows Release signing gate" -Text ".\scripts\validate-windows-signing.ps1 -RequireSigning" -Detail "Windows Release always requires a configured Windows signing provider before producing installer assets." -NextAction "Restore the required signing gate before building Windows release installers."
 Test-WorkflowOmitsText -Path (Join-Path $repoRoot ".github\workflows\release-desktop.yml") -Name "Windows Release unsigned input" -Text "require_signing:" -Detail "Windows Release no longer exposes a manual unsigned installer switch." -NextAction "Remove the require_signing workflow input from Windows Release."
 Test-WorkflowOmitsText -Path (Join-Path $repoRoot ".github\workflows\release-desktop.yml") -Name "Windows Release unsigned path" -Text "-AllowUnsigned" -Detail "Windows Release no longer invokes unsigned signing validation." -NextAction "Remove the unsigned validation path from Windows Release."
@@ -271,6 +306,9 @@ Test-WorkflowContainsText -Path (Join-Path $repoRoot "apps\web\app\(site)\downlo
 Test-WorkflowContainsText -Path (Join-Path $repoRoot "apps\web\app\(site)\download\versions\page.tsx") -Name "Windows versions verification gate" -Text "hasVerifiedWindowsEvidence(release)" -Detail "The versions page only exposes Windows release assets after the full verification gate passes." -NextAction "Restore hasVerifiedWindowsEvidence before linking Windows assets on the versions page."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot "apps\desktop\src\utils\download-links.ts") -Name "Desktop guarded download link" -Text "CAP_DOWNLOAD_URL" -Detail "Desktop manual update links open the guarded web download page instead of GitHub Releases." -NextAction "Restore CAP_DOWNLOAD_URL for desktop manual update links."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot "apps\desktop\src\utils\download-links.ts") -Name "Desktop guarded versions link" -Text "CAP_PREVIOUS_VERSIONS_URL" -Detail "Desktop previous-version links open the guarded versions page instead of GitHub Releases." -NextAction "Restore CAP_PREVIOUS_VERSIONS_URL for desktop previous-version links."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot "apps\desktop\src\utils\download-links.ts") -Name "Desktop configured download URL" -Text "VITE_DOWNLOAD_URL" -Detail "Desktop manual update links can be pinned to a trusted Windows download URL at build time." -NextAction "Restore VITE_DOWNLOAD_URL handling in apps/desktop/src/utils/download-links.ts."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot "apps\desktop\src\utils\download-links.ts") -Name "Desktop configured versions URL" -Text "VITE_PREVIOUS_VERSIONS_URL" -Detail "Desktop previous-version links can be pinned to a trusted versions URL at build time." -NextAction "Restore VITE_PREVIOUS_VERSIONS_URL handling in apps/desktop/src/utils/download-links.ts."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot "scripts\write-windows-build-env.ps1") -Name "Windows download URL variable" -Text "WINDOWS_DOWNLOAD_URL" -Detail "Windows distributable builds require an explicit trusted download URL." -NextAction "Require WINDOWS_DOWNLOAD_URL before creating Windows release build environments."
 Test-WorkflowOmitsText -Path (Join-Path $repoRoot "apps\desktop\src\utils\download-links.ts") -Name "Desktop direct GitHub release link" -Text "CAP_RELEASES_URL" -Detail "Desktop manual update links no longer bypass download verification through a direct GitHub Releases URL." -NextAction "Remove CAP_RELEASES_URL from desktop download links."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot "build_package.bat") -Name "Root local Windows package guard" -Text "CAP_ALLOW_LOCAL_UNSIGNED_WINDOWS_BUILD" -Detail "The root local packaging script refuses unsigned Windows distribution builds unless explicitly enabled for local testing." -NextAction "Restore the CAP_ALLOW_LOCAL_UNSIGNED_WINDOWS_BUILD guard in build_package.bat."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot "apps\desktop\build_installer.bat") -Name "Desktop local Windows package guard" -Text "CAP_ALLOW_LOCAL_UNSIGNED_WINDOWS_BUILD" -Detail "The desktop local packaging script refuses unsigned Windows distribution builds unless explicitly enabled for local testing." -NextAction "Restore the CAP_ALLOW_LOCAL_UNSIGNED_WINDOWS_BUILD guard in apps/desktop/build_installer.bat."
@@ -281,6 +319,13 @@ if ($storeUrl) {
     Add-Check -Area "Microsoft Store" -Item "Store download URL" -Status "pass" -Detail "Official Microsoft Store URL is configured."
 } else {
     Add-Check -Area "Microsoft Store" -Item "Store download URL" -Status "warning" -Detail "No official Microsoft Store URL is configured for /download/windows." -NextAction "After Store approval, set NEXT_PUBLIC_WINDOWS_STORE_URL, WINDOWS_STORE_URL, or CAP_WINDOWS_STORE_URL to the official Microsoft Store HTTPS URL."
+}
+
+$windowsDownloadUrl = $env:WINDOWS_DOWNLOAD_URL
+if (Test-TrustedWindowsDownloadUrl -Value $windowsDownloadUrl) {
+    Add-Check -Area "Distribution path" -Item "Windows download URL" -Status "pass" -Detail "WINDOWS_DOWNLOAD_URL points to a trusted Windows download surface."
+} else {
+    Add-Check -Area "Distribution path" -Item "Windows download URL" -Status "fail" -Detail "WINDOWS_DOWNLOAD_URL is missing or does not point to Microsoft Store or an HTTPS /download page controlled by this project." -NextAction "Set the GitHub variable WINDOWS_DOWNLOAD_URL to the approved Microsoft Store URL or to the deployed site /download/windows route before building Windows packages."
 }
 
 $storeCredentialNames = @(

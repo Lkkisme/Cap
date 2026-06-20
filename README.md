@@ -183,6 +183,9 @@ Release workflow 已支持三种 Windows 签名方式：
 
 | Name | Example |
 | --- | --- |
+| `WINDOWS_DOWNLOAD_URL` | 官方 Microsoft Store 链接，或你部署的网站 `/download/windows` |
+| `WINDOWS_PREVIOUS_VERSIONS_URL` | 可选，通常是你部署的网站 `/download/versions` |
+| `WINDOWS_PUBLIC_WEB_URL` | 可选，Windows 包内使用的公开 Web/API 根地址 |
 | `WINDOWS_SIGNING_PROVIDER` | `azure-artifact-signing`，也可用 `trusted-signing` 或 `azure-trusted-signing` |
 | `WINDOWS_PACKAGE_PUBLISHER` | Optional, defaults to `Lkkisme` |
 | `WINDOWS_SIGNING_PUBLISHER_PATTERN` | Regex matching the Authenticode subject, e.g. `Lkkisme` |
@@ -201,14 +204,15 @@ Release workflow 已支持三种 Windows 签名方式：
 配置完成后：
 
 1. 手动运行 `Windows Signing Check`。
-2. 手动运行 `Windows Trust Readiness`，确认主要信任链路没有缺关键配置；手动运行时如果希望缺关键项直接失败，把 `fail_on_missing` 设为 `true`。自动的 push、PR 和每周定时 readiness 检查会默认严格失败，直到配置 Microsoft Store URL，或配置真实 Windows 签名 provider 并发布证据齐全的签名 Windows Release。
-3. 确认配置检查和临时 EXE 签名探针都通过。
-4. 手动运行 `Windows Release` 或创建新的 `cap-v*` tag；该 workflow 始终要求真实 Windows 签名配置。
-5. 等待自动触发的 `Windows Release Audit` 通过，或手动输入刚发布的 tag 重新审计，确认签名发布者、可信时间戳、SignTool 复核、SHA256 和 artifact attestation 都通过。
-6. 等待自动触发的 `Windows Installer Smoke Test` 通过，确认 EXE/MSI 可以静默安装和卸载；portable ZIP 会在 Release Audit 中展开校验内部签名，不进入安装器 smoke test。
-7. 如需 WinGet 分发，下载自动生成的 `winget-manifest-<tag>` artifact，运行 `winget validate`，再提交到 `microsoft/winget-pkgs`。
-8. 下载 EXE/MSI/portable ZIP；EXE/MSI 可直接用 `Get-AuthenticodeSignature` 确认签名为 `Valid`，ZIP 解压后对里面的 `Cap-CN.exe` 和 DLL 做同样检查，并确认存在 `TimeStamperCertificate`。
-9. 如仍出现 SmartScreen 误拦截，下载自动生成的 `windows-wdsi-package-<tag>` artifact，再把安装包和生成的说明文本提交到 Microsoft WDSI。
+2. 设置 `WINDOWS_DOWNLOAD_URL`，指向 Microsoft Store 链接或你部署的网站 `/download/windows`；不要指向 GitHub Releases、localhost 或上游 `cap.so`。
+3. 手动运行 `Windows Trust Readiness`，确认主要信任链路没有缺关键配置；手动运行时如果希望缺关键项直接失败，把 `fail_on_missing` 设为 `true`。自动的 push、PR 和每周定时 readiness 检查会默认严格失败，直到配置 Microsoft Store URL，或配置真实 Windows 签名 provider 并发布证据齐全的签名 Windows Release。
+4. 确认配置检查和临时 EXE 签名探针都通过。
+5. 手动运行 `Windows Release` 或创建新的 `cap-v*` tag；该 workflow 始终要求真实 Windows 签名配置。
+6. 等待自动触发的 `Windows Release Audit` 通过，或手动输入刚发布的 tag 重新审计，确认签名发布者、可信时间戳、SignTool 复核、SHA256 和 artifact attestation 都通过。
+7. 等待自动触发的 `Windows Installer Smoke Test` 通过，确认 EXE/MSI 可以静默安装和卸载；portable ZIP 会在 Release Audit 中展开校验内部签名，不进入安装器 smoke test。
+8. 如需 WinGet 分发，下载自动生成的 `winget-manifest-<tag>` artifact，运行 `winget validate`，再提交到 `microsoft/winget-pkgs`。
+9. 下载 EXE/MSI/portable ZIP；EXE/MSI 可直接用 `Get-AuthenticodeSignature` 确认签名为 `Valid`，ZIP 解压后对里面的 `Cap-CN.exe` 和 DLL 做同样检查，并确认存在 `TimeStamperCertificate`。
+10. 如仍出现 SmartScreen 误拦截，下载自动生成的 `windows-wdsi-package-<tag>` artifact，再把安装包和生成的说明文本提交到 Microsoft WDSI。
 
 ### 方案 C：SignPath 或 PFX
 
