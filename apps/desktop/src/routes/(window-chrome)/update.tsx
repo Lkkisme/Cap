@@ -7,7 +7,7 @@ import * as shell from "@tauri-apps/plugin-shell";
 import { check } from "@tauri-apps/plugin-updater";
 import { createResource, createSignal, Match, Show, Switch } from "solid-js";
 import { t } from "~/components/I18nProvider";
-import { CAP_RELEASES_URL, UPDATER_DISABLED } from "~/utils/download-links";
+import { CAP_DOWNLOAD_URL, UPDATER_DISABLED } from "~/utils/download-links";
 
 export default function () {
 	const navigate = useNavigate();
@@ -33,15 +33,15 @@ export default function () {
 				<div class="flex flex-col gap-4 items-center text-center max-w-md">
 					<p class="text-[--text-primary]">{updateError()}</p>
 					<p class="text-[--text-tertiary]">
-						Please download the latest version manually from the Cap GitHub
-						Releases page. Your data will not be lost.
+						Please download the latest version manually from the Cap download
+						page. Your data will not be lost.
 					</p>
 					<p class="text-[--text-tertiary] text-xs">
 						If this issue persists, please contact support.
 					</p>
 					<div class="flex gap-2">
-						<Button onClick={() => shell.open(CAP_RELEASES_URL)}>
-							Open Releases
+						<Button onClick={() => shell.open(CAP_DOWNLOAD_URL)}>
+							Open Downloads
 						</Button>
 						<Button onClick={() => navigate("/")}>Go Back</Button>
 					</div>
@@ -54,12 +54,12 @@ export default function () {
 						<div class="flex flex-col gap-4 items-center text-center max-w-md">
 							<span class="text-[--text-tertiary]">
 								{UPDATER_DISABLED
-									? "Updates are distributed through GitHub Releases."
+									? "Updates are distributed through the Cap download page."
 									: t("update.noUpdate")}
 							</span>
 							<Show when={UPDATER_DISABLED}>
-								<Button onClick={() => shell.open(CAP_RELEASES_URL)}>
-									Open Releases
+								<Button onClick={() => shell.open(CAP_DOWNLOAD_URL)}>
+									Open Downloads
 								</Button>
 							</Show>
 						</div>

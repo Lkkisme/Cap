@@ -7,7 +7,7 @@ import { createResource, For, onMount, Show, Suspense } from "solid-js";
 import { CapErrorBoundary } from "~/components/CapErrorBoundary";
 import { t } from "~/components/I18nProvider";
 
-import { CAP_RELEASES_URL } from "~/utils/download-links";
+import { CAP_PREVIOUS_VERSIONS_URL } from "~/utils/download-links";
 
 const WINDOW_SIZE = { width: 700, height: 540 } as const;
 
@@ -93,7 +93,7 @@ export default function Settings(props: RouteSectionProps) {
 								<button
 									type="button"
 									class="text-gray-11 hover:text-gray-12 underline transition-colors"
-									onClick={() => shell.open(CAP_RELEASES_URL)}
+									onClick={() => shell.open(CAP_PREVIOUS_VERSIONS_URL)}
 								>
 									View previous versions
 								</button>
