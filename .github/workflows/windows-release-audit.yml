@@ -1,0 +1,55 @@
+name: Windows Release Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to audit"
+        required: true
+        type: string
+      expected_publisher_pattern:
+        description: "Optional regex for the Authenticode publisher subject"
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Audit Windows release assets
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Windows release assets
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          EXPECTED_PUBLISHER_PATTERN: ${{ inputs.expected_publisher_pattern }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $params = @{
+            Tag = $env:RELEASE_TAG
+            Repository = "${{ github.repository }}"
+            OutputDirectory = "windows-release-audit"
+            RequireValidSignatures = $true
+            VerifyChecksums = $true
+          }
+
+          if (-not [string]::IsNullOrWhiteSpace($env:EXPECTED_PUBLISHER_PATTERN)) {
+            $params.ExpectedPublisherPattern = $env:EXPECTED_PUBLISHER_PATTERN
+          }
+
+          & .\scripts\verify-windows-release.ps1 @params
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-audit-${{ inputs.tag }}
+          path: windows-release-audit/*
+          if-no-files-found: ignore

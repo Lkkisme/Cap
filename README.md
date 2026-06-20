@@ -71,10 +71,14 @@ Release workflow 已支持三种 Windows 签名方式：
 
 ### 5. 发布后验证和 WDSI 提交流程
 
+- 新增 `.github/workflows/windows-release-audit.yml`。
 - 新增 `scripts/verify-windows-release.ps1`。
+- `Windows Release Audit` 可以对指定 Release tag 执行发布后审计。
 - 脚本可以下载指定 GitHub Release 的 Windows EXE/MSI。
 - 脚本会计算 SHA256。
+- 脚本可以核对 Release 中的 `SHA256SUMS.txt`。
 - 脚本会检查 Authenticode 签名状态。
+- 脚本支持用正则检查 Authenticode 发布者名称。
 - 脚本会生成 `.release-verification/<tag>/windows-smartscreen-report.md`。
 - 文档中加入了 Microsoft WDSI 提交说明和可复制的开发者说明模板。
 
@@ -131,8 +135,9 @@ Release workflow 已支持三种 Windows 签名方式：
 1. 手动运行 `Windows Signing Check`。
 2. 确认通过。
 3. 手动运行 `Windows Release` 或创建新的 `cap-v*` tag；正式发布保持 `require_signing=true`，未签名测试只能作为 draft。
-4. 下载 EXE/MSI，用 `Get-AuthenticodeSignature` 确认签名为 `Valid`。
-5. 如仍出现 SmartScreen 误拦截，提交到 Microsoft WDSI。
+4. 手动运行 `Windows Release Audit`，输入刚发布的 tag，确认签名和 SHA256 都通过。
+5. 下载 EXE/MSI，用 `Get-AuthenticodeSignature` 确认签名为 `Valid`。
+6. 如仍出现 SmartScreen 误拦截，提交到 Microsoft WDSI。
 
 ### 方案 C：SignPath 或 PFX
 

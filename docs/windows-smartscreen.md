@@ -92,6 +92,7 @@ PFX/signtool 需要这些 Secrets：
 - 优先推广 GitHub Release 的同一个安装包链接，让同一文件 hash 积累下载声誉。
 - 保留源码、release notes、hash、签名信息，方便微软人工复核。
 - 发布后下载 Windows EXE/MSI，用 `Get-AuthenticodeSignature` 确认状态是 `Valid`。
+- 发布后运行 `Windows Release Audit` workflow，确认 Release 中的 Windows EXE/MSI 签名有效并且匹配 `SHA256SUMS.txt`。
 - 如果 Windows 包开始被拦截，提交签名后的 EXE/MSI 到 https://www.microsoft.com/en-us/wdsi/filesubmission。
 
 ## 发布后验证
@@ -108,10 +109,24 @@ powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag
 powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag cap-v0.4.3-cn -RequireValidSignatures
 ```
 
+要求签名和 Release checksum 都必须有效时：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag cap-v0.4.3-cn -RequireValidSignatures -VerifyChecksums
+```
+
+如果要同时确认发布者名称，可以加上 `-ExpectedPublisherPattern`：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag cap-v0.4.3-cn -RequireValidSignatures -VerifyChecksums -ExpectedPublisherPattern "CN=Your Publisher Name"
+```
+
 脚本会下载 Release 中的 Windows EXE/MSI，生成：
 
 - `.release-verification/<tag>/SHA256SUMS.txt`
 - `.release-verification/<tag>/windows-smartscreen-report.md`
+
+也可以在 GitHub Actions 里手动运行 `Windows Release Audit`，输入 Release tag。该 workflow 会用同一个脚本审计公开 Release，要求 Windows 安装包签名有效并且匹配 Release 中的 `SHA256SUMS.txt`。只有这个审计通过后，才建议把 GitHub Release 链接发给普通用户或用于 WDSI 提交。
 
 当前 `cap-v0.4.3-cn` 的 Windows EXE/MSI 验证结果是 `NotSigned`。启用任一签名后端并重新发布后，应重新运行该脚本并确认状态为 `Valid`。
 
