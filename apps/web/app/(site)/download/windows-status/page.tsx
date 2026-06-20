@@ -91,7 +91,7 @@ export default async function WindowsDownloadStatusPage() {
 				) : verifiedRelease ? (
 					<div className="space-y-4">
 						<p className="text-gray-10">
-							The latest verified Windows installer is v{verifiedRelease.version}.
+							{`The latest verified Windows installer is v${verifiedRelease.version}.`}
 						</p>
 						<div className="flex flex-wrap gap-2">
 							{verifiedRelease.downloads.windows && (
@@ -145,7 +145,8 @@ export default async function WindowsDownloadStatusPage() {
 					<div className="p-4 rounded-lg border border-gray-5 bg-gray-1">
 						<div className="text-sm font-medium text-gray-12">Next step</div>
 						<div className="mt-1 text-sm text-gray-10">
-							Publish through Microsoft Store or create a signed Windows Release.
+							Publish through Microsoft Store or create a signed Windows
+							Release.
 						</div>
 					</div>
 				</div>
