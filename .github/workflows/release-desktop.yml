@@ -570,11 +570,11 @@ jobs:
           dispatch_run() {
             local workflow="$1"
             shift
-            gh workflow run "$workflow" --ref "$GITHUB_REF_NAME" "$@"
+            gh workflow run "$workflow" --ref "$GITHUB_REF_NAME" "$@" -f source_run_id="$GITHUB_RUN_ID"
 
             local run_id=""
             for attempt in {1..30}; do
-              run_id="$(gh run list --workflow "$workflow" --event workflow_dispatch --limit 20 --json databaseId,createdAt --jq ".[] | select(.createdAt >= \"$dispatched_at\") | .databaseId" | head -n 1)"
+              run_id="$(gh run list --workflow "$workflow" --event workflow_dispatch --limit 20 --json databaseId,createdAt,displayTitle --jq ".[] | select(.createdAt >= \"$dispatched_at\" and (.displayTitle | contains(\"from $GITHUB_RUN_ID\"))) | .databaseId" | head -n 1)"
               if [ -n "$run_id" ]; then
                 break
               fi

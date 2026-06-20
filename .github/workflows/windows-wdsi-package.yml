@@ -1,5 +1,7 @@
 name: Windows WDSI Package
 
+run-name: ${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id != '' && format('Windows WDSI Package for {0} from {1}', inputs.tag, inputs.source_run_id) || format('Windows WDSI Package for {0}', github.event_name == 'release' && github.event.release.tag_name || inputs.tag) }}
+
 on:
   release:
     types: [published]
@@ -11,6 +13,11 @@ on:
         type: string
       expected_publisher_pattern:
         description: "Optional override for vars.WINDOWS_SIGNING_PUBLISHER_PATTERN"
+        required: false
+        default: ""
+        type: string
+      source_run_id:
+        description: "Optional parent Windows Release run id"
         required: false
         default: ""
         type: string

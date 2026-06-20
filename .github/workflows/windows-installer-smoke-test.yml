@@ -1,5 +1,7 @@
 name: Windows Installer Smoke Test
 
+run-name: ${{ github.event_name == 'workflow_dispatch' && inputs.source_run_id != '' && format('Windows Installer Smoke Test for {0} from {1}', inputs.tag, inputs.source_run_id) || format('Windows Installer Smoke Test for {0}', github.event_name == 'release' && github.event.release.tag_name || inputs.tag) }}
+
 on:
   release:
     types: [published]
@@ -18,6 +20,11 @@ on:
         description: "Windows Add/Remove Programs product name"
         required: true
         default: "Cap 中文版"
+        type: string
+      source_run_id:
+        description: "Optional parent Windows Release run id"
+        required: false
+        default: ""
         type: string
 
 permissions:
