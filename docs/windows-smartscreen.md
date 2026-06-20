@@ -88,6 +88,27 @@ PFX/signtool 需要这些 Secrets：
 - 发布后下载 Windows EXE/MSI，用 `Get-AuthenticodeSignature` 确认状态是 `Valid`。
 - 如果 Windows 包开始被拦截，提交签名后的 EXE/MSI 到 https://www.microsoft.com/en-us/wdsi/filesubmission。
 
+## 发布后验证
+
+运行仓库脚本验证指定 Release 的 Windows 安装包：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag cap-v0.4.3-cn
+```
+
+要求签名必须有效时：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag cap-v0.4.3-cn -RequireValidSignatures
+```
+
+脚本会下载 Release 中的 Windows EXE/MSI，生成：
+
+- `.release-verification/<tag>/SHA256SUMS.txt`
+- `.release-verification/<tag>/windows-smartscreen-report.md`
+
+当前 `cap-v0.4.3-cn` 的 Windows EXE/MSI 验证结果是 `NotSigned`。启用任一签名后端并重新发布后，应重新运行该脚本并确认状态为 `Valid`。
+
 ## WDSI 提交模板
 
 提交身份选择 `Software developer`。说明文本可以使用：

@@ -58,6 +58,7 @@ tauri.windows.conf.json
 scripts/backfill-releases.sh
 scripts/update-github-releases.sh
 scripts/releases-backfill-data.txt
+.release-verification/
 
 # Tauri signing keys
 tauri-signing-key.key
