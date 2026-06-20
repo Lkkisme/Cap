@@ -52,7 +52,7 @@ Release workflow 已支持三种 Windows 签名方式：
 - 主程序和 DLL。
 - 最终上传到 GitHub Release 的 EXE/MSI 安装包。
 
-签名完成后 workflow 会用 `Get-AuthenticodeSignature` 验证签名状态和可信时间戳，签名无效或缺少时间戳都会直接失败。
+签名完成后 workflow 会用 `Get-AuthenticodeSignature` 验证签名状态和可信时间戳，并用 Windows SDK `signtool verify /pa /tw` 复核；签名无效、缺少时间戳或 SignTool 验证失败都会直接失败。
 
 ### 3. Windows 签名配置检查
 
@@ -81,6 +81,7 @@ Release workflow 已支持三种 Windows 签名方式：
 - 新增 `scripts/verify-windows-release.ps1`。
 - 新增 `scripts/scan-windows-assets.ps1`。
 - 新增 `scripts/new-wdsi-submission-package.ps1`。
+- 新增 `scripts/test-windows-authenticode.ps1`。
 - `Windows Release Audit` 会在 `cap-v*` Release published 后自动审计，也可以手动对指定 Release tag 执行审计。
 - `Windows WDSI Package` 可以为已签名、已审计的 Release 生成微软复核材料包。
 - `Windows Release` 和 `Windows Store Package` 会在上传产物前用 Microsoft Defender 扫描 Windows EXE/MSI。
@@ -88,7 +89,7 @@ Release workflow 已支持三种 Windows 签名方式：
 - 脚本会计算 SHA256。
 - 脚本可以核对 Release 中的 `SHA256SUMS.txt`。
 - 脚本可以用 GitHub CLI 验证 artifact attestation，确认安装包来自本仓库 GitHub Actions 构建。
-- 脚本会检查 Authenticode 签名状态和可信时间戳。
+- 脚本会检查 Authenticode 签名状态、可信时间戳和 `signtool verify /pa /tw` 结果。
 - 脚本支持用正则检查 Authenticode 发布者名称。
 - 脚本会生成 `.release-verification/<tag>/windows-smartscreen-report.md`。
 - 脚本会生成每个 EXE/MSI 对应的 WDSI 提交说明文本和证据文件。
@@ -98,7 +99,7 @@ Release workflow 已支持三种 Windows 签名方式：
 
 - 新增 `.github/workflows/windows-winget-manifest.yml`。
 - 新增 `scripts/generate-winget-manifest.ps1`。
-- `Windows WinGet Manifest` 会先审计 Release 签名、可信时间戳和 SHA256，再生成 WinGet manifest。
+- `Windows WinGet Manifest` 会先审计 Release 签名、可信时间戳、SignTool 复核和 SHA256，再生成 WinGet manifest。
 - 默认生成 `Lkkisme.CapCN` 的 Windows x64 MSI manifest。
 - 生成的文件位于 `packaging/winget/manifests/...`，可用于提交到 `microsoft/winget-pkgs`。
 - WinGet 不能替代代码签名或 Store，但它可以提供更标准的 Windows 包管理器安装入口。
@@ -157,7 +158,7 @@ Release workflow 已支持三种 Windows 签名方式：
 1. 手动运行 `Windows Signing Check`。
 2. 确认通过。
 3. 手动运行 `Windows Release` 或创建新的 `cap-v*` tag；正式发布保持 `require_signing=true`，未签名测试只能作为 draft。
-4. 等待自动触发的 `Windows Release Audit` 通过，或手动输入刚发布的 tag 重新审计，确认签名、可信时间戳、SHA256 和 artifact attestation 都通过。
+4. 等待自动触发的 `Windows Release Audit` 通过，或手动输入刚发布的 tag 重新审计，确认签名、可信时间戳、SignTool 复核、SHA256 和 artifact attestation 都通过。
 5. 如需 WinGet 分发，手动运行 `Windows WinGet Manifest`，下载生成的 manifest 并提交到 `microsoft/winget-pkgs`。
 6. 下载 EXE/MSI，用 `Get-AuthenticodeSignature` 确认签名为 `Valid`，并确认存在 `TimeStamperCertificate`。
 7. 如仍出现 SmartScreen 误拦截，运行 `Windows WDSI Package`，再把安装包和生成的说明文本提交到 Microsoft WDSI。

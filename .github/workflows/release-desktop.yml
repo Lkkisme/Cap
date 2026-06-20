@@ -369,15 +369,10 @@ jobs:
             throw "No Windows installers found to verify."
           }
           foreach ($file in $files) {
-            $signature = Get-AuthenticodeSignature -LiteralPath $file.FullName
-            Write-Host "$($file.Name): $($signature.Status)"
-            if ($signature.Status -ne "Valid") {
-              throw "$($file.FullName) signature is $($signature.Status): $($signature.StatusMessage)"
-            }
-            if (-not $signature.TimeStamperCertificate) {
-              throw "$($file.FullName) signature does not include a trusted timestamp."
-            }
-            Write-Host "$($file.Name) timestamp: $($signature.TimeStamperCertificate.Subject)"
+            $result = .\scripts\test-windows-authenticode.ps1 -Path $file.FullName -RequireValidSignature -RequireTimestamp -RequireSignToolVerification
+            Write-Host "$($file.Name): $($result.SignatureStatus)"
+            Write-Host "$($file.Name) timestamp: $($result.TimestampAuthority)"
+            Write-Host "$($file.Name) signtool: $($result.SignToolStatus)"
           }
 
       - name: Scan Windows release assets with Microsoft Defender

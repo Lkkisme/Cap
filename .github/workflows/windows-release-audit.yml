@@ -43,6 +43,7 @@ jobs:
             OutputDirectory = "windows-release-audit"
             RequireValidSignatures = $true
             RequireTimestampedSignatures = $true
+            RequireSignToolVerification = $true
             VerifyChecksums = $true
             VerifyAttestations = $true
           }

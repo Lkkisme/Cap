@@ -31,6 +31,7 @@ $verifyParams = @{
     OutputDirectory = $OutputDirectory
     RequireValidSignatures = $true
     RequireTimestampedSignatures = $true
+    RequireSignToolVerification = $true
     VerifyChecksums = $true
     VerifyAttestations = $true
     GitHubToken = $GitHubToken
@@ -78,6 +79,9 @@ foreach ($asset in @($metadata.Assets)) {
     if ($asset.TimestampStatus -ne "Present") {
         throw "$($asset.File) is not ready for WDSI because its timestamp status is $($asset.TimestampStatus)."
     }
+    if ($asset.SignToolStatus -ne "Valid") {
+        throw "$($asset.File) is not ready for WDSI because its SignTool status is $($asset.SignToolStatus)."
+    }
     if ($asset.ChecksumStatus -ne "Valid") {
         throw "$($asset.File) is not ready for WDSI because its checksum status is $($asset.ChecksumStatus)."
     }
@@ -100,6 +104,7 @@ foreach ($asset in @($metadata.Assets)) {
         "Signature status: $($asset.SignatureStatus)",
         "Signature timestamp: $($asset.TimestampStatus)",
         "Timestamp authority: $($asset.TimestampAuthority)",
+        "SignTool verification: $($asset.SignToolStatus)",
         "Certificate thumbprint: $($asset.CertificateThumbprint)",
         "GitHub artifact attestation: $($asset.AttestationStatus)",
         "",
@@ -121,7 +126,7 @@ $checklistPath = Join-Path $packageRoot "wdsi-submission-checklist.md"
     "4. Paste the matching text from the submission-text directory.",
     "5. Attach or reference the evidence files if Microsoft asks for more context.",
     "",
-    "The installers in this package have valid Authenticode signatures, trusted Authenticode timestamps, matching release checksums, and valid GitHub artifact attestations."
+    "The installers in this package have valid Authenticode signatures, trusted Authenticode timestamps, passing signtool verify /pa /tw results, matching release checksums, and valid GitHub artifact attestations."
 ) | Set-Content -Encoding UTF8 -Path $checklistPath
 
 $zipPath = Join-Path $OutputDirectory "wdsi-submission-package-$Tag.zip"
