@@ -1,6 +1,10 @@
 name: Windows Release Quarantine
 
+run-name: ${{ github.event_name == 'release' && format('Windows Release Quarantine for {0}', github.event.release.tag_name) || format('Windows Release Quarantine for {0}', inputs.tag) }}
+
 on:
+  release:
+    types: [published, edited]
   workflow_dispatch:
     inputs:
       tag:
@@ -30,9 +34,16 @@ on:
 permissions:
   contents: write
 
+env:
+  RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
+  QUARANTINE_MODE: ${{ github.event_name == 'release' && 'report' || inputs.mode }}
+  QUARANTINE_CONFIRMATION: ${{ github.event_name == 'release' && '' || inputs.confirmation }}
+  FAIL_ON_UNSAFE: ${{ github.event_name == 'release' && 'true' || inputs.fail_on_unsafe }}
+
 jobs:
   quarantine:
     name: Inspect Windows release assets
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'cap-v')
     runs-on: windows-2022
     timeout-minutes: 15
     steps:
@@ -46,13 +57,13 @@ jobs:
         run: |
           $params = @{
             Repository = "${{ github.repository }}"
-            Tag = "${{ inputs.tag }}"
-            Mode = "${{ inputs.mode }}"
-            Confirmation = "${{ inputs.confirmation }}"
+            Tag = $env:RELEASE_TAG
+            Mode = $env:QUARANTINE_MODE
+            Confirmation = $env:QUARANTINE_CONFIRMATION
             OutputDirectory = "windows-release-quarantine"
           }
 
-          if ("${{ inputs.fail_on_unsafe }}" -eq "true") {
+          if ($env:FAIL_ON_UNSAFE -eq "true") {
             $params.FailOnUnsafe = $true
           }
 
