@@ -298,9 +298,11 @@ if (-not [string]::IsNullOrWhiteSpace($provider) -and $providerAliases.ContainsK
 }
 
 $validProviders = @("azure-artifact-signing", "signpath", "pfx")
+$hasValidProvider = $false
 if ([string]::IsNullOrWhiteSpace($provider)) {
     Add-Check -Area "Code signing" -Item "Signing provider" -Status "warning" -Detail "WINDOWS_SIGNING_PROVIDER is not configured." -NextAction "Set WINDOWS_SIGNING_PROVIDER to azure-artifact-signing, trusted-signing, signpath, or pfx, then run Windows Signing Check."
 } elseif ($validProviders -contains $provider) {
+    $hasValidProvider = $true
     Add-Check -Area "Code signing" -Item "Signing provider" -Status "pass" -Detail "WINDOWS_SIGNING_PROVIDER is '$provider'."
 } else {
     Add-Check -Area "Code signing" -Item "Signing provider" -Status "fail" -Detail "Unsupported WINDOWS_SIGNING_PROVIDER '$provider'." -NextAction "Use azure-artifact-signing, trusted-signing, signpath, or pfx."
@@ -308,6 +310,8 @@ if ([string]::IsNullOrWhiteSpace($provider)) {
 
 if (Test-RegexValue -Value $env:WINDOWS_SIGNING_PUBLISHER_PATTERN) {
     Add-Check -Area "Code signing" -Item "Publisher pattern" -Status "pass" -Detail "WINDOWS_SIGNING_PUBLISHER_PATTERN is configured and is a valid regex."
+} elseif ($hasValidProvider) {
+    Add-Check -Area "Code signing" -Item "Publisher pattern" -Status "fail" -Detail "WINDOWS_SIGNING_PUBLISHER_PATTERN is missing or invalid while a signing provider is configured." -NextAction "Set it to a regex matching the Authenticode subject of the real publisher certificate before building signed Windows releases."
 } else {
     Add-Check -Area "Code signing" -Item "Publisher pattern" -Status "warning" -Detail "WINDOWS_SIGNING_PUBLISHER_PATTERN is missing or invalid." -NextAction "Set it to a regex matching the Authenticode subject of the real publisher certificate."
 }
@@ -353,7 +357,7 @@ if ($validProviders -contains $provider) {
     }
 }
 
-if ($storeUrl -or ($validProviders -contains $provider)) {
+if ($storeUrl -or $hasValidProvider) {
     Add-Check -Area "Distribution path" -Item "Primary trust path" -Status "pass" -Detail "A Store URL or code signing provider is configured."
 } else {
     Add-Check -Area "Distribution path" -Item "Primary trust path" -Status "fail" -Detail "Neither Microsoft Store URL nor code signing provider is configured." -NextAction "Prioritize Microsoft Store approval or configure a Windows signing provider."
@@ -403,7 +407,8 @@ if (-not [string]::IsNullOrWhiteSpace($Repository)) {
             if ($missingEvidence.Count -eq 0) {
                 Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence assets" -Status "pass" -Detail "Latest public Windows release has all download gate evidence assets."
             } else {
-                Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence assets" -Status "warning" -Detail "Missing evidence: $($missingEvidence -join ', ')." -NextAction "Publish a new signed Windows release through the Windows Release workflow."
+                $evidenceStatus = if ($storeUrl) { "warning" } else { "fail" }
+                Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence assets" -Status $evidenceStatus -Detail "Missing evidence: $($missingEvidence -join ', ')." -NextAction "Publish a new signed Windows release through the Windows Release workflow, or configure the official Microsoft Store URL."
             }
 
             try {
@@ -411,18 +416,21 @@ if (-not [string]::IsNullOrWhiteSpace($Repository)) {
                 if ([bool]$quarantineResult.verifiedWindowsRelease) {
                     Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence manifest" -Status "pass" -Detail "Release asset manifest confirms valid signature, timestamp, SignTool, checksum, attestation, and Defender status for each Windows release package."
                 } else {
+                    $manifestStatus = if ($storeUrl) { "warning" } else { "fail" }
                     $manifestFailures = @($quarantineResult.manifestFailures)
                     if ($manifestFailures.Count -gt 0) {
-                        Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence manifest" -Status "warning" -Detail "Release asset manifest is not valid: $($manifestFailures -join ' ')" -NextAction "Publish a new signed Windows release through the Windows Release workflow, then let Windows Release Audit regenerate the manifest."
+                        Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence manifest" -Status $manifestStatus -Detail "Release asset manifest is not valid: $($manifestFailures -join ' ')" -NextAction "Publish a new signed Windows release through the Windows Release workflow, then let Windows Release Audit regenerate the manifest."
                     } else {
-                        Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence manifest" -Status "warning" -Detail "Release evidence is present but does not satisfy every verified Windows release gate." -NextAction "Review the generated quarantine report before promoting this Release."
+                        Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence manifest" -Status $manifestStatus -Detail "Release evidence is present but does not satisfy every verified Windows release gate." -NextAction "Review the generated quarantine report before promoting this Release."
                     }
                 }
             } catch {
-                Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence manifest" -Status "warning" -Detail "Release asset manifest could not be validated: $($_.Exception.Message)" -NextAction "Re-run with GITHUB_TOKEN available or inspect the Release evidence manifest manually."
+                $manifestValidationStatus = if ($storeUrl) { "warning" } else { "fail" }
+                Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence manifest" -Status $manifestValidationStatus -Detail "Release asset manifest could not be validated: $($_.Exception.Message)" -NextAction "Re-run with GITHUB_TOKEN available or inspect the Release evidence manifest manually."
             }
         } else {
-            Add-Check -Area "Latest release" -Item "Public cap-v release" -Status "warning" -Detail "No public cap-v release was found." -NextAction "Publish a signed Windows release when signing or Store packaging is ready."
+            $releaseStatus = if ($storeUrl) { "warning" } else { "fail" }
+            Add-Check -Area "Latest release" -Item "Public cap-v release" -Status $releaseStatus -Detail "No public cap-v release was found." -NextAction "Publish a signed Windows release, or configure the official Microsoft Store URL after Store approval."
         }
     } catch {
         Add-Check -Area "Repository" -Item "GitHub API" -Status "warning" -Detail $_.Exception.Message -NextAction "Re-run with GITHUB_TOKEN available or inspect the repository manually."
