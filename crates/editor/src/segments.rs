@@ -1,6 +1,6 @@
 use crate::{
-    SegmentMedia,
     audio::{AudioSegment, AudioSegmentTrack},
+    SegmentMedia,
 };
 
 pub fn get_audio_segments(segments: &[SegmentMedia]) -> Vec<AudioSegment> {

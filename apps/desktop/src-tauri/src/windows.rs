@@ -10,7 +10,7 @@ use std::{
     ops::Deref,
     path::PathBuf,
     str::FromStr,
-    sync::{Arc, Mutex, atomic::AtomicU32},
+    sync::{atomic::AtomicU32, Arc, Mutex},
 };
 use tauri::{
     AppHandle, LogicalPosition, Manager, Monitor, PhysicalPosition, PhysicalSize, WebviewUrl,
@@ -21,7 +21,6 @@ use tokio::sync::RwLock;
 use tracing::{debug, error, instrument, warn};
 
 use crate::{
-    App, ArcLock, RequestScreenCapturePrewarm,
     editor_window::PendingEditorInstances,
     fake_window,
     general_settings::{self, AppTheme, GeneralSettingsStore},
@@ -29,6 +28,7 @@ use crate::{
     recording_settings::RecordingTargetMode,
     target_select_overlay::WindowFocusManager,
     window_exclusion::WindowExclusion,
+    App, ArcLock, RequestScreenCapturePrewarm,
 };
 use cap_recording::feeds;
 
@@ -43,7 +43,7 @@ pub enum CapWindowId {
     Settings,
     Editor { id: u32 },
     RecordingsOverlay,
-    InstantPreview,  // 中文版：即时模式预览窗口
+    InstantPreview, // 中文版：即时模式预览窗口
     WindowCaptureOccluder { screen_id: DisplayId },
     TargetSelectOverlay { display_id: DisplayId },
     CaptureArea,
@@ -68,7 +68,7 @@ impl FromStr for CapWindowId {
             // legacy identifier
             "in-progress-recording" => Self::RecordingControls,
             "recordings-overlay" => Self::RecordingsOverlay,
-            "instant-preview" => Self::InstantPreview,  // 中文版：即时模式预览窗口
+            "instant-preview" => Self::InstantPreview, // 中文版：即时模式预览窗口
             "upgrade" => Self::Upgrade,
             "mode-select" => Self::ModeSelect,
             "debug" => Self::Debug,
@@ -117,7 +117,7 @@ impl std::fmt::Display for CapWindowId {
             }
             Self::RecordingControls => write!(f, "in-progress-recording"), // legacy identifier
             Self::RecordingsOverlay => write!(f, "recordings-overlay"),
-            Self::InstantPreview => write!(f, "instant-preview"),  // 中文版：即时模式预览窗口
+            Self::InstantPreview => write!(f, "instant-preview"), // 中文版：即时模式预览窗口
             Self::Upgrade => write!(f, "upgrade"),
             Self::ModeSelect => write!(f, "mode-select"),
             Self::Editor { id } => write!(f, "editor-{id}"),
@@ -144,7 +144,7 @@ impl CapWindowId {
             Self::ModeSelect => "Cap Mode Selection".to_string(),
             Self::Camera => "Cap Camera".to_string(),
             Self::RecordingsOverlay => "Cap Recordings Overlay".to_string(),
-            Self::InstantPreview => "即时录制预览".to_string(),  // 中文版：即时模式预览窗口
+            Self::InstantPreview => "即时录制预览".to_string(), // 中文版：即时模式预览窗口
             _ => "Cap".to_string(),
         }
     }
@@ -159,7 +159,7 @@ impl CapWindowId {
                 | Self::Settings
                 | Self::Upgrade
                 | Self::ModeSelect
-                | Self::InstantPreview  // 中文版：即时模式预览窗口
+                | Self::InstantPreview // 中文版：即时模式预览窗口
         )
     }
 
@@ -194,7 +194,7 @@ impl CapWindowId {
             Self::Camera => (200.0, 200.0),
             Self::Upgrade => (950.0, 850.0),
             Self::ModeSelect => (580.0, 340.0),
-            Self::InstantPreview => (1000.0, 650.0),  // 中文版：即时模式预览窗口
+            Self::InstantPreview => (1000.0, 650.0), // 中文版：即时模式预览窗口
             _ => return None,
         })
     }
@@ -1106,7 +1106,7 @@ impl ShowCapWindow {
                 CapWindowId::Editor { id }
             }
             ShowCapWindow::RecordingsOverlay => CapWindowId::RecordingsOverlay,
-            ShowCapWindow::InstantPreview { .. } => CapWindowId::InstantPreview,  // 中文版
+            ShowCapWindow::InstantPreview { .. } => CapWindowId::InstantPreview, // 中文版
             ShowCapWindow::TargetSelectOverlay { display_id } => CapWindowId::TargetSelectOverlay {
                 display_id: display_id.clone(),
             },
@@ -1191,7 +1191,7 @@ fn position_traffic_lights_impl(
     window: &tauri::Window,
     controls_inset: Option<LogicalPosition<f64>>,
 ) {
-    use crate::platform::delegates::{UnsafeWindowHandle, position_window_controls};
+    use crate::platform::delegates::{position_window_controls, UnsafeWindowHandle};
     let c_win = window.clone();
     window
         .run_on_main_thread(move || {

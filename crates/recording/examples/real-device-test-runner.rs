@@ -1,10 +1,9 @@
-use anyhow::{Context, bail};
+use anyhow::{bail, Context};
 use cap_project::{Platform, RecordingMeta, RecordingMetaInner, StudioRecordingMeta};
 use cap_recording::{
-    CameraFeed, MicrophoneFeed,
     feeds::{camera, microphone},
     screen_capture::ScreenCaptureTarget,
-    studio_recording,
+    studio_recording, CameraFeed, MicrophoneFeed,
 };
 use chrono::Local;
 use clap::{Parser, Subcommand};
@@ -15,7 +14,7 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
-use tracing_subscriber::{EnvFilter, fmt, prelude::*};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 #[cfg(windows)]
 fn default_output_dir() -> PathBuf {
@@ -1628,7 +1627,7 @@ fn print_summary(reports: &[TestReport]) {
 async fn main() -> anyhow::Result<()> {
     #[cfg(windows)]
     {
-        use windows::Win32::UI::HiDpi::{PROCESS_PER_MONITOR_DPI_AWARE, SetProcessDpiAwareness};
+        use windows::Win32::UI::HiDpi::{SetProcessDpiAwareness, PROCESS_PER_MONITOR_DPI_AWARE};
         unsafe { SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE).ok() };
     }
 

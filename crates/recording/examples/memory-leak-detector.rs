@@ -1,10 +1,10 @@
 use cap_recording::{
-    CameraFeed, MicrophoneFeed,
     feeds::{
         camera::{self, DeviceOrModelID},
         microphone,
     },
     screen_capture::ScreenCaptureTarget,
+    CameraFeed, MicrophoneFeed,
 };
 use kameo::Actor;
 use scap_targets::Display;
@@ -18,7 +18,7 @@ const DEFAULT_DURATION_SECS: u64 = 120;
 
 #[cfg(target_os = "macos")]
 fn get_memory_usage() -> Option<MemoryStats> {
-    use libproc::libproc::pid_rusage::{RUsageInfoV4, pidrusage};
+    use libproc::libproc::pid_rusage::{pidrusage, RUsageInfoV4};
 
     let pid = std::process::id() as i32;
     let rusage: RUsageInfoV4 = pidrusage(pid).ok()?;

@@ -1,5 +1,5 @@
-use crate::SkiaRenderingError;
 use crate::layers::{FrameData, RecordableLayer, SkiaProjectUniforms};
+use crate::SkiaRenderingError;
 use cap_project::BackgroundSource;
 use skia_safe::{
     Canvas, Color, Image, Paint, Picture, PictureRecorder, Point, Rect, Shader, TileMode,

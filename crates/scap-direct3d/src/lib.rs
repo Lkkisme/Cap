@@ -6,13 +6,14 @@ pub use windows_version::WindowsVersion;
 
 use std::{
     sync::{
-        Arc, Mutex,
         atomic::{AtomicBool, AtomicUsize, Ordering},
         mpsc::RecvError,
+        Arc, Mutex,
     },
     time::Duration,
 };
 use windows::{
+    core::{IInspectable, Interface, HSTRING},
     Foundation::{Metadata::ApiInformation, TypedEventHandler},
     Graphics::{
         Capture::{
@@ -26,25 +27,24 @@ use windows::{
         Graphics::{
             Direct3D::{D3D_DRIVER_TYPE, D3D_DRIVER_TYPE_HARDWARE, D3D_DRIVER_TYPE_WARP},
             Direct3D11::{
+                D3D11CreateDevice, ID3D11Device, ID3D11DeviceContext, ID3D11Texture2D,
                 D3D11_BIND_RENDER_TARGET, D3D11_BIND_SHADER_RESOURCE, D3D11_BOX,
-                D3D11_CPU_ACCESS_READ, D3D11_CREATE_DEVICE_FLAG, D3D11_MAP_READ,
-                D3D11_MAPPED_SUBRESOURCE, D3D11_SDK_VERSION, D3D11_TEXTURE2D_DESC,
-                D3D11_USAGE_DEFAULT, D3D11_USAGE_STAGING, D3D11CreateDevice, ID3D11Device,
-                ID3D11DeviceContext, ID3D11Texture2D,
+                D3D11_CPU_ACCESS_READ, D3D11_CREATE_DEVICE_FLAG, D3D11_MAPPED_SUBRESOURCE,
+                D3D11_MAP_READ, D3D11_SDK_VERSION, D3D11_TEXTURE2D_DESC, D3D11_USAGE_DEFAULT,
+                D3D11_USAGE_STAGING,
             },
             Dxgi::{
                 Common::{
                     DXGI_FORMAT, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM,
                     DXGI_SAMPLE_DESC,
                 },
-                DXGI_ERROR_UNSUPPORTED, IDXGIDevice,
+                IDXGIDevice, DXGI_ERROR_UNSUPPORTED,
             },
         },
         System::WinRT::Direct3D11::{
             CreateDirect3D11DeviceFromDXGIDevice, IDirect3DDxgiInterfaceAccess,
         },
     },
-    core::{HSTRING, IInspectable, Interface},
 };
 
 #[derive(Default, Clone, Copy, Debug)]

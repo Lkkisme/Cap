@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use cap_project::{ClickSpringConfig, CursorClickEvent, CursorEvents, CursorMoveEvent, XY};
 
 use crate::{
-    Coord, RawDisplayUVSpace,
     spring_mass_damper::{SpringMassDamperSimulation, SpringMassDamperSimulationConfig},
+    Coord, RawDisplayUVSpace,
 };
 
 const CLICK_REACTION_WINDOW_MS: f64 = 160.0;

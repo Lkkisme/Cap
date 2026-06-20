@@ -92,25 +92,19 @@ fn test_sync_detector_beep_detection() {
     let detector = SyncDetector::new(30, 48000);
 
     let loud_samples: Vec<f32> = vec![0.5; 4800];
-    assert!(
-        detector
-            .detect_beep_in_audio(&loud_samples, 48000)
-            .is_some()
-    );
+    assert!(detector
+        .detect_beep_in_audio(&loud_samples, 48000)
+        .is_some());
 
     let silent_samples: Vec<f32> = vec![0.0; 4800];
-    assert!(
-        detector
-            .detect_beep_in_audio(&silent_samples, 48000)
-            .is_none()
-    );
+    assert!(detector
+        .detect_beep_in_audio(&silent_samples, 48000)
+        .is_none());
 
     let quiet_samples: Vec<f32> = vec![0.1; 4800];
-    assert!(
-        detector
-            .detect_beep_in_audio(&quiet_samples, 48000)
-            .is_none()
-    );
+    assert!(detector
+        .detect_beep_in_audio(&quiet_samples, 48000)
+        .is_none());
 }
 
 #[test]

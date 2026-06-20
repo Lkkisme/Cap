@@ -10,7 +10,7 @@ use std::{
     ops::{Deref, DerefMut},
     os::windows::ffi::OsStringExt,
     slice::from_raw_parts,
-    sync::mpsc::{Receiver, Sender, channel},
+    sync::mpsc::{channel, Receiver, Sender},
     time::Duration,
 };
 use tracing::error;
@@ -18,11 +18,11 @@ use windows::Win32::{
     Foundation::{S_FALSE, *},
     Media::MediaFoundation::*,
     System::{
-        Com::{CLSCTX_INPROC_SERVER, CoCreateInstance, CoInitialize},
+        Com::{CoCreateInstance, CoInitialize, CLSCTX_INPROC_SERVER},
         Performance::QueryPerformanceCounter,
     },
 };
-use windows_core::{ComObjectInner, Interface, PWSTR, implement};
+use windows_core::{implement, ComObjectInner, Interface, PWSTR};
 
 pub fn initialize_mediafoundation() -> windows_core::Result<()> {
     unsafe { CoInitialize(None) }.ok()?;

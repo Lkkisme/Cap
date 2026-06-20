@@ -4,10 +4,11 @@ use crate::{
     video::{NewVideoProcessorError, VideoProcessor},
 };
 use std::sync::{
-    Arc,
     atomic::{AtomicBool, Ordering},
+    Arc,
 };
 use windows::{
+    core::{Error, Interface},
     Foundation::TimeSpan,
     Graphics::SizeInt32,
     Win32::{
@@ -18,21 +19,20 @@ use windows::{
         },
         Media::MediaFoundation::{
             self, IMFAttributes, IMFDXGIDeviceManager, IMFMediaEventGenerator, IMFMediaType,
-            IMFSample, IMFTransform, MF_E_INVALIDMEDIATYPE, MF_E_NO_MORE_TYPES,
-            MF_E_TRANSFORM_TYPE_NOT_SET, MF_EVENT_FLAG_NONE, MF_EVENT_TYPE,
-            MF_MT_ALL_SAMPLES_INDEPENDENT, MF_MT_AVG_BITRATE, MF_MT_FRAME_RATE, MF_MT_FRAME_SIZE,
-            MF_MT_INTERLACE_MODE, MF_MT_MAJOR_TYPE, MF_MT_PIXEL_ASPECT_RATIO, MF_MT_SUBTYPE,
-            MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, MF_TRANSFORM_ASYNC_UNLOCK,
-            MFCreateDXGIDeviceManager, MFCreateDXGISurfaceBuffer, MFCreateMediaType,
-            MFCreateSample, MFMediaType_Video, MFT_ENUM_FLAG, MFT_ENUM_FLAG_HARDWARE,
-            MFT_ENUM_FLAG_TRANSCODE_ONLY, MFT_MESSAGE_COMMAND_FLUSH,
+            IMFSample, IMFTransform, MFCreateDXGIDeviceManager, MFCreateDXGISurfaceBuffer,
+            MFCreateMediaType, MFCreateSample, MFMediaType_Video, MFVideoFormat_HEVC,
+            MFVideoFormat_NV12, MFVideoInterlace_Progressive, MFT_ENUM_FLAG,
+            MFT_ENUM_FLAG_HARDWARE, MFT_ENUM_FLAG_TRANSCODE_ONLY, MFT_MESSAGE_COMMAND_FLUSH,
             MFT_MESSAGE_NOTIFY_BEGIN_STREAMING, MFT_MESSAGE_NOTIFY_END_OF_STREAM,
             MFT_MESSAGE_NOTIFY_END_STREAMING, MFT_MESSAGE_NOTIFY_START_OF_STREAM,
             MFT_MESSAGE_SET_D3D_MANAGER, MFT_OUTPUT_DATA_BUFFER, MFT_SET_TYPE_TEST_ONLY,
-            MFVideoFormat_HEVC, MFVideoFormat_NV12, MFVideoInterlace_Progressive,
+            MF_EVENT_FLAG_NONE, MF_EVENT_TYPE, MF_E_INVALIDMEDIATYPE, MF_E_NO_MORE_TYPES,
+            MF_E_TRANSFORM_TYPE_NOT_SET, MF_MT_ALL_SAMPLES_INDEPENDENT, MF_MT_AVG_BITRATE,
+            MF_MT_FRAME_RATE, MF_MT_FRAME_SIZE, MF_MT_INTERLACE_MODE, MF_MT_MAJOR_TYPE,
+            MF_MT_PIXEL_ASPECT_RATIO, MF_MT_SUBTYPE, MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS,
+            MF_TRANSFORM_ASYNC_UNLOCK,
         },
     },
-    core::{Error, Interface},
 };
 
 const MAX_CONSECUTIVE_EMPTY_SAMPLES: u8 = 20;

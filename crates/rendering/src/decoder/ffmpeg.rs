@@ -7,7 +7,7 @@ use std::{
     collections::BTreeMap,
     path::PathBuf,
     rc::Rc,
-    sync::{Arc, mpsc},
+    sync::{mpsc, Arc},
 };
 use tokio::sync::oneshot;
 use tracing::info;
@@ -15,8 +15,8 @@ use tracing::info;
 use crate::{DecodedFrame, PixelFormat};
 
 use super::{
-    DecoderInitResult, DecoderType, FRAME_CACHE_SIZE, VideoDecoderMessage,
-    frame_converter::FrameConverter, pts_to_frame,
+    frame_converter::FrameConverter, pts_to_frame, DecoderInitResult, DecoderType,
+    VideoDecoderMessage, FRAME_CACHE_SIZE,
 };
 
 #[derive(Clone)]
@@ -209,12 +209,10 @@ impl FfmpegDecoder {
             loop {
                 let r = match rx.try_recv() {
                     Ok(msg) => Some(msg),
-                    Err(mpsc::TryRecvError::Empty) => {
-                        match rx.recv() {
-                            Ok(msg) => Some(msg),
-                            Err(_) => break,
-                        }
-                    }
+                    Err(mpsc::TryRecvError::Empty) => match rx.recv() {
+                        Ok(msg) => Some(msg),
+                        Err(_) => break,
+                    },
                     Err(mpsc::TryRecvError::Disconnected) => break,
                 };
 
@@ -297,7 +295,7 @@ impl FfmpegDecoder {
                             let _ = this.reset(latest_time);
                             frames = this.frames();
                             *last_sent_frame.borrow_mut() = None;
-                            
+
                             let keys_to_remove: Vec<u32> = cache
                                 .keys()
                                 .filter(|&k| *k < cache_min || *k > cache_max)
@@ -339,8 +337,7 @@ impl FfmpegDecoder {
                                 cache.iter_mut().rev().find(|v| *v.0 < requested_frame)
                             {
                                 if respond_sender.is_some() {
-                                    let data =
-                                        most_recent_prev_frame.1.process(&mut converter);
+                                    let data = most_recent_prev_frame.1.process(&mut converter);
                                     if let Some(sender) = respond_sender.take() {
                                         if sender.send(data.to_decoded_frame()).is_err() {
                                             tracing::debug!(
@@ -382,7 +379,11 @@ impl FfmpegDecoder {
                                             let min = *cache.keys().min().unwrap();
                                             let max = *cache.keys().max().unwrap();
 
-                                            if current_frame > max { min } else { max }
+                                            if current_frame > max {
+                                                min
+                                            } else {
+                                                max
+                                            }
                                         };
 
                                         cache.remove(&frame);
@@ -400,15 +401,14 @@ impl FfmpegDecoder {
                             if current_frame > requested_frame && respond_sender.is_some() {
                                 let last_sent_frame_clone = last_sent_frame.borrow().clone();
 
-                                let data_to_send = if let Some(last_sent_frame_data) =
-                                    last_sent_frame_clone
-                                {
-                                    last_sent_frame_data.to_decoded_frame()
-                                } else {
-                                    let data = cache_frame.process(&mut converter);
-                                    *last_sent_frame.borrow_mut() = Some(data.clone());
-                                    data.to_decoded_frame()
-                                };
+                                let data_to_send =
+                                    if let Some(last_sent_frame_data) = last_sent_frame_clone {
+                                        last_sent_frame_data.to_decoded_frame()
+                                    } else {
+                                        let data = cache_frame.process(&mut converter);
+                                        *last_sent_frame.borrow_mut() = Some(data.clone());
+                                        data.to_decoded_frame()
+                                    };
 
                                 if let Some(sender) = respond_sender.take() {
                                     if sender.send(data_to_send).is_err() {
@@ -442,11 +442,8 @@ impl FfmpegDecoder {
                                 );
                                 let black_frame_data =
                                     vec![0u8; (video_width * video_height * 4) as usize];
-                                let black_frame = DecodedFrame::new(
-                                    black_frame_data,
-                                    video_width,
-                                    video_height,
-                                );
+                                let black_frame =
+                                    DecodedFrame::new(black_frame_data, video_width, video_height);
                                 Some(black_frame)
                             };
 

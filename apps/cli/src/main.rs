@@ -1,7 +1,7 @@
 mod record;
 
 use std::{
-    io::{Write, stdout},
+    io::{stdout, Write},
     path::PathBuf,
 };
 

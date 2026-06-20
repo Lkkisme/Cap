@@ -1,13 +1,13 @@
 use crate::sources::audio_mixer::AudioMixer;
-use anyhow::{Context, anyhow};
+use anyhow::{anyhow, Context};
 use cap_media_info::{AudioInfo, VideoInfo};
 use cap_timestamp::{Timestamp, Timestamps};
 use futures::{
-    Future, FutureExt, SinkExt, StreamExt, TryFutureExt,
     channel::{mpsc, oneshot},
     future::{BoxFuture, Shared},
     lock::Mutex,
     stream::FuturesUnordered,
+    Future, FutureExt, SinkExt, StreamExt, TryFutureExt,
 };
 use std::{
     any::Any,
@@ -16,8 +16,8 @@ use std::{
     ops::Deref,
     path::{Path, PathBuf},
     sync::{
-        Arc,
         atomic::{self, AtomicBool, Ordering},
+        Arc,
     },
     time::Duration,
 };

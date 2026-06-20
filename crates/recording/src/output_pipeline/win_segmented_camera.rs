@@ -1,14 +1,14 @@
-use crate::output_pipeline::win::{CameraBuffers, NativeCameraFrame, upload_mf_buffer_to_texture};
-use crate::{AudioFrame, AudioMuxer, Muxer, TaskPool, VideoMuxer, fragmentation};
-use anyhow::{Context, anyhow};
+use crate::output_pipeline::win::{upload_mf_buffer_to_texture, CameraBuffers, NativeCameraFrame};
+use crate::{fragmentation, AudioFrame, AudioMuxer, Muxer, TaskPool, VideoMuxer};
+use anyhow::{anyhow, Context};
 use cap_media_info::{AudioInfo, VideoInfo};
 use serde::Serialize;
 use std::{
     path::PathBuf,
     sync::{
-        Arc, Mutex,
         atomic::{AtomicBool, Ordering},
-        mpsc::{SyncSender, sync_channel},
+        mpsc::{sync_channel, SyncSender},
+        Arc, Mutex,
     },
     thread::JoinHandle,
     time::Duration,

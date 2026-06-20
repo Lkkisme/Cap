@@ -1,16 +1,16 @@
 use windows::{
+    core::Interface,
     Win32::Media::MediaFoundation::{
-        IMFActivate, IMFAttributes, MF_E_ATTRIBUTENOTFOUND, MFT_ENUM_FLAG, MFT_REGISTER_TYPE_INFO,
-        MFTEnumEx,
+        IMFTransform, MFT_FRIENDLY_NAME_Attribute, MFT_CATEGORY_VIDEO_ENCODER,
+        MFT_ENUM_FLAG_HARDWARE, MFT_ENUM_FLAG_SORTANDFILTER, MFT_ENUM_FLAG_TRANSCODE_ONLY,
     },
-    core::{Array, GUID, Result},
 };
 use windows::{
+    core::{Array, Result, GUID},
     Win32::Media::MediaFoundation::{
-        IMFTransform, MFT_CATEGORY_VIDEO_ENCODER, MFT_ENUM_FLAG_HARDWARE,
-        MFT_ENUM_FLAG_SORTANDFILTER, MFT_ENUM_FLAG_TRANSCODE_ONLY, MFT_FRIENDLY_NAME_Attribute,
+        IMFActivate, IMFAttributes, MFTEnumEx, MFT_ENUM_FLAG, MFT_REGISTER_TYPE_INFO,
+        MF_E_ATTRIBUTENOTFOUND,
     },
-    core::Interface,
 };
 
 #[derive(Clone)]

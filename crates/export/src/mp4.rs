@@ -1,6 +1,6 @@
 use crate::ExporterBase;
-use cap_editor::{AudioRenderer, get_audio_segments};
-use cap_enc_ffmpeg::{AudioEncoder, aac::AACEncoder, h264::H264Encoder, mp4::*};
+use cap_editor::{get_audio_segments, AudioRenderer};
+use cap_enc_ffmpeg::{aac::AACEncoder, h264::H264Encoder, mp4::*, AudioEncoder};
 use cap_media_info::{RawVideoFormat, VideoInfo};
 use cap_project::XY;
 use cap_rendering::{ProjectUniforms, RenderSegment, RenderedFrame};

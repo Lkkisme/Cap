@@ -2,48 +2,48 @@ use std::path::Path;
 use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 use tracing::{info, warn};
+use windows::core::PCSTR;
 #[cfg(target_os = "windows")]
 use windows::Win32::Graphics::Direct3D::Fxc::D3DCompile;
-use windows::core::PCSTR;
 use windows::{
+    core::{Interface, PCWSTR},
     Win32::{
         Foundation::{HANDLE, HMODULE},
         Graphics::{
             Direct3D::{
-                D3D_DRIVER_TYPE_HARDWARE, D3D_DRIVER_TYPE_WARP, D3D_FEATURE_LEVEL,
-                D3D_SRV_DIMENSION_TEXTURE2D, ID3DBlob,
+                ID3DBlob, D3D_DRIVER_TYPE_HARDWARE, D3D_DRIVER_TYPE_WARP, D3D_FEATURE_LEVEL,
+                D3D_SRV_DIMENSION_TEXTURE2D,
             },
             Direct3D11::{
-                D3D11_BIND_CONSTANT_BUFFER, D3D11_BIND_SHADER_RESOURCE,
+                D3D11CreateDevice, ID3D11Buffer, ID3D11ComputeShader, ID3D11Device, ID3D11Device3,
+                ID3D11DeviceContext, ID3D11DeviceContext1, ID3D11ShaderResourceView,
+                ID3D11ShaderResourceView1, ID3D11Texture2D, ID3D11UnorderedAccessView,
+                ID3D11VideoDevice, D3D11_BIND_CONSTANT_BUFFER, D3D11_BIND_SHADER_RESOURCE,
                 D3D11_BIND_UNORDERED_ACCESS, D3D11_BUFFER_DESC, D3D11_CPU_ACCESS_READ,
                 D3D11_CREATE_DEVICE_BGRA_SUPPORT, D3D11_CREATE_DEVICE_VIDEO_SUPPORT,
                 D3D11_DECODER_PROFILE_H264_VLD_NOFGT, D3D11_DECODER_PROFILE_HEVC_VLD_MAIN,
-                D3D11_MAP_READ, D3D11_MAPPED_SUBRESOURCE, D3D11_SDK_VERSION,
+                D3D11_MAPPED_SUBRESOURCE, D3D11_MAP_READ, D3D11_SDK_VERSION,
                 D3D11_SHADER_RESOURCE_VIEW_DESC1, D3D11_SHADER_RESOURCE_VIEW_DESC1_0,
                 D3D11_TEX2D_SRV1, D3D11_TEX2D_UAV, D3D11_TEXTURE2D_DESC,
                 D3D11_UAV_DIMENSION_TEXTURE2D, D3D11_UNORDERED_ACCESS_VIEW_DESC,
                 D3D11_UNORDERED_ACCESS_VIEW_DESC_0, D3D11_USAGE_DEFAULT, D3D11_USAGE_STAGING,
-                D3D11_VIDEO_DECODER_DESC, D3D11CreateDevice, ID3D11Buffer, ID3D11ComputeShader,
-                ID3D11Device, ID3D11Device3, ID3D11DeviceContext, ID3D11DeviceContext1,
-                ID3D11ShaderResourceView, ID3D11ShaderResourceView1, ID3D11Texture2D,
-                ID3D11UnorderedAccessView, ID3D11VideoDevice,
+                D3D11_VIDEO_DECODER_DESC,
             },
             Dxgi::Common::{
-                DXGI_FORMAT_NV12, DXGI_FORMAT_R8_UNORM, DXGI_FORMAT_R8G8_UNORM, DXGI_SAMPLE_DESC,
+                DXGI_FORMAT_NV12, DXGI_FORMAT_R8G8_UNORM, DXGI_FORMAT_R8_UNORM, DXGI_SAMPLE_DESC,
             },
         },
         Media::MediaFoundation::{
             IMFAttributes, IMFDXGIBuffer, IMFDXGIDeviceManager, IMFSample, IMFSourceReader,
-            MF_API_VERSION, MF_MT_FRAME_RATE, MF_MT_FRAME_SIZE, MF_MT_MAJOR_TYPE, MF_MT_SUBTYPE,
+            MFCreateAttributes, MFCreateDXGIDeviceManager, MFCreateMediaType,
+            MFCreateSourceReaderFromURL, MFMediaType_Video, MFShutdown, MFStartup,
+            MFVideoFormat_NV12, MFSTARTUP_NOSOCKET, MF_API_VERSION, MF_MT_FRAME_RATE,
+            MF_MT_FRAME_SIZE, MF_MT_MAJOR_TYPE, MF_MT_SUBTYPE,
             MF_READWRITE_ENABLE_HARDWARE_TRANSFORMS, MF_SOURCE_READER_D3D_MANAGER,
             MF_SOURCE_READER_ENABLE_ADVANCED_VIDEO_PROCESSING, MF_SOURCE_READER_FIRST_VIDEO_STREAM,
-            MFCreateAttributes, MFCreateDXGIDeviceManager, MFCreateMediaType,
-            MFCreateSourceReaderFromURL, MFMediaType_Video, MFSTARTUP_NOSOCKET, MFShutdown,
-            MFStartup, MFVideoFormat_NV12,
         },
-        System::Com::{COINIT_MULTITHREADED, CoInitializeEx, CoUninitialize},
+        System::Com::{CoInitializeEx, CoUninitialize, COINIT_MULTITHREADED},
     },
-    core::{Interface, PCWSTR},
 };
 
 #[derive(Debug, Clone)]
@@ -92,7 +92,8 @@ fn query_mf_decoder_capabilities(device: &ID3D11Device) -> MFDecoderCapabilities
                 OutputFormat: DXGI_FORMAT_NV12,
             };
 
-            if let Ok(config_count) = unsafe { video_device.GetVideoDecoderConfigCount(&h264_desc) } {
+            if let Ok(config_count) = unsafe { video_device.GetVideoDecoderConfigCount(&h264_desc) }
+            {
                 if config_count > 0 {
                     supports_h264 = true;
                     max_width = max_width.max(test_w);
@@ -110,7 +111,8 @@ fn query_mf_decoder_capabilities(device: &ID3D11Device) -> MFDecoderCapabilities
                 OutputFormat: DXGI_FORMAT_NV12,
             };
 
-            if let Ok(config_count) = unsafe { video_device.GetVideoDecoderConfigCount(&hevc_desc) } {
+            if let Ok(config_count) = unsafe { video_device.GetVideoDecoderConfigCount(&hevc_desc) }
+            {
                 if config_count > 0 {
                     supports_hevc = true;
                     max_width = max_width.max(test_w);

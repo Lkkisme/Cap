@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::VecDeque};
 
 use cap_camera::CapturedFrame;
 use cap_camera_windows::PixelFormat;
-use ffmpeg::{Packet, format::Pixel, frame::Video as FFVideo};
+use ffmpeg::{format::Pixel, frame::Video as FFVideo, Packet};
 
 use crate::CapturedFrameExt;
 
@@ -199,7 +199,11 @@ pub fn reset_h264_decoder() {
 }
 
 fn src_y(y: usize, height: usize, is_bottom_up: bool) -> usize {
-    if is_bottom_up { height - y - 1 } else { y }
+    if is_bottom_up {
+        height - y - 1
+    } else {
+        y
+    }
 }
 
 impl CapturedFrameExt for CapturedFrame {

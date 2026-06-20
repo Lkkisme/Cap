@@ -4,11 +4,11 @@ use bytemuck::{Pod, Zeroable};
 use cap_project::*;
 use image::GenericImageView;
 use tracing::error;
-use wgpu::{BindGroup, FilterMode, include_wgsl, util::DeviceExt};
+use wgpu::{include_wgsl, util::DeviceExt, BindGroup, FilterMode};
 
 use crate::{
-    Coord, DecodedSegmentFrames, FrameSpace, ProjectUniforms, RenderVideoConstants,
-    STANDARD_CURSOR_HEIGHT, zoom::InterpolatedZoom,
+    zoom::InterpolatedZoom, Coord, DecodedSegmentFrames, FrameSpace, ProjectUniforms,
+    RenderVideoConstants, STANDARD_CURSOR_HEIGHT,
 };
 
 const CURSOR_CLICK_DURATION: f64 = 0.25;
@@ -374,24 +374,28 @@ impl CursorLayer {
                 if let Some(cursor_shape) = cursor_shape {
                     if uniforms.project.cursor.use_svg {
                         if let Some(info) = cursor_shape.resolve() {
-                            loaded_cursor =
-                                CursorTexture::prepare_svg(constants, info.raw, info.hotspot.into())
-                                    .map_err(|err| {
-                                        error!(
-                                            "Error loading SVG cursor {:?}: {err}",
-                                            interpolated_cursor.cursor_id
-                                        )
-                                    })
-                                    .ok();
+                            loaded_cursor = CursorTexture::prepare_svg(
+                                constants,
+                                info.raw,
+                                info.hotspot.into(),
+                            )
+                            .map_err(|err| {
+                                error!(
+                                    "Error loading SVG cursor {:?}: {err}",
+                                    interpolated_cursor.cursor_id
+                                )
+                            })
+                            .ok();
                         }
                     }
                 }
 
                 if let StudioRecordingMeta::MultipleSegments { inner, .. } = &constants.meta {
                     if loaded_cursor.is_none() {
-                        if let Some(c) = inner
-                            .get_cursor_image(&constants.recording_meta, &interpolated_cursor.cursor_id)
-                        {
+                        if let Some(c) = inner.get_cursor_image(
+                            &constants.recording_meta,
+                            &interpolated_cursor.cursor_id,
+                        ) {
                             if let Ok(img) = image::open(&c.path).map_err(|err| {
                                 error!("Failed to load cursor image from {:?}: {err}", c.path)
                             }) {

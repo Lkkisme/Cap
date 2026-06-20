@@ -2,7 +2,7 @@ use ::ffmpeg::Rational;
 use std::{
     fmt,
     path::PathBuf,
-    sync::{Arc, mpsc},
+    sync::{mpsc, Arc},
     time::Duration,
 };
 use tokio::sync::oneshot;

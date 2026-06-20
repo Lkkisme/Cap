@@ -10,7 +10,7 @@ use std::{
 };
 
 use crate::video::h264::{
-    DEFAULT_KEYFRAME_INTERVAL_SECS, H264Encoder, H264EncoderBuilder, H264EncoderError, H264Preset,
+    H264Encoder, H264EncoderBuilder, H264EncoderError, H264Preset, DEFAULT_KEYFRAME_INTERVAL_SECS,
 };
 
 const INIT_SEGMENT_NAME: &str = "init.mp4";
@@ -442,9 +442,7 @@ impl SegmentedVideoEncoder {
         for entry in entries.flatten() {
             let path = entry.path();
             if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                if name.starts_with("segment_")
-                    && name.ends_with(".m4s.tmp")
-                {
+                if name.starts_with("segment_") && name.ends_with(".m4s.tmp") {
                     if let Ok(metadata) = std::fs::metadata(&path) {
                         if metadata.len() > 0 {
                             let final_name = name.trim_end_matches(".tmp");
@@ -533,9 +531,7 @@ impl SegmentedVideoEncoder {
         for entry in entries.flatten() {
             let path = entry.path();
             if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                if name.starts_with("segment_")
-                    && name.ends_with(".m4s")
-                    && !name.contains(".tmp")
+                if name.starts_with("segment_") && name.ends_with(".m4s") && !name.contains(".tmp")
                 {
                     if let Some(index_str) = name
                         .strip_prefix("segment_")

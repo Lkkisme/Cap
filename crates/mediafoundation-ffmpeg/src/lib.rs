@@ -4,4 +4,4 @@ mod audio;
 mod h264;
 
 pub use audio::AudioExt;
-pub use h264::{H264StreamMuxer, MuxerConfig, set_fragmented_mp4_options};
+pub use h264::{set_fragmented_mp4_options, H264StreamMuxer, MuxerConfig};

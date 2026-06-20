@@ -1,8 +1,8 @@
 use cap_recording::{
-    CameraFeed,
     benchmark::{BenchmarkConfig, EncoderInfo},
     feeds::camera::{self, DeviceOrModelID},
     screen_capture::ScreenCaptureTarget,
+    CameraFeed,
 };
 use kameo::Actor;
 use scap_targets::Display;

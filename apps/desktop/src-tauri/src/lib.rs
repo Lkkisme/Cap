@@ -42,16 +42,16 @@ use camera::CameraPreviewState;
 use cap_editor::{EditorInstance, EditorState};
 use cap_project::{
     InstantRecordingMeta, ProjectConfiguration, RecordingMeta, RecordingMetaInner, SharingMeta,
-    StudioRecordingMeta, StudioRecordingStatus, UploadMeta, VideoUploadInfo, XY, ZoomSegment,
+    StudioRecordingMeta, StudioRecordingStatus, UploadMeta, VideoUploadInfo, ZoomSegment, XY,
 };
 use cap_recording::{
-    RecordingMode,
     feeds::{
         self,
         camera::{CameraFeed, DeviceOrModelID},
         microphone::{self, MicrophoneFeed},
     },
     sources::screen_capture::ScreenCaptureTarget,
+    RecordingMode,
 };
 use cap_rendering::{ProjectRecordingsMeta, RenderedFrame};
 use clipboard_rs::common::RustImage;
@@ -60,12 +60,12 @@ use cpal::StreamError;
 use editor_window::{EditorInstances, WindowEditorInstance};
 use ffmpeg::ffi::AV_TIME_BASE;
 use general_settings::GeneralSettingsStore;
-use kameo::{Actor, actor::ActorRef};
+use kameo::{actor::ActorRef, Actor};
 use notifications::NotificationType;
 use recording::{InProgressRecording, RecordingEvent, RecordingInputKind};
-use scap_targets::{Display, DisplayId, WindowId, bounds::LogicalBounds};
+use scap_targets::{bounds::LogicalBounds, Display, DisplayId, WindowId};
 use screenshot_editor::{
-    ScreenshotEditorInstances, create_screenshot_editor_instance, update_screenshot_config,
+    create_screenshot_editor_instance, update_screenshot_config, ScreenshotEditorInstances,
 };
 
 mod gpu_context;
@@ -83,7 +83,7 @@ use std::{
     sync::Arc,
     time::Duration,
 };
-use tauri::{AppHandle, Manager, State, Window, WindowEvent, ipc::Channel};
+use tauri::{ipc::Channel, AppHandle, Manager, State, Window, WindowEvent};
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
@@ -91,13 +91,13 @@ use tauri_plugin_notification::{NotificationExt, PermissionState};
 use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_shell::ShellExt;
 use tauri_specta::Event;
-use tokio::sync::{RwLock, oneshot, watch};
+use tokio::sync::{oneshot, watch, RwLock};
 use tracing::*;
 use upload::{create_or_get_video, upload_image, upload_video};
 use web_api::AuthedApiError;
 use web_api::ManagerExt as WebManagerExt;
 use windows::{
-    CapWindowId, EditorWindowIds, ScreenshotEditorWindowIds, ShowCapWindow, set_window_transparent,
+    set_window_transparent, CapWindowId, EditorWindowIds, ScreenshotEditorWindowIds, ShowCapWindow,
 };
 
 use crate::{
@@ -765,7 +765,8 @@ fn spawn_microphone_watcher(app_handle: AppHandle) {
 
             if should_check {
                 if let Some(selected_label) = label {
-                    let available = microphone::MicrophoneFeed::list().contains_key(&selected_label);
+                    let available =
+                        microphone::MicrophoneFeed::list().contains_key(&selected_label);
 
                     if !available && !is_marked {
                         let mut app = state.write().await;
@@ -832,7 +833,9 @@ fn spawn_camera_watcher(app_handle: AppHandle) {
                         }
                     } else if available && is_marked {
                         let mut app = state.write().await;
-                        if let Err(err) = app.handle_input_restored(RecordingInputKind::Camera).await {
+                        if let Err(err) =
+                            app.handle_input_restored(RecordingInputKind::Camera).await
+                        {
                             warn!("Failed to handle camera reconnection: {err}");
                         }
                     }
@@ -2269,8 +2272,8 @@ async fn get_display_frame_for_cropping(
     fps: u32,
 ) -> Result<Vec<u8>, String> {
     use cap_project::ClipOffsets;
-    use cap_rendering::{PixelFormat, cpu_yuv};
-    use image::{ImageEncoder, codecs::png::PngEncoder};
+    use cap_rendering::{cpu_yuv, PixelFormat};
+    use image::{codecs::png::PngEncoder, ImageEncoder};
     use std::io::Cursor;
 
     let frame_number = editor_instance.state.lock().await.playhead_position;
@@ -3182,10 +3185,9 @@ pub async fn run(recording_logging_handle: LoggingHandle, logs_dir: PathBuf) {
 
                     if let Some(settings) = GeneralSettingsStore::get(app).unwrap_or(None) {
                         if settings.hide_dock_icon
-                            && app
-                                .webview_windows()
-                                .keys()
-                                .all(|label| !CapWindowId::from_str(label).unwrap().activates_dock())
+                            && app.webview_windows().keys().all(|label| {
+                                !CapWindowId::from_str(label).unwrap().activates_dock()
+                            })
                         {
                             #[cfg(target_os = "macos")]
                             app.set_activation_policy(tauri::ActivationPolicy::Accessory)

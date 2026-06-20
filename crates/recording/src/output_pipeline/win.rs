@@ -1,5 +1,5 @@
-use crate::{AudioFrame, AudioMuxer, Muxer, TaskPool, VideoFrame, VideoMuxer, screen_capture};
-use anyhow::{Context, anyhow};
+use crate::{screen_capture, AudioFrame, AudioMuxer, Muxer, TaskPool, VideoFrame, VideoMuxer};
+use anyhow::{anyhow, Context};
 use cap_enc_ffmpeg::aac::AACEncoder;
 use cap_media_info::{AudioInfo, VideoInfo};
 use cap_timestamp::Timestamp;
@@ -7,9 +7,9 @@ use futures::channel::oneshot;
 use std::{
     path::PathBuf,
     sync::{
-        Arc, Mutex,
         atomic::AtomicBool,
-        mpsc::{RecvTimeoutError, SyncSender, TrySendError, sync_channel},
+        mpsc::{sync_channel, RecvTimeoutError, SyncSender, TrySendError},
+        Arc, Mutex,
     },
     time::Duration,
 };

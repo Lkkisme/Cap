@@ -5,11 +5,11 @@ use cap_project::{
 };
 use composite_frame::CompositeVideoFrameUniforms;
 use core::f64;
-use cursor_interpolation::{InterpolatedCursorPosition, interpolate_cursor};
-use decoder::{AsyncVideoDecoderHandle, spawn_decoder};
-use frame_pipeline::{RenderSession, finish_encoder};
-use futures::FutureExt;
+use cursor_interpolation::{interpolate_cursor, InterpolatedCursorPosition};
+use decoder::{spawn_decoder, AsyncVideoDecoderHandle};
+use frame_pipeline::{finish_encoder, RenderSession};
 use futures::future::OptionFuture;
+use futures::FutureExt;
 use layers::{
     Background, BackgroundLayer, BlurLayer, CameraLayer, CaptionsLayer, CursorLayer, DisplayLayer,
     MaskLayer, TextLayer,
@@ -47,7 +47,7 @@ pub use project_recordings::{ProjectRecordingsMeta, SegmentRecordings, Video};
 
 use mask::interpolate_masks;
 use scene::*;
-use text::{PreparedText, prepare_texts};
+use text::{prepare_texts, PreparedText};
 use zoom::*;
 pub use zoom_focus_interpolation::ZoomFocusInterpolator;
 

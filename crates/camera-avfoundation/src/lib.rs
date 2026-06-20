@@ -2,7 +2,7 @@
 
 use cidre::{
     av::capture::{VideoDataOutputSampleBufDelegate, VideoDataOutputSampleBufDelegateImpl},
-    cv::{PixelBuf, pixel_buffer::LockFlags},
+    cv::{pixel_buffer::LockFlags, PixelBuf},
     *,
 };
 use std::{

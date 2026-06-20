@@ -136,31 +136,31 @@ const createDisplaySignature = (
 
 type TargetMenuPanelProps =
 	| {
-		variant: "display";
-		targets?: CaptureDisplayWithThumbnail[];
-		onSelect: (target: CaptureDisplayWithThumbnail) => void;
-	}
+			variant: "display";
+			targets?: CaptureDisplayWithThumbnail[];
+			onSelect: (target: CaptureDisplayWithThumbnail) => void;
+	  }
 	| {
-		variant: "window";
-		targets?: CaptureWindowWithThumbnail[];
-		onSelect: (target: CaptureWindowWithThumbnail) => void;
-	}
+			variant: "window";
+			targets?: CaptureWindowWithThumbnail[];
+			onSelect: (target: CaptureWindowWithThumbnail) => void;
+	  }
 	| {
-		variant: "recording";
-		targets?: RecordingWithPath[];
-		onSelect: (target: RecordingWithPath) => void;
-		onViewAll: () => void;
-		uploadProgress?: Record<string, number>;
-		reuploadingPaths?: Set<string>;
-		onReupload?: (path: string) => void;
-		onRefetch?: () => void;
-	}
+			variant: "recording";
+			targets?: RecordingWithPath[];
+			onSelect: (target: RecordingWithPath) => void;
+			onViewAll: () => void;
+			uploadProgress?: Record<string, number>;
+			reuploadingPaths?: Set<string>;
+			onReupload?: (path: string) => void;
+			onRefetch?: () => void;
+	  }
 	| {
-		variant: "screenshot";
-		targets?: ScreenshotWithPath[];
-		onSelect: (target: ScreenshotWithPath) => void;
-		onViewAll: () => void;
-	};
+			variant: "screenshot";
+			targets?: ScreenshotWithPath[];
+			onSelect: (target: ScreenshotWithPath) => void;
+			onViewAll: () => void;
+	  };
 
 type SharedTargetMenuProps = {
 	isLoading: boolean;
@@ -283,7 +283,7 @@ function TargetMenuPanel(props: TargetMenuPanelProps & SharedTargetMenuProps) {
 					focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-9 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-1"
 				>
 					<IconLucideArrowLeft class="size-3 text-gray-11" />
-					<span class="font-medium text-gray-12">{t('common.back')}</span>
+					<span class="font-medium text-gray-12">{t("common.back")}</span>
 				</div>
 				<div class="flex gap-2 flex-1 min-w-0">
 					<div class="relative flex-1 min-w-0 h-[36px] flex items-center">
@@ -527,7 +527,7 @@ function Page() {
 			await commands.uploadExportedVideo(
 				path,
 				"Reupload",
-				new Channel<UploadProgress>(() => { }),
+				new Channel<UploadProgress>(() => {}),
 				null,
 			);
 		} finally {
@@ -924,7 +924,7 @@ function Page() {
 						class={cx(
 							"flex flex-1 overflow-hidden rounded-lg bg-gray-3 ring-1 ring-transparent ring-offset-2 ring-offset-gray-1 transition focus-within:ring-blue-9 focus-within:ring-offset-2 focus-within:ring-offset-gray-1",
 							(rawOptions.targetMode === "display" || displayMenuOpen()) &&
-							"ring-blue-9",
+								"ring-blue-9",
 						)}
 					>
 						<TargetTypeButton
@@ -963,7 +963,7 @@ function Page() {
 						class={cx(
 							"flex flex-1 overflow-hidden rounded-lg bg-gray-3 ring-1 ring-transparent ring-offset-2 ring-offset-gray-1 transition focus-within:ring-blue-9 focus-within:ring-offset-2 focus-within:ring-offset-gray-1",
 							(rawOptions.targetMode === "window" || windowMenuOpen()) &&
-							"ring-blue-9",
+								"ring-blue-9",
 						)}
 					>
 						<TargetTypeButton
@@ -1019,7 +1019,7 @@ function Page() {
 			}
 		}
 
-		await signIn.mutateAsync(abort).catch(() => { });
+		await signIn.mutateAsync(abort).catch(() => {});
 
 		for (const win of await getAllWebviewWindows()) {
 			if (win.label.startsWith("target-select-overlay")) {
@@ -1176,7 +1176,9 @@ function Page() {
 									targets={recordingsData()}
 									isLoading={recordings.isPending}
 									errorMessage={
-										recordings.error ? t("recordingsPage.status.loadFailed") : undefined
+										recordings.error
+											? t("recordingsPage.status.loadFailed")
+											: undefined
 									}
 									onSelect={async (recording) => {
 										if (recording.mode === "studio") {
@@ -1226,7 +1228,9 @@ function Page() {
 									targets={screenshotsData()}
 									isLoading={screenshots.isPending}
 									errorMessage={
-										screenshots.error ? t("screenshot.messages.loadFailed") : undefined
+										screenshots.error
+											? t("screenshot.messages.loadFailed")
+											: undefined
 									}
 									onSelect={async (screenshot) => {
 										await commands.showWindow({

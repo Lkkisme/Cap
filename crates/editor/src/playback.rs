@@ -1,19 +1,19 @@
 use cap_audio::FromSampleBytes;
 #[cfg(not(target_os = "windows"))]
-use cap_audio::{LatencyCorrectionConfig, LatencyCorrector, default_output_latency_hint};
+use cap_audio::{default_output_latency_hint, LatencyCorrectionConfig, LatencyCorrector};
 use cap_media::MediaError;
 use cap_media_info::AudioInfo;
 use cap_project::{ProjectConfiguration, XY};
 use cap_rendering::{
-    DecodedSegmentFrames, ProjectUniforms, RenderVideoConstants, ZoomFocusInterpolator,
-    spring_mass_damper::SpringMassDamperSimulationConfig,
+    spring_mass_damper::SpringMassDamperSimulationConfig, DecodedSegmentFrames, ProjectUniforms,
+    RenderVideoConstants, ZoomFocusInterpolator,
+};
+use cpal::{
+    traits::{DeviceTrait, HostTrait, StreamTrait},
+    SampleFormat,
 };
 #[cfg(not(target_os = "windows"))]
 use cpal::{BufferSize, SupportedBufferSize};
-use cpal::{
-    SampleFormat,
-    traits::{DeviceTrait, HostTrait, StreamTrait},
-};
 use futures::stream::{FuturesUnordered, StreamExt};
 use lru::LruCache;
 use std::{
@@ -908,7 +908,8 @@ impl AudioPlayback {
                         SupportedBufferSize::Unknown => desired,
                     };
 
-                    if let SupportedBufferSize::Range { min, max } = supported_config.buffer_size() {
+                    if let SupportedBufferSize::Range { min, max } = supported_config.buffer_size()
+                    {
                         if clamped != desired {
                             info!(
                                 requested_frames = desired,

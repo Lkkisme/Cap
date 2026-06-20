@@ -6,8 +6,8 @@ use std::time::Instant;
 use std::{
     collections::VecDeque,
     sync::{
-        Arc,
         atomic::{AtomicBool, Ordering},
+        Arc,
     },
     time::Duration,
 };

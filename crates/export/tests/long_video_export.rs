@@ -1,6 +1,6 @@
 use cap_export::{
-    ExporterBase,
     mp4::{ExportCompression, Mp4ExportSettings},
+    ExporterBase,
 };
 use cap_project::XY;
 use std::{
@@ -8,8 +8,8 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
     sync::{
-        Arc,
         atomic::{AtomicU32, Ordering},
+        Arc,
     },
     time::{Duration, Instant},
 };

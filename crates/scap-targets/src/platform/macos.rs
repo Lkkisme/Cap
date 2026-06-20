@@ -10,12 +10,12 @@ use core_foundation::{
 };
 use core_graphics::{
     display::{
-        CFDictionary, CGDirectDisplayID, CGDisplay, CGDisplayBounds, CGDisplayCopyDisplayMode,
-        CGRect, kCGWindowListOptionIncludingWindow,
+        kCGWindowListOptionIncludingWindow, CFDictionary, CGDirectDisplayID, CGDisplay,
+        CGDisplayBounds, CGDisplayCopyDisplayMode, CGRect,
     },
     window::{
-        CGWindowID, kCGWindowBounds, kCGWindowLayer, kCGWindowName, kCGWindowNumber,
-        kCGWindowOwnerName,
+        kCGWindowBounds, kCGWindowLayer, kCGWindowName, kCGWindowNumber, kCGWindowOwnerName,
+        CGWindowID,
     },
 };
 

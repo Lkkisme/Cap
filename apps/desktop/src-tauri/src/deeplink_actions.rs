@@ -1,12 +1,12 @@
 use cap_recording::{
-    RecordingMode, feeds::camera::DeviceOrModelID, sources::screen_capture::ScreenCaptureTarget,
+    feeds::camera::DeviceOrModelID, sources::screen_capture::ScreenCaptureTarget, RecordingMode,
 };
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Manager, Url};
 use tracing::trace;
 
-use crate::{App, ArcLock, recording::StartRecordingInputs, windows::ShowCapWindow};
+use crate::{recording::StartRecordingInputs, windows::ShowCapWindow, App, ArcLock};
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

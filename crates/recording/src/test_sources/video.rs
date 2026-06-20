@@ -2,11 +2,11 @@ use crate::output_pipeline::{FFmpegVideoFrame, SetupCtx, VideoSource};
 use cap_media_info::{Pixel, VideoInfo};
 use cap_timestamp::{Timestamp, Timestamps};
 use ffmpeg::util::rational::Rational as FFRational;
-use futures::{FutureExt, channel::mpsc};
+use futures::{channel::mpsc, FutureExt};
 use std::{
     sync::{
-        Arc,
         atomic::{AtomicBool, Ordering},
+        Arc,
     },
     time::Duration,
 };
@@ -301,7 +301,11 @@ fn fill_frame_counter(frame: &mut ffmpeg::frame::Video, info: &VideoInfo, frame_
                         let bit_idx = (x % 32) / 4;
                         if byte_idx < 8 {
                             let byte = frame_bytes[byte_idx];
-                            if (byte >> bit_idx) & 1 == 1 { 255 } else { 0 }
+                            if (byte >> bit_idx) & 1 == 1 {
+                                255
+                            } else {
+                                0
+                            }
                         } else {
                             128
                         }
@@ -516,7 +520,11 @@ fn fill_nv12_frame_counter(
                     let bit_idx = (x % 32) / 4;
                     if byte_idx < 8 {
                         let byte = frame_bytes[byte_idx];
-                        if (byte >> bit_idx) & 1 == 1 { 235 } else { 16 }
+                        if (byte >> bit_idx) & 1 == 1 {
+                            235
+                        } else {
+                            16
+                        }
                     } else {
                         128
                     }

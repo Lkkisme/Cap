@@ -1,5 +1,5 @@
 use cap_mediafoundation_utils::*;
-use ffmpeg::{Rational, ffi::av_rescale_q, packet};
+use ffmpeg::{ffi::av_rescale_q, packet, Rational};
 use std::ffi::CString;
 use tracing::*;
 use windows::Win32::Media::MediaFoundation::{IMFSample, MFSampleExtension_CleanPoint};

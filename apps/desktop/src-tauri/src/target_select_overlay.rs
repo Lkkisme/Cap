@@ -9,13 +9,14 @@ use base64::prelude::*;
 use cap_recording::screen_capture::ScreenCaptureTarget;
 
 use crate::{
-    App, ArcLock, general_settings,
+    general_settings,
     window_exclusion::WindowExclusion,
     windows::{CapWindowId, ShowCapWindow},
+    App, ArcLock,
 };
 use scap_targets::{
-    Display, DisplayId, Window, WindowId,
     bounds::{LogicalBounds, LogicalSize, PhysicalSize},
+    Display, DisplayId, Window, WindowId,
 };
 use serde::Serialize;
 use specta::Type;
@@ -263,8 +264,8 @@ pub async fn focus_window(window_id: WindowId) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         use windows::Win32::UI::WindowsAndMessaging::{
-            GetWindowPlacement, IsIconic, SW_RESTORE, SetForegroundWindow, SetWindowPlacement,
-            ShowWindow, WINDOWPLACEMENT,
+            GetWindowPlacement, IsIconic, SetForegroundWindow, SetWindowPlacement, ShowWindow,
+            SW_RESTORE, WINDOWPLACEMENT,
         };
 
         let hwnd = window.raw_handle().inner();

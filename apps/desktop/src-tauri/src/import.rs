@@ -1,18 +1,18 @@
 use cap_enc_ffmpeg::{
-    AudioEncoder,
     h264::{H264EncoderBuilder, H264Preset},
     opus::OpusEncoder,
     remux::{get_media_duration, probe_video_can_decode},
+    AudioEncoder,
 };
-use cap_media_info::{AudioInfo, FFRational, Pixel, VideoInfo, ensure_even};
+use cap_media_info::{ensure_even, AudioInfo, FFRational, Pixel, VideoInfo};
 use cap_project::{
     AudioMeta, Cursors, InstantRecordingMeta, MultipleSegment, MultipleSegments, Platform,
     RecordingMeta, RecordingMetaInner, StudioRecordingMeta, StudioRecordingStatus, VideoMeta,
 };
 use ffmpeg::{
-    ChannelLayout,
     codec::{self as avcodec},
     format::{self as avformat},
+    ChannelLayout,
 };
 use relative_path::RelativePathBuf;
 use serde::Serialize;

@@ -33,19 +33,19 @@ static HW_CAPABILITIES: OnceLock<HwDecoderCapabilities> = OnceLock::new();
 #[cfg(target_os = "windows")]
 fn query_d3d11_video_decoder_capabilities() -> HwDecoderCapabilities {
     use windows::{
+        core::Interface,
         Win32::{
             Foundation::HMODULE,
             Graphics::{
                 Direct3D::D3D_DRIVER_TYPE_HARDWARE,
                 Direct3D11::{
-                    D3D11_CREATE_DEVICE_VIDEO_SUPPORT, D3D11_DECODER_PROFILE_H264_VLD_NOFGT,
-                    D3D11_DECODER_PROFILE_HEVC_VLD_MAIN, D3D11_SDK_VERSION,
-                    D3D11_VIDEO_DECODER_DESC, D3D11CreateDevice, ID3D11VideoDevice,
+                    D3D11CreateDevice, ID3D11VideoDevice, D3D11_CREATE_DEVICE_VIDEO_SUPPORT,
+                    D3D11_DECODER_PROFILE_H264_VLD_NOFGT, D3D11_DECODER_PROFILE_HEVC_VLD_MAIN,
+                    D3D11_SDK_VERSION, D3D11_VIDEO_DECODER_DESC,
                 },
                 Dxgi::Common::DXGI_FORMAT_NV12,
             },
         },
-        core::Interface,
     };
 
     let result: Result<HwDecoderCapabilities, String> = (|| {
@@ -102,7 +102,9 @@ fn query_d3d11_video_decoder_capabilities() -> HwDecoderCapabilities {
                     OutputFormat: DXGI_FORMAT_NV12,
                 };
 
-                if let Ok(config_count) = unsafe { video_device.GetVideoDecoderConfigCount(&desc_4k) } {
+                if let Ok(config_count) =
+                    unsafe { video_device.GetVideoDecoderConfigCount(&desc_4k) }
+                {
                     if config_count > 0 {
                         supports_hw = true;
                     }

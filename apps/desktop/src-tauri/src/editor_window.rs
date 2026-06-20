@@ -1,11 +1,11 @@
 use std::{collections::HashMap, ops::Deref, path::PathBuf, sync::Arc, time::Instant};
-use tauri::{AppHandle, Manager, Runtime, Window, ipc::CommandArg};
-use tokio::sync::{RwLock, watch};
+use tauri::{ipc::CommandArg, AppHandle, Manager, Runtime, Window};
+use tokio::sync::{watch, RwLock};
 use tokio_util::sync::CancellationToken;
 
 use crate::{
     create_editor_instance_impl,
-    frame_ws::{WSFrame, create_watch_frame_ws},
+    frame_ws::{create_watch_frame_ws, WSFrame},
 };
 
 pub struct EditorInstance {

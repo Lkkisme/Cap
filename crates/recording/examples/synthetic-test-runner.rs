@@ -1,11 +1,11 @@
 use cap_recording::{
-    Mp4Muxer, OggMuxer, OutputPipeline, SegmentedVideoMuxer, SegmentedVideoMuxerConfig,
     test_sources::{
-        AudioGenerator, AudioTestConfig, OutputFormat, RecordingValidator, SyntheticAudioSource,
-        SyntheticAudioSourceConfig, TestConfig, TestPattern, TestPatternVideoSource,
-        TestPatternVideoSourceConfig, ValidationConfig, VideoTestConfig, common_test_configs,
-        comprehensive_test_configs,
+        common_test_configs, comprehensive_test_configs, AudioGenerator, AudioTestConfig,
+        OutputFormat, RecordingValidator, SyntheticAudioSource, SyntheticAudioSourceConfig,
+        TestConfig, TestPattern, TestPatternVideoSource, TestPatternVideoSourceConfig,
+        ValidationConfig, VideoTestConfig,
     },
+    Mp4Muxer, OggMuxer, OutputPipeline, SegmentedVideoMuxer, SegmentedVideoMuxerConfig,
 };
 use cap_timestamp::Timestamps;
 use clap::{Parser, Subcommand};
@@ -14,7 +14,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio_util::sync::CancellationToken;
-use tracing_subscriber::{EnvFilter, fmt, prelude::*};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 #[derive(Parser)]
 #[command(name = "synthetic-test-runner")]

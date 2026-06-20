@@ -1,15 +1,16 @@
 use crate::{
-    ActorError, H264_MAX_DIMENSION, MediaError, RecordingBaseInputs, RecordingError,
-    SharedPauseState, calculate_gpu_compatible_size,
+    calculate_gpu_compatible_size,
     capture_pipeline::{
-        MakeCapturePipeline, ScreenCaptureMethod, Stop, target_to_display_and_crop,
+        target_to_display_and_crop, MakeCapturePipeline, ScreenCaptureMethod, Stop,
     },
-    cursor::{CursorActor, Cursors, spawn_cursor_recorder},
+    cursor::{spawn_cursor_recorder, CursorActor, Cursors},
     feeds::{camera::CameraFeedLock, microphone::MicrophoneFeedLock},
     ffmpeg::{FragmentedAudioMuxer, FragmentedAudioMuxerConfig, OggMuxer},
     output_pipeline::{DoneFut, FinishedOutputPipeline, OutputPipeline, PipelineDoneError},
     screen_capture::ScreenCaptureConfig,
     sources::{self, screen_capture},
+    ActorError, MediaError, RecordingBaseInputs, RecordingError, SharedPauseState,
+    H264_MAX_DIMENSION,
 };
 
 #[cfg(target_os = "macos")]
@@ -23,15 +24,15 @@ use crate::output_pipeline::{
     WindowsCameraMuxer, WindowsCameraMuxerConfig, WindowsFragmentedM4SCameraMuxer,
     WindowsFragmentedM4SCameraMuxerConfig,
 };
-use anyhow::{Context as _, anyhow, bail};
+use anyhow::{anyhow, bail, Context as _};
 use cap_media_info::VideoInfo;
 use cap_project::{
     CursorEvents, MultipleSegments, Platform, RecordingMeta, RecordingMetaInner,
     StudioRecordingMeta, StudioRecordingStatus,
 };
 use cap_timestamp::{Timestamp, Timestamps};
-use futures::{FutureExt, StreamExt, future::OptionFuture, stream::FuturesUnordered};
-use kameo::{Actor as _, prelude::*};
+use futures::{future::OptionFuture, stream::FuturesUnordered, FutureExt, StreamExt};
+use kameo::{prelude::*, Actor as _};
 use relative_path::RelativePathBuf;
 use std::{
     path::{Path, PathBuf},
@@ -39,7 +40,7 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 use tokio::sync::watch;
-use tracing::{Instrument, debug, error_span, info, trace, warn};
+use tracing::{debug, error_span, info, trace, warn, Instrument};
 
 #[allow(clippy::large_enum_variant)]
 enum ActorState {

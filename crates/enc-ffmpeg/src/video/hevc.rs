@@ -1,13 +1,13 @@
 use std::{thread, time::Duration};
 
-use cap_media_info::{Pixel, VideoInfo, ensure_even};
+use cap_media_info::{ensure_even, Pixel, VideoInfo};
 use ffmpeg::{
-    Dictionary,
     codec::{codec::Codec, context, encoder},
     color,
     format::{self},
     frame,
     threading::Config,
+    Dictionary,
 };
 use tracing::{debug, error, trace, warn};
 
@@ -412,7 +412,7 @@ fn get_encoder_priority() -> &'static [&'static str] {
 
     #[cfg(target_os = "windows")]
     {
-        use cap_frame_converter::{GpuVendor, detect_primary_gpu};
+        use cap_frame_converter::{detect_primary_gpu, GpuVendor};
 
         static ENCODER_PRIORITY_NVIDIA: &[&str] =
             &["hevc_nvenc", "hevc_mf", "hevc_qsv", "hevc_amf", "libx265"];

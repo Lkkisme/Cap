@@ -6,7 +6,7 @@ fn main() {
 #[cfg(target_os = "macos")]
 mod macos {
     use cap_camera_avfoundation::{
-        CallbackOutputDelegate, CallbackOutputDelegateInner, YCbCrMatrix, list_video_devices,
+        list_video_devices, CallbackOutputDelegate, CallbackOutputDelegateInner, YCbCrMatrix,
     };
     use cidre::*;
     use clap::{Parser, Subcommand};

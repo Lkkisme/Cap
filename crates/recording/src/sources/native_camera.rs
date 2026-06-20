@@ -4,10 +4,10 @@ use crate::{
 };
 use anyhow::anyhow;
 use cap_media_info::VideoInfo;
-use futures::{FutureExt, channel::mpsc, future::BoxFuture};
+use futures::{channel::mpsc, future::BoxFuture, FutureExt};
 use std::sync::{
-    Arc,
     atomic::{AtomicBool, Ordering},
+    Arc,
 };
 use tokio::sync::oneshot;
 

@@ -1,18 +1,17 @@
 use anyhow::anyhow;
 use cap_fail::fail;
-use cap_project::CursorMoveEvent;
 use cap_project::cursor::SHORT_CURSOR_SHAPE_DEBOUNCE_MS;
+use cap_project::CursorMoveEvent;
 use cap_project::{
-    CameraShape, CursorClickEvent, GlideDirection, InstantRecordingMeta, MultipleSegments,
-    Platform, ProjectConfiguration, RecordingMeta, RecordingMetaInner, SharingMeta,
-    StudioRecordingMeta, StudioRecordingStatus, TimelineConfiguration, TimelineSegment, UploadMeta,
-    ZoomMode, ZoomSegment, cursor::CursorEvents,
+    cursor::CursorEvents, CameraShape, CursorClickEvent, GlideDirection, InstantRecordingMeta,
+    MultipleSegments, Platform, ProjectConfiguration, RecordingMeta, RecordingMetaInner,
+    SharingMeta, StudioRecordingMeta, StudioRecordingStatus, TimelineConfiguration,
+    TimelineSegment, UploadMeta, ZoomMode, ZoomSegment,
 };
 use cap_recording::feeds::camera::CameraFeedLock;
 #[cfg(target_os = "macos")]
 use cap_recording::sources::screen_capture::SourceError;
 use cap_recording::{
-    RecordingMode,
     feeds::{camera, microphone},
     instant_recording,
     recovery::RecoveryManager,
@@ -21,11 +20,11 @@ use cap_recording::{
         screen_capture,
         screen_capture::{CaptureDisplay, CaptureWindow, ScreenCaptureTarget},
     },
-    studio_recording,
+    studio_recording, RecordingMode,
 };
 use cap_rendering::ProjectRecordingsMeta;
 use cap_utils::{ensure_dir, moment_format_to_chrono, spawn_actor};
-use futures::{FutureExt, stream};
+use futures::{stream, FutureExt};
 use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -53,8 +52,6 @@ use crate::general_settings;
 use crate::permissions;
 use crate::web_api::AuthedApiError;
 use crate::{
-    App, CurrentRecordingChanged, FinalizingRecordings, MutableState, NewStudioRecordingAdded,
-    RecordingStarted, RecordingState, RecordingStopped, VideoUploadInfo,
     api::PresignedS3PutRequestMethod,
     audio::AppSounds,
     auth::AuthStore,
@@ -64,10 +61,12 @@ use crate::{
     presets::PresetsStore,
     thumbnails::*,
     upload::{
-        InstantMultipartUpload, build_video_meta, compress_image, create_or_get_video, upload_video,
+        build_video_meta, compress_image, create_or_get_video, upload_video, InstantMultipartUpload,
     },
     web_api::ManagerExt,
     windows::{CapWindowId, ShowCapWindow},
+    App, CurrentRecordingChanged, FinalizingRecordings, MutableState, NewStudioRecordingAdded,
+    RecordingStarted, RecordingState, RecordingStopped, VideoUploadInfo,
 };
 
 #[derive(Clone)]
@@ -81,7 +80,7 @@ pub enum InProgressRecording {
     Instant {
         handle: instant_recording::ActorHandle,
         progressive_upload: InstantMultipartUpload,
-        video_upload_info: Option<VideoUploadInfo>,  // 中文版：改为 Option 以支持未登录用户
+        video_upload_info: Option<VideoUploadInfo>, // 中文版：改为 Option 以支持未登录用户
         common: InProgressRecordingCommon,
         camera_feed: Option<Arc<CameraFeedLock>>,
     },
@@ -258,7 +257,7 @@ pub enum CompletedRecording {
         recording: instant_recording::CompletedRecording,
         target_name: String,
         progressive_upload: InstantMultipartUpload,
-        video_upload_info: Option<VideoUploadInfo>,  // 中文版：改为 Option 以支持未登录用户
+        video_upload_info: Option<VideoUploadInfo>, // 中文版：改为 Option 以支持未登录用户
     },
     Studio {
         recording: studio_recording::CompletedRecording,
@@ -811,18 +810,19 @@ pub async fn start_recording(
                                 })?;
 
                             // 只有在有上传信息时才启动上传
-                            let progressive_upload = if let Some(ref upload_info) = video_upload_info_opt {
-                                InstantMultipartUpload::spawn(
-                                    app_handle.clone(),
-                                    recording_dir.join("content/output.mp4"),
-                                    upload_info.clone(),
-                                    recording_dir.clone(),
-                                    Some(finish_upload_rx.clone()),
-                                )
-                            } else {
-                                // 未登录时不上传，创建一个空的上传任务
-                                InstantMultipartUpload::spawn_dummy()
-                            };
+                            let progressive_upload =
+                                if let Some(ref upload_info) = video_upload_info_opt {
+                                    InstantMultipartUpload::spawn(
+                                        app_handle.clone(),
+                                        recording_dir.join("content/output.mp4"),
+                                        upload_info.clone(),
+                                        recording_dir.clone(),
+                                        Some(finish_upload_rx.clone()),
+                                    )
+                                } else {
+                                    // 未登录时不上传，创建一个空的上传任务
+                                    InstantMultipartUpload::spawn_dummy()
+                                };
 
                             Ok(InProgressRecording::Instant {
                                 handle,
@@ -1171,8 +1171,8 @@ pub async fn take_screenshot(
     app: AppHandle,
     target: ScreenCaptureTarget,
 ) -> Result<PathBuf, String> {
-    use crate::NewScreenshotAdded;
     use crate::notifications;
+    use crate::NewScreenshotAdded;
     use crate::{PendingScreenshot, PendingScreenshots};
     use cap_recording::screenshot::capture_screenshot;
     use image::ImageEncoder;
@@ -1622,11 +1622,15 @@ async fn handle_recording_finish(
                                 None,
                             )
                             .await
-                            .map(|_| info!("Final video upload with screenshot completed successfully"))
+                            .map(|_| {
+                                info!("Final video upload with screenshot completed successfully")
+                            })
                             .map_err(|error| {
                                 error!("Error in upload_video: {error}");
 
-                                if let Ok(mut meta) = RecordingMeta::load_for_project(&recording_dir) {
+                                if let Ok(mut meta) =
+                                    RecordingMeta::load_for_project(&recording_dir)
+                                {
                                     meta.upload = Some(UploadMeta::Failed {
                                         error: error.to_string(),
                                     });
@@ -1651,16 +1655,15 @@ async fn handle_recording_finish(
                 // 中文版：未登录用户，不上传，直接保存本地
                 let _ = screenshot_task.await;
                 progressive_upload.handle.abort();
-                
+
                 // 中文版：录制完成后打开即时模式预览窗口
-                let _ = ShowCapWindow::InstantPreview { 
-                    project_path: recording_dir.clone() 
-                }.show(&app).await;
-                
-                (
-                    RecordingMetaInner::Instant(recording.meta),
-                    None,
-                )
+                let _ = ShowCapWindow::InstantPreview {
+                    project_path: recording_dir.clone(),
+                }
+                .show(&app)
+                .await;
+
+                (RecordingMetaInner::Instant(recording.meta), None)
             }
         }
     };
@@ -2261,7 +2264,11 @@ fn analyze_recording_for_remux(
             let mic_path = mic.path.to_path(project_path);
             if mic_path.is_dir() {
                 let frags = find_fragments_in_dir(&mic_path);
-                if frags.is_empty() { None } else { Some(frags) }
+                if frags.is_empty() {
+                    None
+                } else {
+                    Some(frags)
+                }
             } else if mic_path.exists() {
                 Some(vec![mic_path])
             } else {
@@ -2273,7 +2280,11 @@ fn analyze_recording_for_remux(
             let sys_path = sys.path.to_path(project_path);
             if sys_path.is_dir() {
                 let frags = find_fragments_in_dir(&sys_path);
-                if frags.is_empty() { None } else { Some(frags) }
+                if frags.is_empty() {
+                    None
+                } else {
+                    Some(frags)
+                }
             } else if sys_path.exists() {
                 Some(vec![sys_path])
             } else {

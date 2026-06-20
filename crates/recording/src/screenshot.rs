@@ -1,7 +1,7 @@
 use crate::sources::screen_capture::ScreenCaptureTarget;
+use anyhow::anyhow;
 #[cfg(target_os = "macos")]
 use anyhow::Context;
-use anyhow::anyhow;
 use image::RgbImage;
 #[cfg(target_os = "macos")]
 use scap_ffmpeg::AsFFmpeg;
@@ -27,15 +27,15 @@ use windows::Win32::Foundation::{HMODULE, HWND};
 use windows::Win32::Graphics::Direct3D::D3D_DRIVER_TYPE_HARDWARE;
 #[cfg(target_os = "windows")]
 use windows::Win32::Graphics::Direct3D11::{
-    D3D11_BOX, D3D11_SDK_VERSION, D3D11CreateDevice, ID3D11Device,
+    D3D11CreateDevice, ID3D11Device, D3D11_BOX, D3D11_SDK_VERSION,
 };
 #[cfg(target_os = "windows")]
 use windows::Win32::Graphics::Gdi::{
-    BITMAPINFO, BITMAPINFOHEADER, BitBlt, CAPTUREBLT, CreateCompatibleDC, CreateDIBSection,
-    DIB_RGB_COLORS, DeleteDC, DeleteObject, GetDC, HDC, ReleaseDC, SRCCOPY, SelectObject,
+    BitBlt, CreateCompatibleDC, CreateDIBSection, DeleteDC, DeleteObject, GetDC, ReleaseDC,
+    SelectObject, BITMAPINFO, BITMAPINFOHEADER, CAPTUREBLT, DIB_RGB_COLORS, HDC, SRCCOPY,
 };
 #[cfg(target_os = "windows")]
-use windows::Win32::Storage::Xps::{PRINT_WINDOW_FLAGS, PrintWindow};
+use windows::Win32::Storage::Xps::{PrintWindow, PRINT_WINDOW_FLAGS};
 
 #[cfg(target_os = "windows")]
 const WINDOWS_CAPTURE_UNSUPPORTED: &str =
@@ -101,7 +101,7 @@ fn rgb_from_rgba(
 #[cfg(target_os = "macos")]
 fn try_fast_capture(target: &ScreenCaptureTarget) -> Option<RgbImage> {
     use core_graphics::display::{
-        CGDisplayCreateImage, CGDisplayCreateImageForRect, kCGWindowImageBoundsIgnoreFraming,
+        kCGWindowImageBoundsIgnoreFraming, CGDisplayCreateImage, CGDisplayCreateImageForRect,
     };
     use core_graphics::window::CGWindowID;
     use foreign_types_shared::ForeignType;

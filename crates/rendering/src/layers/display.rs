@@ -1,9 +1,9 @@
 use cap_project::XY;
 
 use crate::{
-    DecodedSegmentFrames, PixelFormat,
     composite_frame::{CompositeVideoFramePipeline, CompositeVideoFrameUniforms},
     yuv_converter::YuvToRgbaConverter,
+    DecodedSegmentFrames, PixelFormat,
 };
 
 struct PendingTextureCopy {

@@ -8,7 +8,7 @@ use std::{
 };
 
 use cap_media_info::{AudioInfo, AudioInfoError};
-use ffmpeg::{ChannelLayout, codec as avcodec, format as avformat, packet::Mut as PacketMut};
+use ffmpeg::{codec as avcodec, format as avformat, packet::Mut as PacketMut, ChannelLayout};
 
 use crate::audio::opus::{OpusEncoder, OpusEncoderError};
 

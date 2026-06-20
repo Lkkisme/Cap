@@ -157,12 +157,12 @@ impl CursorShapeWindows {
 mod windows_only {
     use super::*;
     use ::windows::{
-        Win32::UI::WindowsAndMessaging::{
-            HCURSOR, IDC_APPSTARTING, IDC_ARROW, IDC_CROSS, IDC_HAND, IDC_HELP, IDC_IBEAM, IDC_NO,
-            IDC_PERSON, IDC_PIN, IDC_SIZEALL, IDC_SIZENESW, IDC_SIZENS, IDC_SIZENWSE, IDC_SIZEWE,
-            IDC_UPARROW, IDC_WAIT, LoadCursorW,
-        },
         core::PCWSTR,
+        Win32::UI::WindowsAndMessaging::{
+            LoadCursorW, HCURSOR, IDC_APPSTARTING, IDC_ARROW, IDC_CROSS, IDC_HAND, IDC_HELP,
+            IDC_IBEAM, IDC_NO, IDC_PERSON, IDC_PIN, IDC_SIZEALL, IDC_SIZENESW, IDC_SIZENS,
+            IDC_SIZENWSE, IDC_SIZEWE, IDC_UPARROW, IDC_WAIT,
+        },
     };
     use std::{collections::HashMap, sync::OnceLock};
 

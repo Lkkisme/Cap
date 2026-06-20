@@ -5,8 +5,8 @@ use futures::channel::mpsc;
 use std::{
     f32::consts::PI,
     sync::{
-        Arc,
         atomic::{AtomicBool, Ordering},
+        Arc,
     },
     time::Duration,
 };

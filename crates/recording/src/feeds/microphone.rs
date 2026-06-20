@@ -1,13 +1,13 @@
 use cap_audio::estimate_input_latency;
-use cap_media_info::{AudioInfo, ffmpeg_sample_format_for};
+use cap_media_info::{ffmpeg_sample_format_for, AudioInfo};
 use cap_timestamp::Timestamp;
 use cpal::{
+    traits::{DeviceTrait, HostTrait, StreamTrait},
     BufferSize, Device, InputCallbackInfo, SampleFormat, StreamError, SupportedStreamConfig,
     SupportedStreamConfigRange,
-    traits::{DeviceTrait, HostTrait, StreamTrait},
 };
 use flume::TrySendError;
-use futures::{FutureExt, channel::oneshot, future::BoxFuture};
+use futures::{channel::oneshot, future::BoxFuture, FutureExt};
 use indexmap::IndexMap;
 use kameo::prelude::*;
 use replace_with::replace_with_or_abort;

@@ -2,7 +2,7 @@ use std::ops::{Add, Deref, Mul, Sub, SubAssign};
 
 use cap_project::{ProjectConfiguration, XY};
 
-use crate::{ProjectUniforms, RenderOptions, zoom::InterpolatedZoom};
+use crate::{zoom::InterpolatedZoom, ProjectUniforms, RenderOptions};
 
 /// Coordinate system for display frames
 /// `(0, 0)` is the top left of the frame,

@@ -3,15 +3,15 @@ use std::{
     fs,
     path::PathBuf,
     sync::{
-        Arc,
         atomic::{AtomicU32, Ordering},
+        Arc,
     },
     time::{Duration, Instant, SystemTime},
 };
 
 use cap_export::{
-    ExporterBase,
     mp4::{ExportCompression, Mp4ExportSettings},
+    ExporterBase,
 };
 use cap_project::XY;
 

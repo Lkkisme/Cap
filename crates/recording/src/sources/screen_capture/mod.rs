@@ -2,7 +2,7 @@ use cap_cursor_capture::CursorCropBounds;
 #[cfg(target_os = "macos")]
 use cap_media_info::ensure_even;
 use cap_media_info::{AudioInfo, VideoInfo};
-use scap_targets::{Display, DisplayId, Window, WindowId, bounds::*};
+use scap_targets::{bounds::*, Display, DisplayId, Window, WindowId};
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::time::SystemTime;

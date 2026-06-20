@@ -1,6 +1,7 @@
 use ffmpeg::{
-    ChannelLayout, codec as avcodec,
+    codec as avcodec,
     format::{self as avformat},
+    ChannelLayout,
 };
 use std::path::Path;
 

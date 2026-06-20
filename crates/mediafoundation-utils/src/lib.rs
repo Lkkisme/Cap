@@ -5,11 +5,11 @@ use std::{
     ptr::null_mut,
 };
 use windows::{
-    Win32::{
-        Media::MediaFoundation::{IMFMediaBuffer, MFSTARTUP_FULL, MFStartup},
-        System::WinRT::{RO_INIT_MULTITHREADED, RoInitialize},
-    },
     core::Result,
+    Win32::{
+        Media::MediaFoundation::{IMFMediaBuffer, MFStartup, MFSTARTUP_FULL},
+        System::WinRT::{RoInitialize, RO_INIT_MULTITHREADED},
+    },
 };
 
 // This is the value for Win7+

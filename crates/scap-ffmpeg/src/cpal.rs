@@ -1,5 +1,5 @@
 use cpal::{SampleFormat, StreamConfig};
-use ffmpeg::format::{Sample, sample};
+use ffmpeg::format::{sample, Sample};
 
 pub trait DataExt {
     fn as_ffmpeg(&self, config: &StreamConfig) -> ffmpeg::frame::Audio;

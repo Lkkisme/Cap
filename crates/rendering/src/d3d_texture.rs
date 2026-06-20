@@ -37,21 +37,21 @@ mod windows_impl {
     use std::sync::atomic::{AtomicBool, Ordering};
     use wgpu_hal::api::Dx12 as dx12;
     use windows::{
+        core::Interface,
         Win32::{
             Foundation::HANDLE,
             Graphics::{
                 Direct3D11::{
-                    D3D11_BIND_SHADER_RESOURCE, D3D11_RESOURCE_MISC_SHARED_NTHANDLE,
-                    D3D11_TEXTURE2D_DESC, D3D11_USAGE_DEFAULT, ID3D11Device, ID3D11Texture2D,
+                    ID3D11Device, ID3D11Texture2D, D3D11_BIND_SHADER_RESOURCE,
+                    D3D11_RESOURCE_MISC_SHARED_NTHANDLE, D3D11_TEXTURE2D_DESC, D3D11_USAGE_DEFAULT,
                 },
                 Dxgi::Common::{
                     DXGI_FORMAT, DXGI_FORMAT_B8G8R8A8_UNORM, DXGI_FORMAT_NV12,
-                    DXGI_FORMAT_R8_UNORM, DXGI_FORMAT_R8G8_UNORM, DXGI_FORMAT_R8G8B8A8_UNORM,
+                    DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_FORMAT_R8G8_UNORM, DXGI_FORMAT_R8_UNORM,
                     DXGI_FORMAT_UNKNOWN, DXGI_SAMPLE_DESC,
                 },
             },
         },
-        core::Interface,
     };
 
     pub struct D3DTextureCache {

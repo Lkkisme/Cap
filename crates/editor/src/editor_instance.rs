@@ -7,18 +7,18 @@ use cap_project::{
     TimelineSegment, XY,
 };
 use cap_rendering::{
-    ProjectRecordingsMeta, ProjectUniforms, RecordingSegmentDecoders, RenderVideoConstants,
-    RenderedFrame, SegmentVideoPaths, Video, ZoomFocusInterpolator, get_duration,
-    spring_mass_damper::SpringMassDamperSimulationConfig,
+    get_duration, spring_mass_damper::SpringMassDamperSimulationConfig, ProjectRecordingsMeta,
+    ProjectUniforms, RecordingSegmentDecoders, RenderVideoConstants, RenderedFrame,
+    SegmentVideoPaths, Video, ZoomFocusInterpolator,
 };
 use std::{
     path::{Path, PathBuf},
     sync::{
-        Arc,
         atomic::{AtomicBool, Ordering},
+        Arc,
     },
 };
-use tokio::sync::{Mutex, watch};
+use tokio::sync::{watch, Mutex};
 use tokio_util::sync::CancellationToken;
 use tracing::warn;
 

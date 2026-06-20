@@ -549,13 +549,13 @@ mod macos {
     #[cfg(target_os = "macos")]
     use super::AIRPLAY_MIN_LATENCY_SECS;
     use super::{
-        InputLatencyInfo, MAX_LATENCY_SECS, OutputLatencyHint, OutputTransportKind,
-        WIRELESS_FALLBACK_LATENCY_SECS, WIRELESS_MIN_LATENCY_SECS, transport_constraints,
+        transport_constraints, InputLatencyInfo, OutputLatencyHint, OutputTransportKind,
+        MAX_LATENCY_SECS, WIRELESS_FALLBACK_LATENCY_SECS, WIRELESS_MIN_LATENCY_SECS,
     };
     use cidre::{
         core_audio::{
-            DeviceTransportType, PropElement, PropScope, PropSelector,
             hardware::{Device, Stream, System},
+            DeviceTransportType, PropElement, PropScope, PropSelector,
         },
         os,
     };
@@ -747,14 +747,14 @@ mod windows {
     use super::{InputLatencyInfo, OutputTransportKind, WIRELESS_MIN_LATENCY_SECS};
     use tracing::{debug, trace};
     use windows::{
+        core::PCWSTR,
         Win32::Devices::FunctionDiscovery::PKEY_Device_EnumeratorName,
         Win32::Media::Audio::{
-            DEVICE_STATE, IMMDevice, IMMDeviceEnumerator, MMDeviceEnumerator, eCapture,
+            eCapture, IMMDevice, IMMDeviceEnumerator, MMDeviceEnumerator, DEVICE_STATE,
         },
         Win32::System::Com::{
-            CLSCTX_ALL, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx, STGM_READ,
+            CoCreateInstance, CoInitializeEx, CLSCTX_ALL, COINIT_MULTITHREADED, STGM_READ,
         },
-        core::PCWSTR,
     };
 
     const BLUETOOTH_DEVICE_PATTERNS: &[&str] = &[

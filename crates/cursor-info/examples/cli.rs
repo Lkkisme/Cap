@@ -16,7 +16,7 @@ fn main() {
 #[cfg(target_os = "macos")]
 #[allow(deprecated)]
 fn run() {
-    use objc2::{MainThreadMarker, rc::Retained};
+    use objc2::{rc::Retained, MainThreadMarker};
     use objc2_app_kit::{NSApplication, NSCursor};
 
     let mtm = MainThreadMarker::new().expect("Not on main thread");
@@ -88,7 +88,7 @@ fn run() {
 fn run() {
     use windows::Win32::{
         Foundation::POINT,
-        UI::WindowsAndMessaging::{CURSORINFO, CURSORINFO_FLAGS, GetCursorInfo, HCURSOR},
+        UI::WindowsAndMessaging::{GetCursorInfo, CURSORINFO, CURSORINFO_FLAGS, HCURSOR},
     };
 
     println!("Starting cursor monitoring...\n");

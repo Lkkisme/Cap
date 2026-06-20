@@ -1,6 +1,6 @@
 use windows::{
+    core::{Result, GUID},
     Win32::Media::MediaFoundation::IMFAttributes,
-    core::{GUID, Result},
 };
 
 // These inlined helpers aren't represented in the metadata

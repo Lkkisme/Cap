@@ -1,5 +1,5 @@
 use cap_audio::{
-    CalibrationStore, DeviceSyncCalibration, SyncAnalyzer, calculate_frame_motion_score,
+    calculate_frame_motion_score, CalibrationStore, DeviceSyncCalibration, SyncAnalyzer,
 };
 use std::path::{Path, PathBuf};
 use tracing::{debug, info, warn};

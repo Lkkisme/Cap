@@ -138,8 +138,8 @@ pub async fn create_watch_frame_ws(
 ) -> (u16, CancellationToken) {
     use axum::{
         extract::{
-            State,
             ws::{Message, WebSocket, WebSocketUpgrade},
+            State,
         },
         response::IntoResponse,
         routing::get,
@@ -281,8 +281,8 @@ pub async fn create_watch_frame_ws(
 pub async fn create_frame_ws(frame_tx: broadcast::Sender<WSFrame>) -> (u16, CancellationToken) {
     use axum::{
         extract::{
-            State,
             ws::{Message, WebSocket, WebSocketUpgrade},
+            State,
         },
         response::IntoResponse,
         routing::get,

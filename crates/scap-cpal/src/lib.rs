@@ -1,6 +1,6 @@
 use cpal::{
-    BufferSize, InputCallbackInfo, PauseStreamError, PlayStreamError, Stream, StreamConfig,
-    StreamError, SupportedBufferSize, traits::StreamTrait,
+    traits::StreamTrait, BufferSize, InputCallbackInfo, PauseStreamError, PlayStreamError, Stream,
+    StreamConfig, StreamError, SupportedBufferSize,
 };
 use thiserror::Error;
 

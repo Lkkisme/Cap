@@ -1,4 +1,4 @@
-use crate::{AppSounds, general_settings::GeneralSettingsStore};
+use crate::{general_settings::GeneralSettingsStore, AppSounds};
 use tauri_plugin_notification::NotificationExt;
 use tauri_specta::Event;
 

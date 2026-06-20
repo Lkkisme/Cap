@@ -10,8 +10,8 @@ use std::{
 use tracing::{debug, info, warn};
 
 use crate::{
-    CaptionsData, CursorEvents, CursorImage, ProjectConfiguration, XY,
-    cursor::SHORT_CURSOR_SHAPE_DEBOUNCE_MS,
+    cursor::SHORT_CURSOR_SHAPE_DEBOUNCE_MS, CaptionsData, CursorEvents, CursorImage,
+    ProjectConfiguration, XY,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, Type)]

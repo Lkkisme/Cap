@@ -2,7 +2,7 @@ use crate::cpu_yuv;
 
 #[cfg(target_os = "macos")]
 use crate::iosurface_texture::{
-    IOSurfaceTextureCache, IOSurfaceTextureError, import_metal_texture_to_wgpu,
+    import_metal_texture_to_wgpu, IOSurfaceTextureCache, IOSurfaceTextureError,
 };
 
 #[cfg(target_os = "macos")]
@@ -13,8 +13,8 @@ use crate::d3d_texture::D3DTextureError;
 
 #[cfg(target_os = "windows")]
 use windows::Win32::Graphics::Direct3D11::{
-    D3D11_CPU_ACCESS_READ, D3D11_MAP_READ, D3D11_MAPPED_SUBRESOURCE, D3D11_TEXTURE2D_DESC,
-    D3D11_USAGE_STAGING, ID3D11Device, ID3D11DeviceContext, ID3D11Texture2D,
+    ID3D11Device, ID3D11DeviceContext, ID3D11Texture2D, D3D11_CPU_ACCESS_READ,
+    D3D11_MAPPED_SUBRESOURCE, D3D11_MAP_READ, D3D11_TEXTURE2D_DESC, D3D11_USAGE_STAGING,
 };
 
 #[derive(Debug, thiserror::Error)]

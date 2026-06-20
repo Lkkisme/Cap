@@ -1,8 +1,8 @@
 use crate::{
-    SharedPauseState, TaskPool,
     output_pipeline::{AudioFrame, AudioMuxer, Muxer, VideoFrame, VideoMuxer},
+    SharedPauseState, TaskPool,
 };
-use anyhow::{Context, anyhow};
+use anyhow::{anyhow, Context};
 use cap_enc_ffmpeg::{
     aac::AACEncoder,
     fragmented_audio::{FinishError as FragmentedAudioFinishError, FragmentedAudioFile},
@@ -17,9 +17,9 @@ use cap_timestamp::Timestamp;
 use std::{
     path::PathBuf,
     sync::{
-        Arc, Mutex,
         atomic::AtomicBool,
-        mpsc::{SyncSender, sync_channel},
+        mpsc::{sync_channel, SyncSender},
+        Arc, Mutex,
     },
     thread::JoinHandle,
     time::Duration,

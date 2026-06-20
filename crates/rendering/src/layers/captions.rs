@@ -6,9 +6,9 @@ use glyphon::{
     TextArea, TextAtlas, TextBounds, TextRenderer, Viewport, Weight,
 };
 use log::warn;
-use wgpu::{Device, Queue, include_wgsl, util::DeviceExt};
+use wgpu::{include_wgsl, util::DeviceExt, Device, Queue};
 
-use crate::{DecodedSegmentFrames, ProjectUniforms, RenderVideoConstants, parse_color_component};
+use crate::{parse_color_component, DecodedSegmentFrames, ProjectUniforms, RenderVideoConstants};
 
 #[derive(Debug, Clone)]
 pub struct CaptionWord {

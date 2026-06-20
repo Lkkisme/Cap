@@ -1,8 +1,8 @@
 use crate::SkiaRenderingError;
-use skia_safe::{Color, Surface, gpu::DirectContext, surfaces};
+use skia_safe::{gpu::DirectContext, surfaces, Color, Surface};
 
 #[cfg(target_os = "macos")]
-use skia_safe::gpu::{SurfaceOrigin, mtl};
+use skia_safe::gpu::{mtl, SurfaceOrigin};
 
 pub struct SkiaRenderContext {
     #[cfg(target_os = "macos")]

@@ -1,9 +1,8 @@
 use crate::{
-    AudioFrame, AudioMuxer, Muxer, SharedPauseState, TaskPool, VideoMuxer,
-    output_pipeline::{NativeCameraFrame, camera_frame_to_ffmpeg},
-    screen_capture,
+    output_pipeline::{camera_frame_to_ffmpeg, NativeCameraFrame},
+    screen_capture, AudioFrame, AudioMuxer, Muxer, SharedPauseState, TaskPool, VideoMuxer,
 };
-use anyhow::{Context, anyhow};
+use anyhow::{anyhow, Context};
 use cap_enc_ffmpeg::h264::{H264EncoderBuilder, H264Preset};
 use cap_enc_ffmpeg::segmented_stream::{
     DiskSpaceCallback, SegmentedVideoEncoder, SegmentedVideoEncoderConfig,
@@ -13,9 +12,9 @@ use scap_ffmpeg::AsFFmpeg;
 use std::{
     path::PathBuf,
     sync::{
-        Arc, Mutex,
         atomic::AtomicBool,
-        mpsc::{RecvTimeoutError, SyncSender, sync_channel},
+        mpsc::{sync_channel, RecvTimeoutError, SyncSender},
+        Arc, Mutex,
     },
     thread::JoinHandle,
     time::Duration,

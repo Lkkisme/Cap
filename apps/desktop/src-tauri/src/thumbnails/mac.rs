@@ -21,7 +21,7 @@ pub async fn capture_window_thumbnail(window: &scap_targets::Window) -> Option<S
 
 async fn capture_thumbnail_from_filter(filter: arc::R<sc::ContentFilter>) -> Option<String> {
     use cidre::{cv, sc};
-    use image::{ImageEncoder, RgbaImage, codecs::png::PngEncoder};
+    use image::{codecs::png::PngEncoder, ImageEncoder, RgbaImage};
     use std::io::Cursor;
 
     let mut config = sc::StreamCfg::new();
@@ -320,7 +320,7 @@ impl Drop for PixelBufferLock<'_> {
 unsafe fn cv_pixel_buffer_get_base_address(buffer: &cidre::cv::PixelBuf) -> *mut std::ffi::c_void {
     unsafe extern "C" {
         fn CVPixelBufferGetBaseAddress(pixel_buffer: &cidre::cv::PixelBuf)
-        -> *mut std::ffi::c_void;
+            -> *mut std::ffi::c_void;
     }
 
     unsafe { CVPixelBufferGetBaseAddress(buffer) }

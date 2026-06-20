@@ -327,7 +327,11 @@ impl VideoInfo {
 
 pub fn ensure_even(value: u32) -> u32 {
     let adjusted = value - (value % 2);
-    if adjusted == 0 { 2 } else { adjusted }
+    if adjusted == 0 {
+        2
+    } else {
+        adjusted
+    }
 }
 
 pub fn ffmpeg_sample_format_for(sample_format: SampleFormat) -> Option<Sample> {

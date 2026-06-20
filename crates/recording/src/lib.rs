@@ -13,7 +13,7 @@ pub mod sources;
 pub mod studio_recording;
 pub mod sync_calibration;
 
-pub use resolution_limits::{H264_MAX_DIMENSION, calculate_gpu_compatible_size};
+pub use resolution_limits::{calculate_gpu_compatible_size, H264_MAX_DIMENSION};
 
 #[cfg(any(test, feature = "test-utils"))]
 pub mod test_sources;

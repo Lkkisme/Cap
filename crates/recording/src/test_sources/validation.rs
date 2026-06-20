@@ -399,7 +399,8 @@ async fn probe_media_file(path: &Path) -> anyhow::Result<MediaProbeResult> {
             }
 
             if let Some(pts) = last_pts {
-                let duration_secs = pts as f64 * video_time_base.0 as f64 / video_time_base.1 as f64;
+                let duration_secs =
+                    pts as f64 * video_time_base.0 as f64 / video_time_base.1 as f64;
                 result.duration = Duration::from_secs_f64(duration_secs.max(0.0));
             }
         }

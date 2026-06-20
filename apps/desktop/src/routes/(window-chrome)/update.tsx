@@ -102,10 +102,10 @@ export default function () {
 							>
 								<Match when={updateStatus()?.type === "done"}>
 									<div class="flex flex-col gap-4 items-center">
-										<p class="text-[--text-tertiary]">
-											{t("update.done")}
-										</p>
-										<Button onClick={() => relaunch()}>{t("update.restartNow")}</Button>
+										<p class="text-[--text-tertiary]">{t("update.done")}</p>
+										<Button onClick={() => relaunch()}>
+											{t("update.restartNow")}
+										</Button>
 									</div>
 								</Match>
 								<Match
@@ -132,7 +132,7 @@ export default function () {
 														width: `${Math.min(
 															((status()?.progress ?? 0) /
 																(status()?.contentLength ?? 0)) *
-															100,
+																100,
 															100,
 														)}%`,
 													}}

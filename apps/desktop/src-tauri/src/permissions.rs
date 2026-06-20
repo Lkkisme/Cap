@@ -9,7 +9,7 @@ use tracing::instrument;
 unsafe extern "C" {
     fn AXIsProcessTrusted() -> bool;
     fn AXIsProcessTrustedWithOptions(options: core_foundation::dictionary::CFDictionaryRef)
-    -> bool;
+        -> bool;
 }
 
 #[derive(Debug, Serialize, Deserialize, specta::Type)]

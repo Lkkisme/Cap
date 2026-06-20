@@ -1,8 +1,8 @@
 use crate::{
-    TaskPool,
     output_pipeline::{AudioFrame, AudioMuxer, Muxer, VideoMuxer},
+    TaskPool,
 };
-use anyhow::{Context, anyhow};
+use anyhow::{anyhow, Context};
 use cap_enc_ffmpeg::{aac::AACEncoder, h264::*};
 use cap_frame_converter::{
     AsyncConverterPool, ConversionConfig, ConvertError, ConverterPoolConfig, DropStrategy,
@@ -11,8 +11,8 @@ use cap_media_info::{AudioInfo, VideoInfo};
 use std::{
     path::PathBuf,
     sync::{
-        Arc,
         atomic::{AtomicBool, AtomicU64, Ordering},
+        Arc,
     },
     time::Duration,
 };
@@ -270,7 +270,9 @@ impl VideoMuxer for AsyncCameraMp4Muxer {
             if self.frames_submitted.is_multiple_of(60) {
                 trace!(
                     "Camera encoder progress: submitted={}, encoded={}, backlog={}",
-                    self.frames_submitted, self.frames_encoded, backlog
+                    self.frames_submitted,
+                    self.frames_encoded,
+                    backlog
                 );
             }
         } else if self.use_preconverted {

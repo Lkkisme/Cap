@@ -1,4 +1,4 @@
-use cap_project::{XY, ZoomSegment};
+use cap_project::{ZoomSegment, XY};
 
 use crate::{Coord, RawDisplayUVSpace};
 
@@ -266,7 +266,11 @@ fn spring_ease_out(t: f32) -> f32 {
 }
 
 fn instant_ease(t: f32) -> f32 {
-    if t <= 0.0 { 0.0 } else { 1.0 }
+    if t <= 0.0 {
+        0.0
+    } else {
+        1.0
+    }
 }
 
 impl InterpolatedZoom {

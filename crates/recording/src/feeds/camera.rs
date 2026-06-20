@@ -4,8 +4,8 @@ use cap_fail::fail_err;
 use cap_media_info::VideoInfo;
 use cap_timestamp::Timestamp;
 use futures::{
-    FutureExt,
     future::{BoxFuture, Shared},
+    FutureExt,
 };
 use kameo::prelude::*;
 use replace_with::replace_with_or_abort;

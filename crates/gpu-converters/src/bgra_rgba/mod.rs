@@ -1,8 +1,8 @@
 use wgpu::{self, util::DeviceExt};
 
 use crate::{
-    GpuConverterError,
     util::{copy_texture_to_buffer_command, read_buffer_to_vec},
+    GpuConverterError,
 };
 
 pub struct BGRAToRGBA {

@@ -1,8 +1,8 @@
 use cap_camera::CameraInfo;
 use cap_recording::{
-    CameraFeed,
     benchmark::{BenchmarkConfig, EncoderInfo, PipelineMetrics},
     feeds::camera::{self, DeviceOrModelID},
+    CameraFeed,
 };
 use ffmpeg::format::Pixel;
 use kameo::Actor;

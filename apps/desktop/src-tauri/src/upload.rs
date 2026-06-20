@@ -1,11 +1,11 @@
 // credit @filleduchaos
 
 use crate::{
-    UploadProgress, VideoUploadInfo,
     api::{self, PresignedS3PutRequest, PresignedS3PutRequestMethod, S3VideoMeta, UploadedPart},
     http_client::RetryableHttpClient,
-    posthog::{PostHogEvent, async_capture_event},
+    posthog::{async_capture_event, PostHogEvent},
     web_api::{AuthedApiError, ManagerExt},
+    UploadProgress, VideoUploadInfo,
 };
 use async_stream::{stream, try_stream};
 use bytes::Bytes;
@@ -14,8 +14,8 @@ use cap_utils::spawn_actor;
 use ffmpeg::ffi::AV_TIME_BASE;
 use flume::Receiver;
 use futures::future::join;
-use futures::{Stream, StreamExt, TryStreamExt, stream};
-use image::{ImageReader, codecs::jpeg::JpegEncoder};
+use futures::{stream, Stream, StreamExt, TryStreamExt};
+use image::{codecs::jpeg::JpegEncoder, ImageReader};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -27,17 +27,17 @@ use std::{
     sync::{Arc, Mutex, PoisonError},
     time::Duration,
 };
-use tauri::{AppHandle, Manager, ipc::Channel};
+use tauri::{ipc::Channel, AppHandle, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_specta::Event;
 use tokio::{
     fs::File,
     io::{AsyncReadExt, AsyncSeekExt, BufReader},
     task::{self, JoinHandle},
-    time::{self, Instant, timeout},
+    time::{self, timeout, Instant},
 };
 use tokio_util::io::ReaderStream;
-use tracing::{Span, debug, error, info, info_span, instrument, trace};
+use tracing::{debug, error, info, info_span, instrument, trace, Span};
 use tracing_futures::Instrument;
 
 pub struct UploadedItem {
@@ -689,15 +689,13 @@ fn multipart_uploader(
                             let presigned_url = if let Some(url) = presigned_url? {
                                 if part_number == expected_part_number {
                                     url
-                                } else if part_number == 1
-                                    && !use_md5_hashes
-                                {
+                                } else if part_number == 1 && !use_md5_hashes {
                                     // We have a presigned URL left around from the first chunk
                                     let cached_url = first_chunk_presigned_url
                                         .lock()
                                         .unwrap_or_else(PoisonError::into_inner)
                                         .clone();
-                                    
+
                                     if let Some((url, expiry)) = cached_url {
                                         // The URL hasn't expired
                                         if expiry.elapsed() < Duration::from_secs(60 * 50) {

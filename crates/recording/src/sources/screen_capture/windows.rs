@@ -1,22 +1,23 @@
 use crate::{
-    AudioFrame, SetupCtx, output_pipeline,
+    output_pipeline,
     screen_capture::{ScreenCaptureConfig, ScreenCaptureFormat},
+    AudioFrame, SetupCtx,
 };
-use ::windows::Win32::Graphics::Direct3D11::{D3D11_BOX, ID3D11Device};
+use ::windows::Win32::Graphics::Direct3D11::{ID3D11Device, D3D11_BOX};
 use anyhow::anyhow;
 use cap_media_info::{AudioInfo, VideoInfo};
 use cap_timestamp::{PerformanceCounterTimestamp, Timestamp};
 use cpal::traits::{DeviceTrait, HostTrait};
 use futures::{
-    Future, FutureExt, StreamExt,
     channel::{mpsc, oneshot},
+    Future, FutureExt, StreamExt,
 };
 use scap_ffmpeg::*;
 use scap_targets::{Display, DisplayId};
 use std::{
     sync::{
-        Arc,
         atomic::{self, AtomicU32},
+        Arc,
     },
     time::Duration,
 };

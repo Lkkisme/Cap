@@ -7,7 +7,7 @@ use std::{
     path::{Path, PathBuf},
     time::{Duration, Instant},
 };
-use tracing_subscriber::{EnvFilter, fmt, prelude::*};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 #[cfg(windows)]
 fn default_input_dir() -> PathBuf {

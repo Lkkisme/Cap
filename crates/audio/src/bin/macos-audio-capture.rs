@@ -18,8 +18,8 @@ mod macos {
             stream::{Output, OutputImpl},
         },
     };
-    use ffmpeg::ChannelLayout;
     use ffmpeg::frame as avframe;
+    use ffmpeg::ChannelLayout;
 
     #[repr(C)]
     struct DelegateInner {

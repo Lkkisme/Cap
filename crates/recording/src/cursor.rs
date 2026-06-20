@@ -2,7 +2,7 @@ use cap_cursor_capture::CursorCropBounds;
 use cap_cursor_info::CursorShape;
 use cap_project::{CursorClickEvent, CursorEvents, CursorMoveEvent, XY};
 use cap_timestamp::Timestamps;
-use futures::{FutureExt, future::Shared};
+use futures::{future::Shared, FutureExt};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -265,11 +265,11 @@ fn get_cursor_data() -> Option<CursorData> {
 fn get_cursor_data() -> Option<CursorData> {
     use windows::Win32::Foundation::{HWND, POINT};
     use windows::Win32::Graphics::Gdi::{
-        BITMAP, BITMAPINFO, BITMAPINFOHEADER, CreateCompatibleDC, CreateDIBSection, DIB_RGB_COLORS,
-        DeleteDC, DeleteObject, GetDC, GetObjectA, ReleaseDC, SelectObject,
+        CreateCompatibleDC, CreateDIBSection, DeleteDC, DeleteObject, GetDC, GetObjectA, ReleaseDC,
+        SelectObject, BITMAP, BITMAPINFO, BITMAPINFOHEADER, DIB_RGB_COLORS,
     };
-    use windows::Win32::UI::WindowsAndMessaging::{CURSORINFO, CURSORINFO_FLAGS, GetCursorInfo};
-    use windows::Win32::UI::WindowsAndMessaging::{DI_NORMAL, DrawIconEx, GetIconInfo, ICONINFO};
+    use windows::Win32::UI::WindowsAndMessaging::{DrawIconEx, GetIconInfo, DI_NORMAL, ICONINFO};
+    use windows::Win32::UI::WindowsAndMessaging::{GetCursorInfo, CURSORINFO, CURSORINFO_FLAGS};
 
     unsafe {
         // Get cursor info

@@ -1,8 +1,9 @@
 use crate::{
-    NewScreenshotAdded, NewStudioRecordingAdded, RecordingStarted, RecordingStopped,
-    RequestOpenRecordingPicker, RequestOpenSettings, recording,
+    recording,
     recording_settings::{RecordingSettingsStore, RecordingTargetMode},
     windows::ShowCapWindow,
+    NewScreenshotAdded, NewStudioRecordingAdded, RecordingStarted, RecordingStopped,
+    RequestOpenRecordingPicker, RequestOpenSettings,
 };
 use cap_recording::RecordingMode;
 
@@ -12,13 +13,13 @@ use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
 };
-use tauri::Manager;
 use tauri::menu::{IconMenuItem, MenuId, PredefinedMenuItem, Submenu};
+use tauri::Manager;
 use tauri::{
-    AppHandle,
     image::Image,
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
+    AppHandle,
 };
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_opener::OpenerExt;
@@ -254,7 +255,9 @@ fn load_all_previous_items(app: &AppHandle, load_thumbnails: bool) -> Vec<Cached
     if recordings_dir.exists() {
         if let Ok(entries) = std::fs::read_dir(&recordings_dir) {
             for entry in entries.flatten() {
-                if let Some(item) = load_single_item(&entry.path(), &screenshots_dir, load_thumbnails) {
+                if let Some(item) =
+                    load_single_item(&entry.path(), &screenshots_dir, load_thumbnails)
+                {
                     items.push(item);
                 }
             }
@@ -392,27 +395,9 @@ fn build_tray_menu(app: &AppHandle, cache: &PreviousItemsCache) -> tauri::Result
     Menu::with_items(
         app,
         &[
-            &MenuItem::with_id(
-                app,
-                TrayItem::OpenCap,
-                "打开主窗口",
-                true,
-                None::<&str>,
-            )?,
-            &MenuItem::with_id(
-                app,
-                TrayItem::RecordDisplay,
-                "录制屏幕",
-                true,
-                None::<&str>,
-            )?,
-            &MenuItem::with_id(
-                app,
-                TrayItem::RecordWindow,
-                "录制窗口",
-                true,
-                None::<&str>,
-            )?,
+            &MenuItem::with_id(app, TrayItem::OpenCap, "打开主窗口", true, None::<&str>)?,
+            &MenuItem::with_id(app, TrayItem::RecordDisplay, "录制屏幕", true, None::<&str>)?,
+            &MenuItem::with_id(app, TrayItem::RecordWindow, "录制窗口", true, None::<&str>)?,
             &MenuItem::with_id(app, TrayItem::RecordArea, "录制区域", true, None::<&str>)?,
             &MenuItem::with_id(
                 app,

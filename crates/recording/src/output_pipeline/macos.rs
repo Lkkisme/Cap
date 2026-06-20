@@ -9,7 +9,7 @@ use cap_timestamp::Timestamp;
 use cidre::arc;
 use std::{
     path::PathBuf,
-    sync::{Arc, Mutex, atomic::AtomicBool},
+    sync::{atomic::AtomicBool, Arc, Mutex},
     time::Duration,
 };
 

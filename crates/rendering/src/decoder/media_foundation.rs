@@ -3,14 +3,14 @@
 use std::{
     collections::BTreeMap,
     path::PathBuf,
-    sync::{Arc, mpsc},
+    sync::{mpsc, Arc},
     time::{Duration, Instant},
 };
 use tokio::sync::oneshot;
 use tracing::{info, warn};
 use windows::Win32::{Foundation::HANDLE, Graphics::Direct3D11::ID3D11Texture2D};
 
-use super::{DecodedFrame, DecoderInitResult, DecoderType, FRAME_CACHE_SIZE, VideoDecoderMessage};
+use super::{DecodedFrame, DecoderInitResult, DecoderType, VideoDecoderMessage, FRAME_CACHE_SIZE};
 
 struct DecoderHealthMonitor {
     consecutive_errors: u32,

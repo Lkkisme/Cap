@@ -1,9 +1,9 @@
 use cap_recording::{
-    CameraFeed,
     feeds::camera::{self, DeviceOrModelID},
+    CameraFeed,
 };
 use ffmpeg::format::Pixel;
-use image::{ColorType, codecs::jpeg};
+use image::{codecs::jpeg, ColorType};
 use kameo::Actor;
 use std::fmt::Display;
 

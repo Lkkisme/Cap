@@ -1,7 +1,7 @@
-use crate::PendingScreenshots;
-use crate::frame_ws::{WSFrame, create_watch_frame_ws};
+use crate::frame_ws::{create_watch_frame_ws, WSFrame};
 use crate::gpu_context;
 use crate::windows::{CapWindowId, ScreenshotEditorWindowIds};
+use crate::PendingScreenshots;
 use cap_project::{
     ProjectConfiguration, RecordingMeta, RecordingMetaInner, SingleSegment, StudioRecordingMeta,
     VideoMeta,
@@ -10,7 +10,7 @@ use cap_rendering::{
     DecodedFrame, DecodedSegmentFrames, FrameRenderer, ProjectUniforms, RenderVideoConstants,
     RendererLayers, ZoomFocusInterpolator,
 };
-use image::{GenericImageView, RgbImage, buffer::ConvertBuffer};
+use image::{buffer::ConvertBuffer, GenericImageView, RgbImage};
 use relative_path::RelativePathBuf;
 use serde::Serialize;
 use specta::Type;
@@ -18,10 +18,10 @@ use std::str::FromStr;
 use std::time::Instant;
 use std::{collections::HashMap, ops::Deref, path::PathBuf, sync::Arc};
 use tauri::{
-    Manager, Runtime, Window,
     ipc::{CommandArg, InvokeError},
+    Manager, Runtime, Window,
 };
-use tokio::sync::{RwLock, watch};
+use tokio::sync::{watch, RwLock};
 use tokio_util::sync::CancellationToken;
 
 const MAX_DIMENSION: u32 = 16_384;

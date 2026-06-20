@@ -1,13 +1,13 @@
 use std::{thread, time::Duration};
 
-use cap_media_info::{Pixel, VideoInfo, ensure_even};
+use cap_media_info::{ensure_even, Pixel, VideoInfo};
 use ffmpeg::{
-    Dictionary,
     codec::{codec::Codec, context, encoder},
     color,
     format::{self},
     frame,
     threading::Config,
+    Dictionary,
 };
 use tracing::{debug, error, trace, warn};
 
@@ -553,7 +553,7 @@ fn requires_software_encoder(config: &VideoInfo, preset: H264Preset) -> bool {
 
     #[cfg(target_os = "windows")]
     {
-        use cap_frame_converter::{GpuVendor, detect_primary_gpu};
+        use cap_frame_converter::{detect_primary_gpu, GpuVendor};
 
         let encoder_name = match detect_primary_gpu().map(|info| info.vendor) {
             Some(GpuVendor::Nvidia) => "h264_nvenc",
@@ -599,7 +599,7 @@ fn get_encoder_priority(config: &VideoInfo, preset: H264Preset) -> &'static [&'s
 
     #[cfg(target_os = "windows")]
     {
-        use cap_frame_converter::{GpuVendor, detect_primary_gpu};
+        use cap_frame_converter::{detect_primary_gpu, GpuVendor};
 
         static ENCODER_PRIORITY_NVIDIA: &[&str] =
             &["h264_nvenc", "h264_mf", "h264_qsv", "h264_amf", "libx264"];

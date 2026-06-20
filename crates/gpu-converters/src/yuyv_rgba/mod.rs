@@ -1,7 +1,6 @@
 use crate::{
-    ConvertError, GpuConverterError,
     util::{copy_texture_to_buffer_command, read_buffer_to_vec},
-    yuyv,
+    yuyv, ConvertError, GpuConverterError,
 };
 
 pub struct YUYVToRGBA {

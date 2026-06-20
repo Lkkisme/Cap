@@ -1,17 +1,17 @@
 use crate::editor_window::WindowEditorInstance;
-use crate::{FramesRendered, get_video_metadata};
+use crate::{get_video_metadata, FramesRendered};
 use cap_export::ExporterBase;
 use cap_project::{RecordingMeta, XY};
 use cap_rendering::{
-    FrameRenderer, ProjectRecordingsMeta, ProjectUniforms, RenderSegment, RenderVideoConstants,
-    RendererLayers, ZoomFocusInterpolator, spring_mass_damper::SpringMassDamperSimulationConfig,
+    spring_mass_damper::SpringMassDamperSimulationConfig, FrameRenderer, ProjectRecordingsMeta,
+    ProjectUniforms, RenderSegment, RenderVideoConstants, RendererLayers, ZoomFocusInterpolator,
 };
 use image::codecs::jpeg::JpegEncoder;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::{
     path::{Path, PathBuf},
-    sync::{Arc, atomic::Ordering},
+    sync::{atomic::Ordering, Arc},
 };
 use tracing::{info, instrument};
 
@@ -245,7 +245,7 @@ pub async fn generate_export_preview(
     frame_time: f64,
     settings: ExportPreviewSettings,
 ) -> Result<ExportPreviewResult, String> {
-    use base64::{Engine, engine::general_purpose::STANDARD};
+    use base64::{engine::general_purpose::STANDARD, Engine};
     use cap_editor::create_segments;
     use std::time::Instant;
 
@@ -417,7 +417,7 @@ pub async fn generate_export_preview_fast(
     frame_time: f64,
     settings: ExportPreviewSettings,
 ) -> Result<ExportPreviewResult, String> {
-    use base64::{Engine, engine::general_purpose::STANDARD};
+    use base64::{engine::general_purpose::STANDARD, Engine};
     use std::time::Instant;
 
     let project_config = editor.project_config.1.borrow().clone();

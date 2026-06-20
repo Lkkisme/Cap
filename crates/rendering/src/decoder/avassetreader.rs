@@ -3,21 +3,21 @@ use std::{
     collections::BTreeMap,
     path::PathBuf,
     rc::Rc,
-    sync::{Arc, mpsc},
+    sync::{mpsc, Arc},
 };
 
 use cidre::{
     arc::R,
     cv::{self, pixel_buffer::LockFlags},
 };
-use ffmpeg::{Rational, format};
+use ffmpeg::{format, Rational};
 use tokio::{runtime::Handle as TokioHandle, sync::oneshot};
 
 use crate::{DecodedFrame, PixelFormat};
 
 use super::frame_converter::{copy_bgra_to_rgba, copy_rgba_plane};
 use super::multi_position::{DecoderPoolManager, MultiPositionDecoderConfig, ScrubDetector};
-use super::{DecoderInitResult, DecoderType, FRAME_CACHE_SIZE, VideoDecoderMessage, pts_to_frame};
+use super::{pts_to_frame, DecoderInitResult, DecoderType, VideoDecoderMessage, FRAME_CACHE_SIZE};
 
 #[derive(Clone)]
 struct FrameData {
@@ -661,7 +661,11 @@ impl AVAssetReaderDecoder {
                                 } else {
                                     let min = *cache.keys().min().unwrap();
                                     let max = *cache.keys().max().unwrap();
-                                    if current_frame > max { min } else { max }
+                                    if current_frame > max {
+                                        min
+                                    } else {
+                                        max
+                                    }
                                 };
                                 cache.remove(&frame_to_remove);
                             } else {

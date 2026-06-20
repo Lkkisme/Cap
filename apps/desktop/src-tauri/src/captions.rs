@@ -1,9 +1,10 @@
 use anyhow::Result;
 use cap_audio::AudioData;
 use ffmpeg::{
-    ChannelLayout, codec as avcodec,
+    codec as avcodec,
     format::{self as avformat},
     software::resampling,
+    ChannelLayout,
 };
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};

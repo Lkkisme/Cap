@@ -1,10 +1,9 @@
 use std::time::Duration;
 
 use ffmpeg::{
-    Packet,
     codec::encoder,
     format::{self},
-    frame,
+    frame, Packet,
 };
 
 pub struct EncoderBase {
@@ -38,7 +37,7 @@ impl EncoderBase {
             let first_pts = self.first_pts.get_or_insert(pts);
 
             let relative_pts = pts - *first_pts;
-            
+
             if let Some(last_pts) = self.last_pts {
                 if relative_pts <= last_pts {
                     let adjusted_pts = last_pts + 1;
@@ -47,7 +46,7 @@ impl EncoderBase {
                     return;
                 }
             }
-            
+
             frame.set_pts(Some(relative_pts));
             self.last_pts = Some(relative_pts);
         } else {
@@ -58,7 +57,7 @@ impl EncoderBase {
 
             let first_pts = self.first_pts.get_or_insert(pts);
             let relative_pts = pts - *first_pts;
-            
+
             if let Some(last_pts) = self.last_pts {
                 if relative_pts <= last_pts {
                     let adjusted_pts = last_pts + 1;
@@ -67,7 +66,7 @@ impl EncoderBase {
                     return;
                 }
             }
-            
+
             frame.set_pts(Some(relative_pts));
             self.last_pts = Some(relative_pts);
         }

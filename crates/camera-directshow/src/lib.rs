@@ -3,7 +3,7 @@
 
 use std::{
     cell::RefCell,
-    ffi::{OsString, c_void},
+    ffi::{c_void, OsString},
     mem::ManuallyDrop,
     ops::Deref,
     os::windows::ffi::OsStringExt,
@@ -12,6 +12,7 @@ use std::{
 };
 use tracing::*;
 use windows::{
+    core::Interface,
     Win32::{
         Foundation::*,
         Media::{
@@ -25,9 +26,8 @@ use windows::{
             Variant::{VARIANT, VT_BSTR},
         },
     },
-    core::Interface,
 };
-use windows_core::{ComObject, ComObjectInner, GUID, PWSTR, implement};
+use windows_core::{implement, ComObject, ComObjectInner, GUID, PWSTR};
 
 pub fn initialize_directshow() -> windows_core::Result<()> {
     unsafe { CoInitialize(None) }.ok()
@@ -759,7 +759,11 @@ impl<'a> IEnumPins_Impl for PinEnumerator_Impl<'a> {
             }
         }
 
-        if pins_fetched == cpins { S_OK } else { S_FALSE }
+        if pins_fetched == cpins {
+            S_OK
+        } else {
+            S_FALSE
+        }
     }
 
     fn Skip(&self, cpins: u32) -> windows_core::Result<()> {

@@ -3,9 +3,9 @@ use std::sync::Arc;
 use wgpu::util::DeviceExt;
 
 use crate::{
-    CompositeVideoFrameUniforms, DecodedFrame, PixelFormat,
     composite_frame::CompositeVideoFramePipeline,
     yuv_converter::{YuvConverterPipelines, YuvToRgbaConverter},
+    CompositeVideoFrameUniforms, DecodedFrame, PixelFormat,
 };
 
 pub struct CameraLayer {

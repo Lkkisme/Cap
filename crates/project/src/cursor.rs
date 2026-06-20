@@ -319,18 +319,14 @@ mod tests {
             SHORT_CURSOR_SHAPE_DEBOUNCE_MS,
         );
 
-        assert!(
-            events
-                .moves
-                .iter()
-                .all(|event| event.cursor_id == "pointer")
-        );
-        assert!(
-            events
-                .clicks
-                .iter()
-                .all(|event| event.cursor_id == "pointer")
-        );
+        assert!(events
+            .moves
+            .iter()
+            .all(|event| event.cursor_id == "pointer"));
+        assert!(events
+            .clicks
+            .iter()
+            .all(|event| event.cursor_id == "pointer"));
     }
 
     #[test]
@@ -370,17 +366,13 @@ mod tests {
 
         events.stabilize_short_lived_cursor_shapes(None, SHORT_CURSOR_SHAPE_DEBOUNCE_MS);
 
-        assert!(
-            events
-                .moves
-                .iter()
-                .all(|event| event.cursor_id == "pointer")
-        );
-        assert!(
-            events
-                .clicks
-                .iter()
-                .all(|event| event.cursor_id == "pointer")
-        );
+        assert!(events
+            .moves
+            .iter()
+            .all(|event| event.cursor_id == "pointer"));
+        assert!(events
+            .clicks
+            .iter()
+            .all(|event| event.cursor_id == "pointer"));
     }
 }

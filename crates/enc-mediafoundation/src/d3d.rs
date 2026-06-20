@@ -1,20 +1,20 @@
+use windows::core::{Interface, Result};
 use windows::Graphics::DirectX::Direct3D11::{IDirect3DDevice, IDirect3DSurface};
 use windows::Win32::Foundation::HMODULE;
-use windows::Win32::Graphics::Direct3D11::{D3D11_CREATE_DEVICE_DEBUG, ID3D11Texture2D};
+use windows::Win32::Graphics::Direct3D11::{ID3D11Texture2D, D3D11_CREATE_DEVICE_DEBUG};
 use windows::Win32::Graphics::Dxgi::IDXGISurface;
 use windows::Win32::Graphics::{
     Direct3D::{D3D_DRIVER_TYPE, D3D_DRIVER_TYPE_HARDWARE, D3D_DRIVER_TYPE_WARP},
     Direct3D11::{
-        D3D11_CREATE_DEVICE_BGRA_SUPPORT, D3D11_CREATE_DEVICE_FLAG, D3D11_SDK_VERSION,
-        D3D11CreateDevice, ID3D11Device,
+        D3D11CreateDevice, ID3D11Device, D3D11_CREATE_DEVICE_BGRA_SUPPORT,
+        D3D11_CREATE_DEVICE_FLAG, D3D11_SDK_VERSION,
     },
-    Dxgi::{DXGI_ERROR_UNSUPPORTED, IDXGIDevice},
+    Dxgi::{IDXGIDevice, DXGI_ERROR_UNSUPPORTED},
 };
 use windows::Win32::System::WinRT::Direct3D11::{
     CreateDirect3D11DeviceFromDXGIDevice, CreateDirect3D11SurfaceFromDXGISurface,
     IDirect3DDxgiInterfaceAccess,
 };
-use windows::core::{Interface, Result};
 
 fn create_d3d_device_with_type(
     driver_type: D3D_DRIVER_TYPE,

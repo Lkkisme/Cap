@@ -1,9 +1,9 @@
-use cap_project::{CursorEvents, ScreenMovementSpring, XY, ZoomSegment};
+use cap_project::{CursorEvents, ScreenMovementSpring, ZoomSegment, XY};
 
 use crate::{
-    Coord, RawDisplayUVSpace,
     cursor_interpolation::interpolate_cursor,
     spring_mass_damper::{SpringMassDamperSimulation, SpringMassDamperSimulationConfig},
+    Coord, RawDisplayUVSpace,
 };
 
 const SAMPLE_INTERVAL_MS: f64 = 8.0;

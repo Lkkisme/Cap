@@ -1,7 +1,7 @@
 use std::{
     sync::{
-        Arc, RwLock,
         atomic::{AtomicU64, Ordering},
+        Arc, RwLock,
     },
     time::{Duration, Instant},
 };

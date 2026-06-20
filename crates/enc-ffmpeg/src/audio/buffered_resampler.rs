@@ -274,7 +274,7 @@ impl BufferedResampler {
 #[cfg(test)]
 mod test {
     use super::*;
-    use ffmpeg::{ChannelLayout, format};
+    use ffmpeg::{format, ChannelLayout};
 
     const IN_RATE: u32 = 100;
 

@@ -1,5 +1,5 @@
 use cap_recording::{
-    RecordingMode, feeds::camera::DeviceOrModelID, sources::screen_capture::ScreenCaptureTarget,
+    feeds::camera::DeviceOrModelID, sources::screen_capture::ScreenCaptureTarget, RecordingMode,
 };
 use tauri::{AppHandle, Wry};
 use tauri_plugin_store::StoreExt;

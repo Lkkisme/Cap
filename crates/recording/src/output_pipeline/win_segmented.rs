@@ -1,13 +1,13 @@
-use crate::{AudioFrame, AudioMuxer, Muxer, TaskPool, VideoMuxer, fragmentation, screen_capture};
-use anyhow::{Context, anyhow};
+use crate::{fragmentation, screen_capture, AudioFrame, AudioMuxer, Muxer, TaskPool, VideoMuxer};
+use anyhow::{anyhow, Context};
 use cap_media_info::{AudioInfo, VideoInfo};
 use serde::Serialize;
 use std::{
     path::PathBuf,
     sync::{
-        Arc, Mutex,
         atomic::{AtomicBool, Ordering},
-        mpsc::{SyncSender, sync_channel},
+        mpsc::{sync_channel, SyncSender},
+        Arc, Mutex,
     },
     thread::JoinHandle,
     time::Duration,

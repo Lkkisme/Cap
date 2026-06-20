@@ -11,12 +11,12 @@ mod windows {
     use std::{fmt::Display, time::Duration};
     use tracing::error;
     use windows::{
+        core::Interface,
         Win32::{
             Foundation::SIZE,
             Media::{DirectShow::*, MediaFoundation::*},
             System::Com::*,
         },
-        core::Interface,
     };
 
     pub fn main() {

@@ -1,9 +1,9 @@
 use crate::{
-    SharedPauseState,
     feeds::microphone::MicrophoneFeedLock,
     output_pipeline::*,
     sources,
     sources::screen_capture::{self, CropBounds, ScreenCaptureFormat, ScreenCaptureTarget},
+    SharedPauseState,
 };
 
 #[cfg(target_os = "macos")]
@@ -331,11 +331,11 @@ pub fn target_to_display_and_crop(
 }
 
 #[cfg(windows)]
-pub fn create_d3d_device()
--> windows::core::Result<windows::Win32::Graphics::Direct3D11::ID3D11Device> {
+pub fn create_d3d_device(
+) -> windows::core::Result<windows::Win32::Graphics::Direct3D11::ID3D11Device> {
     use windows::Win32::Graphics::{
         Direct3D::{D3D_DRIVER_TYPE, D3D_DRIVER_TYPE_HARDWARE},
-        Direct3D11::{D3D11_CREATE_DEVICE_FLAG, ID3D11Device},
+        Direct3D11::{ID3D11Device, D3D11_CREATE_DEVICE_FLAG},
     };
 
     let mut device = None;
@@ -370,7 +370,7 @@ pub fn create_d3d_device()
         unsafe {
             use windows::Win32::{
                 Foundation::HMODULE,
-                Graphics::Direct3D11::{D3D11_SDK_VERSION, D3D11CreateDevice},
+                Graphics::Direct3D11::{D3D11CreateDevice, D3D11_SDK_VERSION},
             };
 
             D3D11CreateDevice(

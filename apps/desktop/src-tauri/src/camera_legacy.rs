@@ -4,7 +4,7 @@ use cap_recording::FFmpegVideoFrame;
 use flume::Sender;
 use tokio_util::sync::CancellationToken;
 
-use crate::frame_ws::{WSFrame, create_frame_ws};
+use crate::frame_ws::{create_frame_ws, WSFrame};
 
 pub async fn create_camera_preview_ws() -> (Sender<FFmpegVideoFrame>, u16, CancellationToken) {
     let (camera_tx, camera_rx) = flume::bounded::<FFmpegVideoFrame>(4);

@@ -133,15 +133,15 @@ function AppearanceSection(props: {
 	const options = [
 		{
 			id: "system",
-			name: t('common.system'),
+			name: t("common.system"),
 		},
 		{
 			id: "light",
-			name: t('common.light'),
+			name: t("common.light"),
 		},
 		{
 			id: "dark",
-			name: t('common.dark'),
+			name: t("common.dark"),
 		},
 	] satisfies { id: AppTheme; name: string }[];
 
@@ -154,14 +154,16 @@ function AppearanceSection(props: {
 	return (
 		<div class="flex flex-col gap-4">
 			<div class="flex flex-col border-b border-gray-2">
-				<h2 class="text-lg font-medium text-gray-12">{t('settings.general')}</h2>
+				<h2 class="text-lg font-medium text-gray-12">
+					{t("settings.general")}
+				</h2>
 			</div>
 			<div
 				class="flex justify-start items-center text-gray-12"
 				onContextMenu={(e) => e.preventDefault()}
 			>
 				<div class="flex flex-col gap-3">
-					<p class="text-sm text-gray-12">{t('settings.appearance')}</p>
+					<p class="text-sm text-gray-12">{t("settings.appearance")}</p>
 					<div class="flex justify-between m-1 min-w-[20rem] w-[22.2rem] flex-nowrap">
 						<For each={options}>
 							{(theme) => (
@@ -350,10 +352,10 @@ function Inner(props: { initialStore: GeneralSettingsStore | null }) {
 	// Helper function to render select dropdown for recording behaviors
 	const SelectSettingItem = <
 		T extends
-		| MainWindowRecordingStartBehaviour
-		| PostStudioRecordingBehaviour
-		| PostDeletionBehaviour
-		| number,
+			| MainWindowRecordingStartBehaviour
+			| PostStudioRecordingBehaviour
+			| PostDeletionBehaviour
+			| number,
 	>(props: {
 		label: string;
 		description: string;
@@ -408,7 +410,7 @@ function Inner(props: { initialStore: GeneralSettingsStore | null }) {
 
 				<div class="flex flex-col gap-3 px-4 py-3 mt-6 rounded-xl border border-gray-3 bg-gray-2">
 					<div class="flex flex-col gap-3">
-						<p class="text-sm text-gray-12">{t('settings.language')}</p>
+						<p class="text-sm text-gray-12">{t("settings.language")}</p>
 						<div class="flex gap-2">
 							<LanguageSelector />
 						</div>
@@ -416,28 +418,30 @@ function Inner(props: { initialStore: GeneralSettingsStore | null }) {
 				</div>
 
 				<SettingGroup
-					title={t('settingsPage.capPro')}
+					title={t("settingsPage.capPro")}
 					titleStyling="bg-blue-500 py-1.5 mb-4 text-white text-xs px-2 rounded-lg"
 				>
 					<ToggleSettingItem
-						label={t('settingsPage.autoOpenShareableLinks')}
-						description={t('settingsPage.autoOpenShareableLinksDescription')}
+						label={t("settingsPage.autoOpenShareableLinks")}
+						description={t("settingsPage.autoOpenShareableLinksDescription")}
 						value={!settings.disableAutoOpenLinks}
 						onChange={(v) => handleChange("disableAutoOpenLinks", !v)}
 					/>
 				</SettingGroup>
 
 				{ostype === "macos" && (
-					<SettingGroup title={t('settingsPage.app')}>
+					<SettingGroup title={t("settingsPage.app")}>
 						<ToggleSettingItem
-							label={t('settingsPage.alwaysShowDockIcon')}
-							description={t('settingsPage.alwaysShowDockIconDescription')}
+							label={t("settingsPage.alwaysShowDockIcon")}
+							description={t("settingsPage.alwaysShowDockIconDescription")}
 							value={!settings.hideDockIcon}
 							onChange={(v) => handleChange("hideDockIcon", !v)}
 						/>
 						<ToggleSettingItem
-							label={t('settingsPage.enableSystemNotifications')}
-							description={t('settingsPage.enableSystemNotificationsDescription')}
+							label={t("settingsPage.enableSystemNotifications")}
+							description={t(
+								"settingsPage.enableSystemNotificationsDescription",
+							)}
 							value={!!settings.enableNotifications}
 							onChange={async (value) => {
 								if (value) {
@@ -468,10 +472,10 @@ function Inner(props: { initialStore: GeneralSettingsStore | null }) {
 					</SettingGroup>
 				)}
 
-				<SettingGroup title={t('settings.recordings')}>
+				<SettingGroup title={t("settings.recordings")}>
 					<SelectSettingItem
-						label={t('recording.instantModeMaxResolution')}
-						description={t('recording.instantModeMaxResolutionDescription')}
+						label={t("recording.instantModeMaxResolution")}
+						description={t("recording.instantModeMaxResolutionDescription")}
 						value={settings.instantModeMaxResolution ?? 1920}
 						onChange={(value) =>
 							handleChange("instantModeMaxResolution", value)
@@ -482,75 +486,75 @@ function Inner(props: { initialStore: GeneralSettingsStore | null }) {
 						}))}
 					/>
 					<SelectSettingItem
-						label={t('recording.countdown')}
-						description={t('recording.countdownDescription')}
+						label={t("recording.countdown")}
+						description={t("recording.countdownDescription")}
 						value={settings.recordingCountdown ?? 0}
 						onChange={(value) => handleChange("recordingCountdown", value)}
 						options={[
-							{ text: t('common.off'), value: 0 },
-							{ text: t('time.threeSeconds'), value: 3 },
-							{ text: t('time.fiveSeconds'), value: 5 },
-							{ text: t('time.tenSeconds'), value: 10 },
+							{ text: t("common.off"), value: 0 },
+							{ text: t("time.threeSeconds"), value: 3 },
+							{ text: t("time.fiveSeconds"), value: 5 },
+							{ text: t("time.tenSeconds"), value: 10 },
 						]}
 					/>
 					<SelectSettingItem
-						label={t('recording.mainWindowStartBehaviour')}
-						description={t('recording.mainWindowStartBehaviourDescription')}
+						label={t("recording.mainWindowStartBehaviour")}
+						description={t("recording.mainWindowStartBehaviourDescription")}
 						value={settings.mainWindowRecordingStartBehaviour ?? "close"}
 						onChange={(value) =>
 							handleChange("mainWindowRecordingStartBehaviour", value)
 						}
 						options={[
-							{ text: t('behaviours.close'), value: "close" },
-							{ text: t('behaviours.minimise'), value: "minimise" },
+							{ text: t("behaviours.close"), value: "close" },
+							{ text: t("behaviours.minimise"), value: "minimise" },
 						]}
 					/>
 					<SelectSettingItem
-						label={t('recording.studioFinishBehaviour')}
-						description={t('recording.studioFinishBehaviourDescription')}
+						label={t("recording.studioFinishBehaviour")}
+						description={t("recording.studioFinishBehaviourDescription")}
 						value={settings.postStudioRecordingBehaviour ?? "openEditor"}
 						onChange={(value) =>
 							handleChange("postStudioRecordingBehaviour", value)
 						}
 						options={[
-							{ text: t('behaviours.openEditor'), value: "openEditor" },
+							{ text: t("behaviours.openEditor"), value: "openEditor" },
 							{
-								text: t('behaviours.showOverlay'),
+								text: t("behaviours.showOverlay"),
 								value: "showOverlay",
 							},
 						]}
 					/>
 					<SelectSettingItem
-						label={t('recording.afterDeleteBehaviour')}
-						description={t('recording.afterDeleteBehaviourDescription')}
+						label={t("recording.afterDeleteBehaviour")}
+						description={t("recording.afterDeleteBehaviourDescription")}
 						value={settings.postDeletionBehaviour ?? "doNothing"}
 						onChange={(value) => handleChange("postDeletionBehaviour", value)}
 						options={[
-							{ text: t('behaviours.doNothing'), value: "doNothing" },
+							{ text: t("behaviours.doNothing"), value: "doNothing" },
 							{
-								text: t('behaviours.reopenRecordingWindow'),
+								text: t("behaviours.reopenRecordingWindow"),
 								value: "reopenRecordingWindow",
 							},
 						]}
 					/>
 					<ToggleSettingItem
-						label={t('recording.deleteAfterUpload')}
-						description={t('recording.deleteAfterUploadDescription')}
+						label={t("recording.deleteAfterUpload")}
+						description={t("recording.deleteAfterUploadDescription")}
 						value={settings.deleteInstantRecordingsAfterUpload ?? false}
 						onChange={(v) =>
 							handleChange("deleteInstantRecordingsAfterUpload", v)
 						}
 					/>
 					<ToggleSettingItem
-						label={t('recording.crashRecovery')}
-						description={t('recording.crashRecoveryDescription')}
+						label={t("recording.crashRecovery")}
+						description={t("recording.crashRecoveryDescription")}
 						value={settings.crashRecoveryRecording ?? true}
 						onChange={(value) => handleChange("crashRecoveryRecording", value)}
 					/>
 					<div class="flex flex-col gap-1">
 						<SelectSettingItem
-							label={t('recording.maxFramerate')}
-							description={t('recording.maxFramerateDescription')}
+							label={t("recording.maxFramerate")}
+							description={t("recording.maxFramerateDescription")}
 							value={settings.maxFps ?? 60}
 							onChange={(value) => handleChange("maxFps", value)}
 							options={MAX_FPS_OPTIONS.map((option) => ({
@@ -560,7 +564,7 @@ function Inner(props: { initialStore: GeneralSettingsStore | null }) {
 						/>
 						{(settings.maxFps ?? 60) > 60 && (
 							<p class="text-xs text-amber-500 px-1 pb-2">
-								{t('recording.highFramerateWarning')}
+								{t("recording.highFramerateWarning")}
 							</p>
 						)}
 					</div>
@@ -592,7 +596,7 @@ function Inner(props: { initialStore: GeneralSettingsStore | null }) {
 
 						if (
 							!(await confirm(
-								t('settingsPage.confirmServerChange', { origin }),
+								t("settingsPage.confirmServerChange", { origin }),
 							))
 						)
 							return;
@@ -630,11 +634,11 @@ function ServerURLSetting(props: {
 
 	return (
 		<div class="flex flex-col gap-3">
-			<h3 class="text-sm text-gray-12 w-fit">{t('settingsPage.selfHost')}</h3>
+			<h3 class="text-sm text-gray-12 w-fit">{t("settingsPage.selfHost")}</h3>
 			<div class="flex flex-col gap-2 px-4 rounded-xl border border-gray-3 bg-gray-2">
 				<SettingItem
-					label={t('settingsPage.capServerUrl')}
-					description={t('settingsPage.capServerUrlDescription')}
+					label={t("settingsPage.capServerUrl")}
+					description={t("settingsPage.capServerUrlDescription")}
 				>
 					<div class="flex flex-col gap-2 items-end">
 						<Input
@@ -649,7 +653,7 @@ function ServerURLSetting(props: {
 							disabled={props.value === value()}
 							onClick={() => props.onChange(value())}
 						>
-							{t('common.update')}
+							{t("common.update")}
 						</Button>
 					</div>
 				</SettingItem>
@@ -738,9 +742,11 @@ function DefaultProjectNameCard(props: {
 		<div class="flex flex-col gap-3 px-4 py-3 mt-6 rounded-xl border border-gray-3 bg-gray-2">
 			<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 				<div class="flex flex-col gap-1">
-					<p class="text-sm text-gray-12">{t('settingsPage.defaultProjectName')}</p>
+					<p class="text-sm text-gray-12">
+						{t("settingsPage.defaultProjectName")}
+					</p>
 					<p class="text-xs text-gray-10">
-						{t('settingsPage.defaultProjectNameDescription')}
+						{t("settingsPage.defaultProjectNameDescription")}
 					</p>
 				</div>
 				<div class="flex flex-shrink-0 gap-2">
@@ -759,7 +765,7 @@ function DefaultProjectNameCard(props: {
 							await updatePreview(newTemplate);
 						}}
 					>
-						{t('common.reset')}
+						{t("common.reset")}
 					</Button>
 
 					<Button
@@ -771,7 +777,7 @@ function DefaultProjectNameCard(props: {
 							await updatePreview();
 						}}
 					>
-						{t('common.save')}
+						{t("common.save")}
 					</Button>
 				</div>
 			</div>
@@ -797,16 +803,18 @@ function DefaultProjectNameCard(props: {
 				<Collapsible class="w-full rounded-lg">
 					<Collapsible.Trigger class="group inline-flex items-center w-full text-xs rounded-lg outline-none px-0.5 py-1">
 						<IconCapChevronDown class="size-4 ui-group-expanded:rotate-180 transition-transform duration-300 ease-in-out" />
-						<p class="py-0.5 px-1">{t('settingsPage.howToCustomize')}</p>
+						<p class="py-0.5 px-1">{t("settingsPage.howToCustomize")}</p>
 					</Collapsible.Trigger>
 
 					<Collapsible.Content class="opacity-0 transition animate-collapsible-up ui-expanded:animate-collapsible-down ui-expanded:opacity-100 text-xs text-gray-12 space-y-3 px-1 pb-2">
 						<p class="border-t pt-3">
-							{t('settingsPage.customizePlaceholders')}
+							{t("settingsPage.customizePlaceholders")}
 						</p>
 
 						<div class="space-y-1">
-							<p class="font-medium text-foreground">{t('settingsPage.recordingMode')}</p>
+							<p class="font-medium text-foreground">
+								{t("settingsPage.recordingMode")}
+							</p>
 							<p>
 								<CodeView>{"{recording_mode}"}</CodeView> → "Studio", "Instant",
 								or "Screenshot"
@@ -818,7 +826,9 @@ function DefaultProjectNameCard(props: {
 						</div>
 
 						<div class="space-y-1">
-							<p class="font-medium text-foreground">{t('settingsPage.target')}</p>
+							<p class="font-medium text-foreground">
+								{t("settingsPage.target")}
+							</p>
 							<p>
 								<CodeView>{"{target_kind}"}</CodeView> → "Display", "Window", or
 								"Area"
@@ -830,7 +840,9 @@ function DefaultProjectNameCard(props: {
 						</div>
 
 						<div class="space-y-1">
-							<p class="font-medium text-foreground">{t('settingsPage.dateAndTime')}</p>
+							<p class="font-medium text-foreground">
+								{t("settingsPage.dateAndTime")}
+							</p>
 							<p>
 								<CodeView>{"{date}"}</CodeView> → {dateString}
 							</p>
@@ -841,7 +853,9 @@ function DefaultProjectNameCard(props: {
 						</div>
 
 						<div class="space-y-1">
-							<p class="font-medium text-foreground">{t('settingsPage.customFormats')}</p>
+							<p class="font-medium text-foreground">
+								{t("settingsPage.customFormats")}
+							</p>
 							<p>
 								You can also use a custom format for time. The placeholders are
 								case-sensitive. For 24-hour time, use{" "}
@@ -930,13 +944,15 @@ function ExcludedWindowsCard(props: {
 		<div class="flex flex-col gap-3 px-4 py-3 mt-6 rounded-xl border border-gray-3 bg-gray-2">
 			<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
 				<div class="flex flex-col gap-1">
-					<p class="text-sm text-gray-12">{t('settingsPage.excludedWindows')}</p>
+					<p class="text-sm text-gray-12">
+						{t("settingsPage.excludedWindows")}
+					</p>
 					<p class="text-xs text-gray-10">
-						{t('settingsPage.excludedWindowsDescription')}
+						{t("settingsPage.excludedWindowsDescription")}
 					</p>
 					<Show when={props.isWindows}>
 						<p class="text-xs text-gray-9">
-							{t('settingsPage.windowsExclusionNote')}
+							{t("settingsPage.windowsExclusionNote")}
 						</p>
 					</Show>
 				</div>
@@ -950,7 +966,7 @@ function ExcludedWindowsCard(props: {
 							void props.onReset();
 						}}
 					>
-						{t('settingsPage.resetToDefaults')}
+						{t("settingsPage.resetToDefaults")}
 					</Button>
 					<Button
 						variant="dark"
@@ -960,7 +976,7 @@ function ExcludedWindowsCard(props: {
 						class="flex items-center gap-2"
 					>
 						<IconLucidePlus class="size-4" />
-						{t('settingsPage.addWindow')}
+						{t("settingsPage.addWindow")}
 					</Button>
 				</div>
 			</div>
@@ -968,9 +984,7 @@ function ExcludedWindowsCard(props: {
 				<Show
 					when={hasExclusions()}
 					fallback={
-						<p class="text-xs text-gray-10">
-							{t('settingsPage.noExclusions')}
-						</p>
+						<p class="text-xs text-gray-10">{t("settingsPage.noExclusions")}</p>
 					}
 				>
 					<div class="flex flex-wrap gap-2">

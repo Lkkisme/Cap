@@ -47,9 +47,18 @@ export function PlayerContent() {
 	} = useEditorContext();
 
 	const previewOptions = [
-		{ label: t("editor.player.qualities.full"), value: "full" as EditorPreviewQuality },
-		{ label: t("editor.player.qualities.half"), value: "half" as EditorPreviewQuality },
-		{ label: t("editor.player.qualities.quarter"), value: "quarter" as EditorPreviewQuality },
+		{
+			label: t("editor.player.qualities.full"),
+			value: "full" as EditorPreviewQuality,
+		},
+		{
+			label: t("editor.player.qualities.half"),
+			value: "half" as EditorPreviewQuality,
+		},
+		{
+			label: t("editor.player.qualities.quarter"),
+			value: "quarter" as EditorPreviewQuality,
+		},
 	];
 
 	// Load captions on mount
@@ -252,7 +261,9 @@ export function PlayerContent() {
 					</EditorButton>
 				</div>
 				<div class="flex items-center gap-2">
-					<span class="text-xs font-medium text-gray-11">{t("editor.player.quality")}</span>
+					<span class="text-xs font-medium text-gray-11">
+						{t("editor.player.quality")}
+					</span>
 					<KSelect<{ label: string; value: EditorPreviewQuality }>
 						options={previewOptions}
 						optionValue="value"
@@ -284,7 +295,8 @@ export function PlayerContent() {
 								value: EditorPreviewQuality;
 							}> class="flex-1 text-left truncate">
 								{(state) =>
-									state.selectedOption()?.label ?? t("editor.player.selectQuality")
+									state.selectedOption()?.label ??
+									t("editor.player.selectQuality")
 								}
 							</KSelect.Value>
 							<KSelect.Icon>
@@ -330,7 +342,10 @@ export function PlayerContent() {
 					>
 						<IconCapPrev class="text-gray-12 size-3" />
 					</button>
-					<Tooltip kbd={["Space"]} content={t("editor.player.playPauseTooltip")}>
+					<Tooltip
+						kbd={["Space"]}
+						content={t("editor.player.playPauseTooltip")}
+					>
 						<button
 							type="button"
 							onClick={handlePlayPauseClick}
@@ -377,7 +392,10 @@ export function PlayerContent() {
 						}
 					/>
 					<div class="w-px h-8 rounded-full bg-gray-4" />
-					<Tooltip kbd={["meta", "-"]} content={t("editor.player.zoomOutTooltip")}>
+					<Tooltip
+						kbd={["meta", "-"]}
+						content={t("editor.player.zoomOutTooltip")}
+					>
 						<IconCapZoomOut
 							onClick={() => {
 								editorState.timeline.transform.updateZoom(
@@ -388,7 +406,10 @@ export function PlayerContent() {
 							class="text-gray-12 size-5 will-change-[opacity] transition-opacity hover:opacity-70"
 						/>
 					</Tooltip>
-					<Tooltip kbd={["meta", "+"]} content={t("editor.player.zoomInTooltip")}>
+					<Tooltip
+						kbd={["meta", "+"]}
+						content={t("editor.player.zoomInTooltip")}
+					>
 						<IconCapZoomIn
 							onClick={() => {
 								editorState.timeline.transform.updateZoom(
@@ -420,7 +441,9 @@ export function PlayerContent() {
 							);
 						}}
 						formatTooltip={() =>
-							t("editor.player.secondsVisible", { seconds: editorState.timeline.transform.zoom.toFixed(0) })
+							t("editor.player.secondsVisible", {
+								seconds: editorState.timeline.transform.zoom.toFixed(0),
+							})
 						}
 					/>
 				</div>

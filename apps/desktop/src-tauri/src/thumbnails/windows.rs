@@ -1,7 +1,7 @@
 use super::*;
 
 pub async fn capture_display_thumbnail(display: &scap_targets::Display) -> Option<String> {
-    use image::{ColorType, ImageEncoder, codecs::png::PngEncoder};
+    use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
     use scap_direct3d::{Capturer, Settings};
     use std::io::Cursor;
 
@@ -140,7 +140,7 @@ pub async fn capture_display_thumbnail(display: &scap_targets::Display) -> Optio
 }
 
 pub async fn capture_window_thumbnail(window: &scap_targets::Window) -> Option<String> {
-    use image::{ColorType, ImageEncoder, codecs::png::PngEncoder};
+    use image::{codecs::png::PngEncoder, ColorType, ImageEncoder};
     use scap_direct3d::{Capturer, Settings};
     use std::io::Cursor;
 

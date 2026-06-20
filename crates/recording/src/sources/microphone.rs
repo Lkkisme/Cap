@@ -4,7 +4,7 @@ use crate::{
 };
 use cap_media_info::AudioInfo;
 use cpal::SampleFormat;
-use futures::{SinkExt, channel::mpsc};
+use futures::{channel::mpsc, SinkExt};
 use kameo::error::SendError;
 use std::{borrow::Cow, future::Future, sync::Arc};
 use thiserror::Error;

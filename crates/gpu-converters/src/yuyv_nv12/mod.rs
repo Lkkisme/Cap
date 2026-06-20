@@ -1,6 +1,6 @@
 use wgpu::{self, util::DeviceExt};
 
-use crate::{ConvertError, GpuConverterError, util::read_buffer_to_vec, yuyv};
+use crate::{util::read_buffer_to_vec, yuyv, ConvertError, GpuConverterError};
 
 pub struct YUYVToNV12 {
     device: wgpu::Device,

@@ -1,7 +1,7 @@
-use anyhow::{Context, anyhow};
+use anyhow::{anyhow, Context};
 use cap_recording::{
-    FFmpegVideoFrame,
     feeds::{self, camera::CameraFeed},
+    FFmpegVideoFrame,
 };
 use ffmpeg::{
     format::{self, Pixel},
@@ -719,12 +719,20 @@ fn resize_window(
 
     let base = clamp_size(state.size);
     let window_width = if state.shape == CameraPreviewShape::Full {
-        if aspect >= 1.0 { base * aspect } else { base }
+        if aspect >= 1.0 {
+            base * aspect
+        } else {
+            base
+        }
     } else {
         base
     };
     let window_height = if state.shape == CameraPreviewShape::Full {
-        if aspect >= 1.0 { base } else { base / aspect }
+        if aspect >= 1.0 {
+            base
+        } else {
+            base / aspect
+        }
     } else {
         base
     } + TOOLBAR_HEIGHT;
