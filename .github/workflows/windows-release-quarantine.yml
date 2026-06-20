@@ -1,0 +1,76 @@
+name: Windows Release Quarantine
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to inspect"
+        required: true
+        type: string
+      mode:
+        description: "Action to take for unsafe Windows assets"
+        required: true
+        default: "report"
+        type: choice
+        options:
+          - report
+          - mark_prerelease
+          - delete_windows_assets
+      confirmation:
+        description: "Required for destructive modes"
+        required: false
+        default: ""
+        type: string
+      fail_on_unsafe:
+        description: "Fail report-only runs when unsafe Windows assets exist"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  quarantine:
+    name: Inspect Windows release assets
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Inspect release
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $params = @{
+            Repository = "${{ github.repository }}"
+            Tag = "${{ inputs.tag }}"
+            Mode = "${{ inputs.mode }}"
+            Confirmation = "${{ inputs.confirmation }}"
+            OutputDirectory = "windows-release-quarantine"
+          }
+
+          if ("${{ inputs.fail_on_unsafe }}" -eq "true") {
+            $params.FailOnUnsafe = $true
+          }
+
+          .\scripts\protect-windows-release-assets.ps1 @params
+
+      - name: Add report to job summary
+        if: always()
+        shell: pwsh
+        run: |
+          $report = "windows-release-quarantine\windows-release-quarantine-report.md"
+          if (Test-Path -LiteralPath $report) {
+            Get-Content -LiteralPath $report | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+
+      - name: Upload quarantine report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-quarantine
+          path: windows-release-quarantine/*
+          if-no-files-found: ignore

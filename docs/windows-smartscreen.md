@@ -177,6 +177,8 @@ powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag
 
 当前 `cap-v0.4.3-cn` 的 Windows EXE/MSI 验证结果是 `NotSigned`。启用任一签名后端并重新发布后，应重新运行该脚本并确认状态为 `Valid`。
 
+如果要隔离旧的未验证 Windows Release 资产，可以手动运行 GitHub Actions 中的 `Windows Release Quarantine`。默认 `mode=report` 只生成报告；如果确认要降低旧 Release 被普通用户误下载的概率，可以把 `mode` 设为 `mark_prerelease` 并输入 `mark-prerelease:<tag>`，或把 `mode` 设为 `delete_windows_assets` 并输入 `delete-windows-assets:<tag>` 删除该 Release 上的 Windows EXE/MSI 资产。不要对已经通过签名、checksum、Release audit、installer smoke test、WinGet 和 WDSI 证据门禁的 Release 使用删除模式。
+
 ## 安装器静默安装测试
 
 `cap-v*` Release 发布后会自动运行 GitHub Actions 中的 `Windows Installer Smoke Test` workflow；也可以手动输入已签名 Release tag 重跑。它会先复用发布后验证脚本确认签名、可信时间戳、SignTool、`SHA256SUMS.txt` 和 GitHub artifact attestation 都通过，然后在 Windows runner 上测试：
