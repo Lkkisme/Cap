@@ -11,6 +11,7 @@ on:
 
 permissions:
   actions: read
+  attestations: write
   contents: read
   id-token: write
 
@@ -311,6 +312,11 @@ jobs:
           }
           $lines | Set-Content -Encoding UTF8 -Path "store-assets/SHA256SUMS.txt"
           Get-Content -Path "store-assets/SHA256SUMS.txt"
+
+      - name: Generate artifact attestations
+        uses: actions/attest@v4
+        with:
+          subject-path: store-assets/*
 
       - name: Remove imported PFX signing certificate
         if: always() && vars.WINDOWS_SIGNING_PROVIDER == 'pfx'

@@ -111,6 +111,14 @@ powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag
 
 当前 `cap-v0.4.3-cn` 的 Windows EXE/MSI 验证结果是 `NotSigned`。启用任一签名后端并重新发布后，应重新运行该脚本并确认状态为 `Valid`。
 
+Release 和 Store workflow 还会生成 GitHub artifact attestation。下载文件后可以验证构建来源：
+
+```powershell
+gh attestation verify .\Cap._0.4.3-cn_x64-setup-windows-x64.exe --repo Lkkisme/Cap
+```
+
+attestation 不能代替代码签名，但能证明产物来自该仓库的 GitHub Actions 构建，对用户信任和 WDSI 复核都有帮助。
+
 ## Microsoft Store 提交流程
 
 1. 在 Microsoft Partner Center 注册开发者账号。
