@@ -183,7 +183,7 @@ powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag
 
 `Windows Release Quarantine` 会在 Release 发布或编辑时自动检查是否仍挂着未验证 Windows EXE/MSI。它不只检查证据资产名称是否存在，还会下载并解析 `windows-release-assets-<tag>.json`，确认每个 Windows 安装包的签名、时间戳、SignTool、checksum、artifact attestation 和 Defender 扫描状态都有效。自动触发时，如果 Release 带有 unsafe Windows 安装包，会把该 Release 标记为 prerelease，避免它继续作为普通最新版本被用户下载。
 
-`Windows Release Quarantine` 也会每天定时扫描所有普通公开 `cap-v*` Release，通过 `scripts/protect-public-windows-releases.ps1` 把仍带 unsafe Windows 安装包的旧 Release 自动标记为 prerelease。如果要手动隔离旧的未验证 Windows Release 资产，也可以手动运行该 workflow。默认 `mode=report` 只生成报告；如果确认要降低旧 Release 被普通用户误下载的概率，可以把 `mode` 设为 `mark_prerelease` 并输入 `mark-prerelease:<tag>`，或把 `mode` 设为 `delete_windows_assets` 并输入 `delete-windows-assets:<tag>` 删除该 Release 上的 Windows EXE/MSI 资产。不要对已经通过签名、checksum、Release audit、installer smoke test、WinGet 和 WDSI 证据门禁的 Release 使用删除模式。
+`Windows Release Quarantine` 也会在 `main` 更新后和每天定时扫描所有普通公开 `cap-v*` Release，通过 `scripts/protect-public-windows-releases.ps1` 把仍带 unsafe Windows 安装包的旧 Release 自动标记为 prerelease。如果要手动隔离旧的未验证 Windows Release 资产，也可以手动运行该 workflow。默认 `mode=report` 只生成报告；如果确认要降低旧 Release 被普通用户误下载的概率，可以把 `mode` 设为 `mark_prerelease` 并输入 `mark-prerelease:<tag>`，或把 `mode` 设为 `delete_windows_assets` 并输入 `delete-windows-assets:<tag>` 删除该 Release 上的 Windows EXE/MSI 资产。不要对已经通过签名、checksum、Release audit、installer smoke test、WinGet 和 WDSI 证据门禁的 Release 使用删除模式。
 
 ## 安装器静默安装测试
 

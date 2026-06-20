@@ -1,8 +1,11 @@
 name: Windows Release Quarantine
 
-run-name: ${{ github.event_name == 'release' && format('Windows Release Quarantine for {0}', github.event.release.tag_name) || format('Windows Release Quarantine for {0}', inputs.tag) }}
+run-name: ${{ github.event_name == 'release' && format('Windows Release Quarantine for {0}', github.event.release.tag_name) || (github.event_name == 'schedule' || github.event_name == 'push') && 'Windows Release Quarantine for public Windows releases' || format('Windows Release Quarantine for {0}', inputs.tag) }}
 
 on:
+  push:
+    branches:
+      - main
   release:
     types: [published, edited]
   schedule:
@@ -38,14 +41,14 @@ permissions:
 
 env:
   RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
-  QUARANTINE_MODE: ${{ github.event_name == 'release' && 'mark_prerelease' || github.event_name == 'schedule' && 'mark_prerelease' || inputs.mode }}
-  QUARANTINE_CONFIRMATION: ${{ github.event_name == 'release' && format('mark-prerelease:{0}', github.event.release.tag_name) || github.event_name == 'schedule' && '' || inputs.confirmation }}
+  QUARANTINE_MODE: ${{ (github.event_name == 'release' || github.event_name == 'schedule' || github.event_name == 'push') && 'mark_prerelease' || inputs.mode }}
+  QUARANTINE_CONFIRMATION: ${{ github.event_name == 'release' && format('mark-prerelease:{0}', github.event.release.tag_name) || inputs.confirmation }}
   FAIL_ON_UNSAFE: ${{ github.event_name == 'release' && 'true' || inputs.fail_on_unsafe }}
 
 jobs:
   quarantine:
     name: Inspect Windows release assets
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (startsWith(github.event.release.tag_name, 'cap-v') && !github.event.release.prerelease)
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || github.event_name == 'push' || (startsWith(github.event.release.tag_name, 'cap-v') && !github.event.release.prerelease)
     runs-on: windows-2022
     timeout-minutes: 15
     steps:
@@ -57,7 +60,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          if ("${{ github.event_name }}" -eq "schedule") {
+          if (@("schedule", "push") -contains "${{ github.event_name }}") {
             .\scripts\protect-public-windows-releases.ps1 -Repository "${{ github.repository }}" -Mode $env:QUARANTINE_MODE -OutputDirectory "windows-release-quarantine"
             return
           }
