@@ -2,7 +2,9 @@
 name = "cap-desktop"
 version = "0.4.3-cn"
 description = "Beautiful screen recordings, owned by you."
-authors = ["you"]
+authors = ["Lkkisme"]
+homepage = "https://github.com/Lkkisme/Cap"
+license = "AGPL-3.0-only"
 edition = "2021"
 
 [lints]

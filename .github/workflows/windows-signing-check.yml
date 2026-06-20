@@ -14,6 +14,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Validate Windows package metadata
+        shell: pwsh
+        env:
+          WINDOWS_PACKAGE_PUBLISHER: ${{ vars.WINDOWS_PACKAGE_PUBLISHER }}
+        run: .\scripts\validate-windows-app-metadata.ps1
+
       - name: Validate Windows signing configuration
         shell: pwsh
         env:
