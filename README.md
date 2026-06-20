@@ -77,7 +77,9 @@ Release workflow 已支持三种 Windows 签名方式：
 
 - 新增 `.github/workflows/windows-release-audit.yml`。
 - 新增 `scripts/verify-windows-release.ps1`。
+- 新增 `scripts/scan-windows-assets.ps1`。
 - `Windows Release Audit` 会在 `cap-v*` Release published 后自动审计，也可以手动对指定 Release tag 执行审计。
+- `Windows Release` 和 `Windows Store Package` 会在上传产物前用 Microsoft Defender 扫描 Windows EXE/MSI。
 - 脚本可以下载指定 GitHub Release 的 Windows EXE/MSI。
 - 脚本会计算 SHA256。
 - 脚本可以核对 Release 中的 `SHA256SUMS.txt`。

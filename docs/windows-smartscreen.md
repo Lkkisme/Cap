@@ -111,6 +111,12 @@ Windows 安装包需要长期保持同一个应用身份，否则 SmartScreen、
 - 需要 WinGet 分发时，在审计通过后运行 `Windows WinGet Manifest` workflow，并把生成的 manifest 提交到 `microsoft/winget-pkgs`。
 - 如果 Windows 包开始被拦截，提交签名后的 EXE/MSI 到 https://www.microsoft.com/en-us/wdsi/filesubmission。
 
+## Microsoft Defender 发布前扫描
+
+`Windows Release` 和 `Windows Store Package` 会在上传产物前运行 `scripts/scan-windows-assets.ps1`。该脚本使用 GitHub Windows runner 上的 Microsoft Defender `MpCmdRun.exe` 对 EXE/MSI 做自定义扫描，扫描失败或检测不可用都会让 workflow 失败。
+
+Defender 扫描不能代替代码签名、Store、WDSI 或 SmartScreen 声誉，但它能在公开发布前提前发现会被 Microsoft 安全栈直接拦截的安装包。这个检查通过后，再继续进行 checksum、attestation、Release 审计和 WDSI 流程。
+
 ## 发布后验证
 
 运行仓库脚本验证指定 Release 的 Windows 安装包：

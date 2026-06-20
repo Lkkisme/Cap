@@ -321,6 +321,10 @@ jobs:
             }
           }
 
+      - name: Scan Windows store assets with Microsoft Defender
+        shell: pwsh
+        run: .\scripts\scan-windows-assets.ps1 -Path store-assets -RequireScanner
+
       - name: Generate checksums
         shell: pwsh
         run: |

@@ -376,6 +376,11 @@ jobs:
             }
           }
 
+      - name: Scan Windows release assets with Microsoft Defender
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: .\scripts\scan-windows-assets.ps1 -Path release-assets -RequireScanner
+
       - name: Remove imported PFX signing certificate
         if: always() && runner.os == 'Windows' && steps.signing.outputs.provider == 'pfx'
         shell: pwsh
