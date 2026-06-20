@@ -201,7 +201,7 @@ Release workflow 已支持三种 Windows 签名方式：
 配置完成后：
 
 1. 手动运行 `Windows Signing Check`。
-2. 手动运行 `Windows Trust Readiness`，确认主要信任链路没有缺关键配置；如果希望缺关键项时 workflow 直接失败，把 `fail_on_missing` 设为 `true`。之后它会在相关 Windows 信任链文件变更时自动运行，并每周定期检查一次。
+2. 手动运行 `Windows Trust Readiness`，确认主要信任链路没有缺关键配置；手动运行时如果希望缺关键项直接失败，把 `fail_on_missing` 设为 `true`。自动的 push、PR 和每周定时 readiness 检查会默认严格失败，直到配置 Microsoft Store URL 或真实 Windows 签名 provider。
 3. 确认配置检查和临时 EXE 签名探针都通过。
 4. 手动运行 `Windows Release` 或创建新的 `cap-v*` tag；该 workflow 始终要求真实 Windows 签名配置。
 5. 等待自动触发的 `Windows Release Audit` 通过，或手动输入刚发布的 tag 重新审计，确认签名发布者、可信时间戳、SignTool 复核、SHA256 和 artifact attestation 都通过。

@@ -110,7 +110,7 @@ jobs:
             StoreProductId = "${{ github.event_name == 'workflow_dispatch' && inputs.store_product_id || '' }}"
           }
 
-          if ("${{ github.event_name == 'workflow_dispatch' && inputs.fail_on_missing || false }}" -eq "true") {
+          if ("${{ github.event_name }}" -ne "workflow_dispatch" -or "${{ github.event_name == 'workflow_dispatch' && inputs.fail_on_missing || false }}" -eq "true") {
             $params.FailOnMissing = $true
           }
 
