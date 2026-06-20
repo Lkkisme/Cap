@@ -5,6 +5,8 @@ run-name: ${{ github.event_name == 'release' && format('Windows Release Quaranti
 on:
   release:
     types: [published, edited]
+  schedule:
+    - cron: "41 10 * * *"
   workflow_dispatch:
     inputs:
       tag:
@@ -36,14 +38,14 @@ permissions:
 
 env:
   RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
-  QUARANTINE_MODE: ${{ github.event_name == 'release' && 'report' || inputs.mode }}
-  QUARANTINE_CONFIRMATION: ${{ github.event_name == 'release' && '' || inputs.confirmation }}
+  QUARANTINE_MODE: ${{ github.event_name == 'release' && 'mark_prerelease' || github.event_name == 'schedule' && 'mark_prerelease' || inputs.mode }}
+  QUARANTINE_CONFIRMATION: ${{ github.event_name == 'release' && format('mark-prerelease:{0}', github.event.release.tag_name) || github.event_name == 'schedule' && '' || inputs.confirmation }}
   FAIL_ON_UNSAFE: ${{ github.event_name == 'release' && 'true' || inputs.fail_on_unsafe }}
 
 jobs:
   quarantine:
     name: Inspect Windows release assets
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'cap-v')
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (startsWith(github.event.release.tag_name, 'cap-v') && !github.event.release.prerelease)
     runs-on: windows-2022
     timeout-minutes: 15
     steps:
@@ -55,6 +57,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
+          if ("${{ github.event_name }}" -eq "schedule") {
+            .\scripts\protect-public-windows-releases.ps1 -Repository "${{ github.repository }}" -Mode $env:QUARANTINE_MODE -OutputDirectory "windows-release-quarantine"
+            return
+          }
+
           $params = @{
             Repository = "${{ github.repository }}"
             Tag = $env:RELEASE_TAG
@@ -73,6 +80,11 @@ jobs:
         if: always()
         shell: pwsh
         run: |
+          $summaryReport = "windows-release-quarantine\public-windows-release-quarantine-report.md"
+          if (Test-Path -LiteralPath $summaryReport) {
+            Get-Content -LiteralPath $summaryReport | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+
           $report = "windows-release-quarantine\windows-release-quarantine-report.md"
           if (Test-Path -LiteralPath $report) {
             Get-Content -LiteralPath $report | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
