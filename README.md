@@ -59,7 +59,7 @@ Release workflow 已支持三种 Windows 签名方式：
 - 新增 `scripts/validate-windows-signing.ps1`。
 - 配置签名前可以先手动运行 `Windows Signing Check`，它会检查 GitHub Variables 和 Secrets 是否齐全。
 - `Windows Release` 默认要求 Windows Authenticode 签名；通过 `cap-v*` tag 触发的正式发布不能关闭签名要求。
-- 手动运行 `Windows Release` 时，只有把 `require_signing` 显式设置为 `false`，才会允许生成未签名测试包。
+- 手动运行 `Windows Release` 时，只有把 `require_signing` 显式设置为 `false`，才会允许生成未签名草稿测试包；未签名构建不能创建公开 Release。
 
 ### 4. Microsoft Store 准备
 
@@ -130,7 +130,7 @@ Release workflow 已支持三种 Windows 签名方式：
 
 1. 手动运行 `Windows Signing Check`。
 2. 确认通过。
-3. 手动运行 `Windows Release` 或创建新的 `cap-v*` tag；正式发布保持 `require_signing=true`。
+3. 手动运行 `Windows Release` 或创建新的 `cap-v*` tag；正式发布保持 `require_signing=true`，未签名测试只能作为 draft。
 4. 下载 EXE/MSI，用 `Get-AuthenticodeSignature` 确认签名为 `Valid`。
 5. 如仍出现 SmartScreen 误拦截，提交到 Microsoft WDSI。
 

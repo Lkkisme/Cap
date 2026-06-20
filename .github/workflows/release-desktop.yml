@@ -37,6 +37,7 @@ jobs:
       tag_name: ${{ steps.version.outputs.tag_name }}
       release_name: ${{ steps.version.outputs.release_name }}
       draft: ${{ steps.version.outputs.draft }}
+      require_signing: ${{ steps.version.outputs.require_signing }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -52,13 +53,22 @@ jobs:
           fi
           if [ "$GITHUB_EVENT_NAME" = "push" ]; then
             tag_name="$GITHUB_REF_NAME"
+            require_signing="true"
+            draft="false"
           else
             tag_name="cap-v$version"
+            require_signing="${{ inputs.require_signing }}"
+            if [ "$require_signing" = "true" ]; then
+              draft="${{ inputs.draft }}"
+            else
+              draft="true"
+            fi
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag_name=$tag_name" >> "$GITHUB_OUTPUT"
           echo "release_name=Cap Windows $version" >> "$GITHUB_OUTPUT"
-          echo "draft=${{ github.event_name == 'workflow_dispatch' && inputs.draft || false }}" >> "$GITHUB_OUTPUT"
+          echo "draft=$draft" >> "$GITHUB_OUTPUT"
+          echo "require_signing=$require_signing" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build ${{ matrix.name }}
@@ -401,6 +411,12 @@ jobs:
         uses: actions/attest@v4
         with:
           subject-path: release-assets/*
+
+      - name: Block unsigned public release
+        if: needs.metadata.outputs.require_signing != 'true' && needs.metadata.outputs.draft != 'true'
+        run: |
+          echo "Unsigned Windows builds can only be created as draft test releases."
+          exit 1
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
