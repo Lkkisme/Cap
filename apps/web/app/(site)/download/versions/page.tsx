@@ -27,7 +27,11 @@ function DownloadLinks({
 }) {
 	const downloads = release.downloads;
 	const hasVerifiedWindowsDownloads = hasVerifiedWindowsEvidence(release);
-	const hasWindowsDownloads = !!(downloads.windows || downloads["windows-msi"]);
+	const hasWindowsDownloads = !!(
+		downloads.windows ||
+		downloads["windows-msi"] ||
+		downloads["windows-portable"]
+	);
 
 	if (isLatest) {
 		return (
@@ -79,6 +83,15 @@ function DownloadLinks({
 							<WindowsIcon />
 							Windows MSI
 						</a>
+						{downloads["windows-portable"] && (
+							<a
+								href="/download/windows-zip"
+								className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-3 text-gray-12 hover:bg-gray-4 transition-colors"
+							>
+								<WindowsIcon />
+								Portable ZIP
+							</a>
+						)}
 					</>
 				)}
 			</div>
@@ -125,6 +138,15 @@ function DownloadLinks({
 				>
 					<WindowsIcon />
 					Windows MSI
+				</a>
+			)}
+			{hasVerifiedWindowsDownloads && downloads["windows-portable"] && (
+				<a
+					href={downloads["windows-portable"]}
+					className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-3 text-gray-12 hover:bg-gray-4 transition-colors"
+				>
+					<WindowsIcon />
+					Portable ZIP
 				</a>
 			)}
 			{hasWindowsDownloads && !hasVerifiedWindowsDownloads && (

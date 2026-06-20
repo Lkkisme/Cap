@@ -8,11 +8,6 @@ on:
         required: true
         default: true
         type: boolean
-      require_signing:
-        description: "Require Windows Authenticode signing"
-        required: true
-        default: true
-        type: boolean
   push:
     tags:
       - "cap-v*"
@@ -37,7 +32,6 @@ jobs:
       tag_name: ${{ steps.version.outputs.tag_name }}
       release_name: ${{ steps.version.outputs.release_name }}
       draft: ${{ steps.version.outputs.draft }}
-      require_signing: ${{ steps.version.outputs.require_signing }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -53,22 +47,15 @@ jobs:
           fi
           if [ "$GITHUB_EVENT_NAME" = "push" ]; then
             tag_name="$GITHUB_REF_NAME"
-            require_signing="true"
             draft="false"
           else
             tag_name="cap-v$version"
-            require_signing="${{ inputs.require_signing }}"
-            if [ "$require_signing" = "true" ]; then
-              draft="${{ inputs.draft }}"
-            else
-              draft="true"
-            fi
+            draft="${{ inputs.draft }}"
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag_name=$tag_name" >> "$GITHUB_OUTPUT"
           echo "release_name=Cap Windows $version" >> "$GITHUB_OUTPUT"
           echo "draft=$draft" >> "$GITHUB_OUTPUT"
-          echo "require_signing=$require_signing" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build ${{ matrix.name }}
@@ -114,13 +101,7 @@ jobs:
           SIGNPATH_ARTIFACT_CONFIGURATION_SLUG: ${{ secrets.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
           WINDOWS_CERTIFICATE_PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_PFX_BASE64 }}
           WINDOWS_CERTIFICATE_PFX_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PFX_PASSWORD }}
-          WINDOWS_RELEASE_REQUIRES_SIGNING: ${{ github.event_name == 'workflow_dispatch' && inputs.require_signing || github.event_name != 'workflow_dispatch' }}
-        run: |
-          if ($env:WINDOWS_RELEASE_REQUIRES_SIGNING -eq "true") {
-            & .\scripts\validate-windows-signing.ps1 -RequireSigning
-          } else {
-            & .\scripts\validate-windows-signing.ps1 -AllowUnsigned
-          }
+        run: .\scripts\validate-windows-signing.ps1 -RequireSigning
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -453,10 +434,79 @@ jobs:
             Write-Host "$($file.Name) signtool: $($result.SignToolStatus)"
           }
 
+      - name: Stage portable Windows ZIP
+        if: runner.os == 'Windows' && (steps.signing.outputs.provider == 'azure-artifact-signing' || steps.signing.outputs.provider == 'pfx' || steps.signing.outputs.provider == 'signpath')
+        shell: pwsh
+        run: |
+          $releaseRoot = "target/${{ matrix.target }}/release"
+          $mainExe = Join-Path $releaseRoot "Cap-CN.exe"
+          if (-not (Test-Path -LiteralPath $mainExe)) {
+            throw "Signed Cap-CN.exe was not found at $mainExe."
+          }
+
+          $packageRoot = Join-Path $env:RUNNER_TEMP "cap-portable-${{ matrix.slug }}"
+          $appDirectory = Join-Path $packageRoot "Cap-CN"
+          if (Test-Path -LiteralPath $packageRoot) {
+            Remove-Item -LiteralPath $packageRoot -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $appDirectory -Force | Out-Null
+
+          Copy-Item -LiteralPath $mainExe -Destination $appDirectory -Force
+          $dllFiles = Get-ChildItem -LiteralPath $releaseRoot -Filter *.dll -File
+          foreach ($file in $dllFiles) {
+            Copy-Item -LiteralPath $file.FullName -Destination $appDirectory -Force
+          }
+          $resourceDirectories = @("resources", "assets")
+          foreach ($directoryName in $resourceDirectories) {
+            $sourceDirectory = Join-Path $releaseRoot $directoryName
+            if (Test-Path -LiteralPath $sourceDirectory) {
+              Copy-Item -LiteralPath $sourceDirectory -Destination $appDirectory -Recurse -Force
+            }
+          }
+
+          $zipPath = Join-Path "release-assets" "Cap-CN-${{ needs.metadata.outputs.version }}-${{ matrix.slug }}-portable.zip"
+          if (Test-Path -LiteralPath $zipPath) {
+            Remove-Item -LiteralPath $zipPath -Force
+          }
+          Compress-Archive -LiteralPath $appDirectory -DestinationPath $zipPath -CompressionLevel Optimal
+          Get-ChildItem -LiteralPath $appDirectory
+          Get-Item -LiteralPath $zipPath
+
+      - name: Verify portable Windows ZIP contents
+        if: runner.os == 'Windows' && (steps.signing.outputs.provider == 'azure-artifact-signing' || steps.signing.outputs.provider == 'pfx' || steps.signing.outputs.provider == 'signpath')
+        shell: pwsh
+        env:
+          WINDOWS_SIGNING_PUBLISHER_PATTERN: ${{ vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
+        run: |
+          $zip = Get-ChildItem -Path release-assets -Filter "*portable.zip" -File | Select-Object -First 1
+          if (-not $zip) {
+            throw "Portable Windows ZIP was not staged."
+          }
+
+          $extractRoot = Join-Path $env:RUNNER_TEMP "cap-portable-verify-${{ matrix.slug }}"
+          if (Test-Path -LiteralPath $extractRoot) {
+            Remove-Item -LiteralPath $extractRoot -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $extractRoot -Force | Out-Null
+          Expand-Archive -LiteralPath $zip.FullName -DestinationPath $extractRoot -Force
+
+          $files = Get-ChildItem -LiteralPath $extractRoot -Include *.exe,*.dll -File -Recurse
+          if (-not $files) {
+            throw "$($zip.Name) does not contain Windows EXE/DLL files."
+          }
+
+          foreach ($file in $files) {
+            $result = .\scripts\test-windows-authenticode.ps1 -Path $file.FullName -RequireValidSignature -RequireTimestamp -RequireSignToolVerification -ExpectedPublisherPattern $env:WINDOWS_SIGNING_PUBLISHER_PATTERN
+            Write-Host "$($file.Name): $($result.SignatureStatus)"
+            Write-Host "$($file.Name) publisher: $($result.Publisher)"
+            Write-Host "$($file.Name) timestamp: $($result.TimestampAuthority)"
+            Write-Host "$($file.Name) signtool: $($result.SignToolStatus)"
+          }
+
       - name: Scan Windows release assets with Microsoft Defender
         if: runner.os == 'Windows'
         shell: pwsh
-        run: .\scripts\scan-windows-assets.ps1 -Path release-assets -RequireScanner
+        run: .\scripts\scan-windows-assets.ps1 -Path release-assets -Include "*.exe", "*.msi", "*.zip" -RequireScanner
 
       - name: Remove imported PFX signing certificate
         if: always() && runner.os == 'Windows' && steps.signing.outputs.provider == 'pfx'
@@ -503,12 +553,6 @@ jobs:
         with:
           subject-path: release-assets/*
 
-      - name: Block unsigned public release
-        if: needs.metadata.outputs.require_signing != 'true' && needs.metadata.outputs.draft != 'true'
-        run: |
-          echo "Unsigned Windows builds can only be created as draft test releases."
-          exit 1
-
       - name: Block overwrite of existing public release
         if: needs.metadata.outputs.draft != 'true'
         shell: bash
@@ -551,14 +595,14 @@ jobs:
           fail_on_unmatched_files: true
           files: release-assets/*
           body: |
-            Download the Windows x64 EXE or MSI installer. Users do not need Node.js, Rust, pnpm, or a development environment.
+            Download the Windows x64 EXE installer, MSI installer, or portable ZIP. Users do not need Node.js, Rust, pnpm, or a development environment.
 
-            If Windows signing is configured, the EXE and MSI are Authenticode signed and verified before upload. New publishers or new files can still show SmartScreen warnings until Microsoft reputation builds.
+            Windows EXE/MSI assets are Authenticode signed and verified before upload. The portable ZIP contains the same signed Windows app binary and DLLs after verification. New publishers or new files can still show SmartScreen warnings until Microsoft reputation builds.
 
             SHA256SUMS.txt can be used to verify downloaded files. Verified public releases also include windows-smartscreen-report-<tag>.md, windows-release-assets-<tag>.json, windows-installer-smoke-test-report-<tag>.md, windows-installer-smoke-test-results-<tag>.json, windows-winget-manifest-<tag>.zip, windows-winget-submission-<tag>.md, windows-wdsi-submission-checklist-<tag>.md, and windows-wdsi-submission-text-<tag>.zip after the Windows release audit, installer smoke test, WinGet manifest, and WDSI package workflows pass.
 
       - name: Run Windows release evidence workflows
-        if: needs.metadata.outputs.draft != 'true' && needs.metadata.outputs.require_signing == 'true'
+        if: needs.metadata.outputs.draft != 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -606,7 +650,7 @@ jobs:
           done
 
       - name: Verify release evidence assets
-        if: needs.metadata.outputs.draft != 'true' && needs.metadata.outputs.require_signing == 'true'
+        if: needs.metadata.outputs.draft != 'true'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -637,6 +681,7 @@ jobs:
 
           require_pattern '\.exe$' "Windows EXE installer"
           require_pattern '\.msi$' "Windows MSI installer"
+          require_pattern 'windows-x64-portable\.zip$' "Windows portable ZIP"
           require_asset "SHA256SUMS.txt"
           require_asset "windows-smartscreen-report-$safe_tag.md"
           require_asset "windows-release-assets-$safe_tag.json"
@@ -648,7 +693,7 @@ jobs:
           require_asset "windows-wdsi-submission-text-$safe_tag.zip"
 
       - name: Verify release evidence manifest
-        if: needs.metadata.outputs.draft != 'true' && needs.metadata.outputs.require_signing == 'true'
+        if: needs.metadata.outputs.draft != 'true'
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -665,7 +710,7 @@ jobs:
           & (Join-Path $env:GITHUB_WORKSPACE "scripts/protect-windows-release-assets.ps1") @params
 
       - name: Upload Windows publish gate report
-        if: always() && needs.metadata.outputs.draft != 'true' && needs.metadata.outputs.require_signing == 'true'
+        if: always() && needs.metadata.outputs.draft != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: windows-release-publish-gate-${{ needs.metadata.outputs.tag_name }}

@@ -40,6 +40,18 @@ export async function GET(
 		return NextResponse.redirect(downloadUrl || windowsStatusUrl(request));
 	}
 
+	if (
+		platform === "windows-zip" ||
+		platform === "windows-portable" ||
+		platform === "win-zip" ||
+		platform === "win-portable"
+	) {
+		const downloadUrl = await getLatestWindowsDownload("portable").catch(
+			() => null,
+		);
+		return NextResponse.redirect(downloadUrl || windowsStatusUrl(request));
+	}
+
 	const downloadUrls: Record<string, string> = {
 		"apple-intel":
 			"https://cdn.crabnebula.app/download/cap/cap/latest/platform/dmg-x86_64",

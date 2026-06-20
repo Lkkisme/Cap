@@ -114,7 +114,7 @@ foreach ($asset in @($metadata.Assets)) {
         "Certificate thumbprint: $($asset.CertificateThumbprint)",
         "GitHub artifact attestation: $($asset.AttestationStatus)",
         "",
-        "This is an open-source screen recording application distributed from the official GitHub repository. The submitted installer was built by GitHub Actions from the tagged release, is signed by the publisher with a trusted timestamp, has a matching release checksum, passed Microsoft Defender scanning on the audit runner, and has a valid GitHub artifact attestation for the official repository. Please review it as a false positive / SmartScreen reputation issue."
+        "This is an open-source screen recording application distributed from the official GitHub repository. The submitted Windows package was built by GitHub Actions from the tagged release, is signed by the publisher with a trusted timestamp, has a matching release checksum, passed Microsoft Defender scanning on the audit runner, and has a valid GitHub artifact attestation for the official repository. Please review it as a false positive / SmartScreen reputation issue."
     ) | Set-Content -Encoding UTF8 -LiteralPath $submissionTextPath
 }
 
@@ -129,11 +129,11 @@ $checklistPath = Join-Path $packageRoot "wdsi-submission-checklist.md"
     "",
     "1. Go to https://www.microsoft.com/en-us/wdsi/filesubmission.",
     "2. Choose Software developer.",
-    "3. Submit each installer from the installers directory.",
+    "3. Submit each Windows package from the installers directory.",
     "4. Paste the matching text from the submission-text directory.",
     "5. Attach or reference the evidence files if Microsoft asks for more context.",
     "",
-    "The installers in this package have valid Authenticode signatures, trusted Authenticode timestamps, passing signtool verify /pa /tw results, matching release checksums, passing Microsoft Defender scans, and valid GitHub artifact attestations."
+    "The Windows packages in this bundle have valid Authenticode signatures, trusted Authenticode timestamps, passing signtool verify /pa /tw results, matching release checksums, passing Microsoft Defender scans, and valid GitHub artifact attestations."
 ) | Set-Content -Encoding UTF8 -LiteralPath $checklistPath
 
 $zipPath = Join-Path $OutputDirectory "wdsi-submission-package-$Tag.zip"

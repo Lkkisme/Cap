@@ -102,13 +102,102 @@ function Save-GitHubReleaseAsset {
     }
 }
 
+function Test-WindowsReleasePackageAssetName {
+    param([string]$Name)
+
+    $lowerName = $Name.ToLowerInvariant()
+    if (-not $lowerName.Contains("windows")) {
+        return $false
+    }
+
+    if ($lowerName.EndsWith(".exe") -or $lowerName.EndsWith(".msi")) {
+        return $true
+    }
+
+    $lowerName.EndsWith(".zip") -and $lowerName.Contains("portable")
+}
+
+function Test-PortableZipAuthenticode {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$ZipPath,
+        [Parameter(Mandatory = $true)]
+        [string]$OutputRoot,
+        [Parameter(Mandatory = $true)]
+        [string]$VerifierPath,
+        [switch]$RequireValidSignature,
+        [switch]$RequireTimestamp,
+        [switch]$RequireSignToolVerification,
+        [string]$ExpectedPublisherPattern = ""
+    )
+
+    $zipItem = Get-Item -LiteralPath $ZipPath
+    $safeDirectoryName = $zipItem.Name -replace '[^A-Za-z0-9._-]', "-"
+    $extractPath = Join-Path $OutputRoot "$safeDirectoryName.contents"
+    if (Test-Path -LiteralPath $extractPath) {
+        Remove-Item -LiteralPath $extractPath -Recurse -Force
+    }
+
+    New-Item -ItemType Directory -Path $extractPath -Force | Out-Null
+    Expand-Archive -LiteralPath $zipItem.FullName -DestinationPath $extractPath -Force
+
+    $files = @(Get-ChildItem -LiteralPath $extractPath -Include *.exe,*.dll -File -Recurse | Sort-Object FullName)
+    if ($files.Count -eq 0) {
+        throw "$($zipItem.Name) does not contain Windows EXE/DLL files."
+    }
+
+    $reports = @()
+    foreach ($file in $files) {
+        $reports += & $VerifierPath -Path $file.FullName -RequireValidSignature:$RequireValidSignature -RequireTimestamp:$RequireTimestamp -RequireSignToolVerification:$RequireSignToolVerification -ExpectedPublisherPattern $ExpectedPublisherPattern
+    }
+
+    $invalidSignatures = @($reports | Where-Object { $_.SignatureStatus -ne "Valid" })
+    $missingTimestamps = @($reports | Where-Object { $_.TimestampStatus -ne "Present" })
+    $invalidSignTool = @($reports | Where-Object { $_.SignToolStatus -notin @("Valid", "NotRequested") })
+    $publishers = @($reports | ForEach-Object { $_.Publisher } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+    $thumbprints = @($reports | ForEach-Object { $_.CertificateThumbprint } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+    $timestampAuthorities = @($reports | ForEach-Object { $_.TimestampAuthority } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+    $timestampThumbprints = @($reports | ForEach-Object { $_.TimestampCertificateThumbprint } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+    $signToolPaths = @($reports | ForEach-Object { $_.SignToolPath } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+    $entryNames = @($reports | ForEach-Object {
+            $relativePath = $_.Path.Substring($extractPath.Length).TrimStart([char[]]"\/")
+            $relativePath.Replace("\", "/")
+        })
+
+    $signToolStatus = if (($reports | Where-Object { $_.SignToolStatus -eq "Valid" }).Count -eq $reports.Count) {
+        "Valid"
+    } elseif (($reports | Where-Object { $_.SignToolStatus -eq "NotRequested" }).Count -eq $reports.Count) {
+        "NotRequested"
+    } else {
+        "InvalidArchiveContents"
+    }
+
+    [pscustomobject]@{
+        Path = $zipItem.FullName
+        SignatureStatus = if ($invalidSignatures.Count -eq 0) { "Valid" } else { "InvalidArchiveContents" }
+        SignatureMessage = if ($invalidSignatures.Count -eq 0) { "All archive EXE/DLL files are signed." } else { "$($invalidSignatures.Count) archive EXE/DLL file(s) failed signature verification." }
+        TimestampStatus = if ($missingTimestamps.Count -eq 0) { "Present" } else { "Missing" }
+        TimestampAuthority = $timestampAuthorities -join "; "
+        TimestampCertificateThumbprint = $timestampThumbprints -join "; "
+        TimestampCertificateNotBefore = ""
+        TimestampCertificateNotAfter = ""
+        Publisher = $publishers -join "; "
+        CertificateThumbprint = $thumbprints -join "; "
+        CertificateNotBefore = ""
+        CertificateNotAfter = ""
+        SignToolStatus = if ($invalidSignTool.Count -eq 0) { $signToolStatus } else { "InvalidArchiveContents" }
+        SignToolPath = $signToolPaths -join "; "
+        ArchiveVerifiedFiles = $entryNames
+    }
+}
+
 $releaseUrl = "https://api.github.com/repos/$Repository/releases/tags/$Tag"
 $release = Invoke-RestMethod -Uri $releaseUrl -Headers $headers
-$assets = @($release.assets | Where-Object { $_.name -match "windows" -and $_.name -match "\.(exe|msi)$" })
+$assets = @($release.assets | Where-Object { Test-WindowsReleasePackageAssetName -Name $_.name })
 $checksumAsset = $release.assets | Where-Object { $_.name -eq "SHA256SUMS.txt" } | Select-Object -First 1
 
 if ($assets.Count -eq 0) {
-    throw "No Windows EXE/MSI assets found on release tag '$Tag'."
+    throw "No Windows EXE/MSI/portable ZIP assets found on release tag '$Tag'."
 }
 
 if ($VerifyChecksums -and -not $checksumAsset) {
@@ -160,7 +249,13 @@ foreach ($asset in $assets) {
     }
 
     $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $filePath
-    $signatureReport = & $authenticodeVerifier -Path $filePath -RequireValidSignature:$RequireValidSignatures -RequireTimestamp:$RequireTimestampedSignatures -RequireSignToolVerification:$RequireSignToolVerification -ExpectedPublisherPattern $ExpectedPublisherPattern
+    $isPortableZip = $asset.name.ToLowerInvariant().EndsWith(".zip")
+    $signatureReport = if ($isPortableZip) {
+        $archiveVerificationRoot = Join-Path ([System.IO.Path]::GetTempPath()) "cap-windows-release-verifier-$Tag"
+        Test-PortableZipAuthenticode -ZipPath $filePath -OutputRoot $archiveVerificationRoot -VerifierPath $authenticodeVerifier -RequireValidSignature:$RequireValidSignatures -RequireTimestamp:$RequireTimestampedSignatures -RequireSignToolVerification:$RequireSignToolVerification -ExpectedPublisherPattern $ExpectedPublisherPattern
+    } else {
+        & $authenticodeVerifier -Path $filePath -RequireValidSignature:$RequireValidSignatures -RequireTimestamp:$RequireTimestampedSignatures -RequireSignToolVerification:$RequireSignToolVerification -ExpectedPublisherPattern $ExpectedPublisherPattern
+    }
 
     $attestationStatus = if ($VerifyAttestations) { "NotVerified" } else { "NotRequested" }
 
@@ -191,7 +286,7 @@ foreach ($asset in $assets) {
 
     $defenderStatus = if ($ScanWithDefender) { "NotScanned" } else { "NotRequested" }
     if ($ScanWithDefender) {
-        & $defenderScanner -Path $filePath -RequireScanner
+        & $defenderScanner -Path $filePath -Include "*.exe", "*.msi", "*.zip" -RequireScanner
         $defenderStatus = "Valid"
     }
 
@@ -214,6 +309,7 @@ foreach ($asset in $assets) {
         CertificateThumbprint = $signatureReport.CertificateThumbprint
         CertificateNotBefore = $signatureReport.CertificateNotBefore
         CertificateNotAfter = $signatureReport.CertificateNotAfter
+        ArchiveVerifiedFiles = $signatureReport.ArchiveVerifiedFiles
         DownloadUrl = $asset.browser_download_url
         LocalPath = $filePath
     }
@@ -262,22 +358,22 @@ $invalidAttestations = @($rows | Where-Object { $_.AttestationStatus -notin @("V
 $invalidDefenderScans = @($rows | Where-Object { $_.DefenderStatus -notin @("Valid", "NotRequested") })
 
 if ($invalidSignatures.Count -eq 0) {
-    $lines += "All Windows installers have valid Authenticode signatures."
+    $lines += "All Windows release packages have valid Authenticode signatures."
 } else {
-    $lines += "Not ready for public Windows distribution: one or more installers do not have valid Authenticode signatures."
+    $lines += "Not ready for public Windows distribution: one or more release packages do not have valid Authenticode signatures."
 }
 
 if ($missingTimestamps.Count -eq 0) {
-    $lines += "All Windows installers have trusted Authenticode timestamps."
+    $lines += "All Windows release packages have trusted Authenticode timestamps."
 } else {
-    $lines += "One or more Windows installers are missing trusted Authenticode timestamps."
+    $lines += "One or more Windows release packages are missing trusted Authenticode timestamps."
 }
 
 if ($RequireSignToolVerification) {
     if ($invalidSignTool.Count -eq 0) {
-        $lines += "All Windows installers passed signtool verify /pa /tw."
+        $lines += "All Windows release packages passed signtool verify /pa /tw."
     } else {
-        $lines += "One or more Windows installers failed signtool verify /pa /tw."
+        $lines += "One or more Windows release packages failed signtool verify /pa /tw."
     }
 } else {
     $lines += "SignTool verification was not requested in this run."
@@ -285,9 +381,9 @@ if ($RequireSignToolVerification) {
 
 if ($checksumAsset) {
     if ($invalidChecksums.Count -eq 0) {
-        $lines += "All Windows installers match the release SHA256SUMS.txt file."
+        $lines += "All Windows release packages match the release SHA256SUMS.txt file."
     } else {
-        $lines += "One or more Windows installers do not match the release SHA256SUMS.txt file."
+        $lines += "One or more Windows release packages do not match the release SHA256SUMS.txt file."
     }
 } else {
     $lines += "The release does not include SHA256SUMS.txt, so published checksums could not be verified."
@@ -295,9 +391,9 @@ if ($checksumAsset) {
 
 if ($VerifyAttestations) {
     if ($invalidAttestations.Count -eq 0) {
-        $lines += "All Windows installers have valid GitHub artifact attestations for this repository."
+        $lines += "All Windows release packages have valid GitHub artifact attestations for this repository."
     } else {
-        $lines += "One or more Windows installers failed GitHub artifact attestation verification."
+        $lines += "One or more Windows release packages failed GitHub artifact attestation verification."
     }
 } else {
     $lines += "GitHub artifact attestations were not verified in this run."
@@ -305,9 +401,9 @@ if ($VerifyAttestations) {
 
 if ($ScanWithDefender) {
     if ($invalidDefenderScans.Count -eq 0) {
-        $lines += "All Windows installers passed Microsoft Defender scanning on the audit runner."
+        $lines += "All Windows release packages passed Microsoft Defender scanning on the audit runner."
     } else {
-        $lines += "One or more Windows installers did not complete Microsoft Defender scanning."
+        $lines += "One or more Windows release packages did not complete Microsoft Defender scanning."
     }
 } else {
     $lines += "Microsoft Defender scanning was not requested in this run."
@@ -344,7 +440,7 @@ foreach ($row in $rows) {
     $lines += "Microsoft Defender scan: $($row.DefenderStatus)"
     $lines += "Certificate thumbprint: $($row.CertificateThumbprint)"
     $lines += ""
-    $lines += "This is an open-source screen recording application distributed from the official GitHub repository. The submitted installer was built by GitHub Actions from the tagged release, is signed by the publisher with a trusted timestamp, passed Microsoft Defender scanning on the audit runner, and should be classified as safe. Please review it as a false positive / SmartScreen reputation issue."
+    $lines += "This is an open-source screen recording application distributed from the official GitHub repository. The submitted Windows package was built by GitHub Actions from the tagged release, is signed by the publisher with a trusted timestamp, passed Microsoft Defender scanning on the audit runner, and should be classified as safe. Please review it as a false positive / SmartScreen reputation issue."
     $lines += '```'
     $lines += ""
 }

@@ -236,7 +236,7 @@ $assetNames = @($assets | ForEach-Object { $_.name.ToLowerInvariant() })
 $windowsAssets = @(
   $assets | Where-Object {
     $name = $_.name.ToLowerInvariant()
-    $name.EndsWith(".exe") -or $name.EndsWith(".msi")
+    $name.EndsWith(".exe") -or $name.EndsWith(".msi") -or ($name.EndsWith(".zip") -and $name.Contains("portable"))
   }
 )
 
@@ -310,7 +310,7 @@ $lines = @(
   "- Verified Windows release: $verifiedWindowsRelease",
   "- Unsafe Windows release: $unsafeWindowsRelease",
   "",
-  "## Windows installer assets"
+  "## Windows release assets"
 )
 
 if ($windowsAssets.Count -eq 0) {

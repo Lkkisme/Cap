@@ -3,6 +3,7 @@ export interface ReleaseDownloads {
 	"macos-x64"?: string;
 	windows?: string;
 	"windows-msi"?: string;
+	"windows-portable"?: string;
 }
 
 export interface Release {
@@ -56,7 +57,7 @@ function parseDownloadsFromBody(body: string): ReleaseDownloads {
 
 	const jsonMatch = body.match(/<!--\s*DOWNLOADS_JSON\s*(\{[^}]+\})\s*-->/);
 
-	if (jsonMatch && jsonMatch[1]) {
+	if (jsonMatch?.[1]) {
 		try {
 			const parsed = JSON.parse(jsonMatch[1]);
 			if (parsed["macos-arm64"])
@@ -65,6 +66,8 @@ function parseDownloadsFromBody(body: string): ReleaseDownloads {
 			if (parsed.windows) downloads.windows = parsed.windows;
 			if (parsed["windows-msi"])
 				downloads["windows-msi"] = parsed["windows-msi"];
+			if (parsed["windows-portable"])
+				downloads["windows-portable"] = parsed["windows-portable"];
 		} catch {}
 	}
 
@@ -85,6 +88,14 @@ function parseDownloadsFromAssets(
 			asset.name.toLowerCase().includes("windows") &&
 			asset.name.toLowerCase().endsWith(".msi"),
 	);
+	const windowsPortable = assets.find((asset) => {
+		const name = asset.name.toLowerCase();
+		return (
+			name.includes("windows") &&
+			name.includes("portable") &&
+			name.endsWith(".zip")
+		);
+	});
 	const macosArm64 = assets.find((asset) => {
 		const name = asset.name.toLowerCase();
 		return (
@@ -102,6 +113,8 @@ function parseDownloadsFromAssets(
 
 	if (windowsExe) downloads.windows = windowsExe.browser_download_url;
 	if (windowsMsi) downloads["windows-msi"] = windowsMsi.browser_download_url;
+	if (windowsPortable)
+		downloads["windows-portable"] = windowsPortable.browser_download_url;
 	if (macosArm64) downloads["macos-arm64"] = macosArm64.browser_download_url;
 	if (macosX64) downloads["macos-x64"] = macosX64.browser_download_url;
 
@@ -190,13 +203,15 @@ function getAssetNamed(
 	);
 }
 
-function getWindowsInstallerAssetNames(assets: GitHubReleaseAsset[]): string[] {
+function getWindowsPackageAssetNames(assets: GitHubReleaseAsset[]): string[] {
 	return assets
 		.filter((asset) => {
 			const name = asset.name.toLowerCase();
 			return (
 				name.includes("windows") &&
-				(name.endsWith(".exe") || name.endsWith(".msi"))
+				(name.endsWith(".exe") ||
+					name.endsWith(".msi") ||
+					(name.includes("portable") && name.endsWith(".zip")))
 			);
 		})
 		.map((asset) => asset.name);
@@ -257,8 +272,8 @@ async function hasValidWindowsReleaseAssetManifest(
 	tagName: string,
 	manifestAsset: GitHubReleaseAsset,
 ): Promise<boolean> {
-	const windowsInstallerNames = getWindowsInstallerAssetNames(assets);
-	if (windowsInstallerNames.length === 0) return false;
+	const windowsPackageNames = getWindowsPackageAssetNames(assets);
+	if (windowsPackageNames.length === 0) return false;
 
 	const manifest =
 		await fetchJsonAsset<WindowsReleaseAssetManifest>(manifestAsset);
@@ -286,8 +301,8 @@ async function hasValidWindowsReleaseAssetManifest(
 		["DefenderStatus", "Valid"],
 	];
 
-	for (const installerName of windowsInstallerNames) {
-		const evidence = manifestAssets.get(installerName);
+	for (const packageName of windowsPackageNames) {
+		const evidence = manifestAssets.get(packageName);
 		if (!evidence) return false;
 
 		for (const [key, expected] of requiredStatuses) {
@@ -405,7 +420,8 @@ export function hasDownloads(downloads: ReleaseDownloads): boolean {
 		downloads["macos-arm64"] ||
 		downloads["macos-x64"] ||
 		downloads.windows ||
-		downloads["windows-msi"]
+		downloads["windows-msi"] ||
+		downloads["windows-portable"]
 	);
 }
 
@@ -429,7 +445,7 @@ export function hasVerifiedWindowsEvidence(
 }
 
 export async function getLatestWindowsDownload(
-	installer: "exe" | "msi" = "exe",
+	installer: "exe" | "msi" | "portable" = "exe",
 ): Promise<string | null> {
 	const releases = await getGitHubReleases();
 
@@ -437,9 +453,11 @@ export async function getLatestWindowsDownload(
 		if (!hasVerifiedWindowsEvidence(release)) continue;
 
 		const download =
-			installer === "msi"
-				? release.downloads["windows-msi"] || release.downloads.windows
-				: release.downloads.windows || release.downloads["windows-msi"];
+			installer === "portable"
+				? release.downloads["windows-portable"]
+				: installer === "msi"
+					? release.downloads["windows-msi"] || release.downloads.windows
+					: release.downloads.windows || release.downloads["windows-msi"];
 
 		if (download) return download;
 	}

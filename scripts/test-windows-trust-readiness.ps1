@@ -150,6 +150,27 @@ function Test-WorkflowContainsText {
     }
 }
 
+function Test-WorkflowOmitsText {
+    param(
+        [string]$Path,
+        [string]$Name,
+        [string]$Text,
+        [string]$Detail,
+        [string]$NextAction
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return
+    }
+
+    $content = Get-Content -Raw -LiteralPath $Path
+    if ($content.Contains($Text)) {
+        Add-Check -Area "Update safety" -Item $Name -Status "fail" -Detail "$Path still contains $Text." -NextAction $NextAction
+    } else {
+        Add-Check -Area "Update safety" -Item $Name -Status "pass" -Detail $Detail
+    }
+}
+
 function Get-GitHubJson {
     param([string]$Uri)
 
@@ -224,6 +245,12 @@ Test-WorkflowFile -Path (Join-Path $repoRoot ".github\workflows\windows-wdsi-pac
 Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\release-desktop.yml") -Name "Windows Release updater check" -Text "VITE_DISABLE_UPDATER=true" -Detail "Windows Release builds disable the desktop updater UI and use GitHub Releases for manual downloads." -NextAction "Restore VITE_DISABLE_UPDATER=true in the Windows Release build environment."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-store-package.yml") -Name "Windows Store updater check" -Text "VITE_DISABLE_UPDATER=true" -Detail "Windows Store EXE/MSI packages disable the desktop updater UI and rely on Store or verified release distribution." -NextAction "Restore VITE_DISABLE_UPDATER=true in the Windows Store Package build environment."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-msix-store-package.yml") -Name "Windows MSIX updater check" -Text "VITE_DISABLE_UPDATER=true" -Detail "Windows MSIX packages disable the desktop updater UI and rely on Microsoft Store distribution." -NextAction "Restore VITE_DISABLE_UPDATER=true in the Windows MSIX Store Package build environment."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\release-desktop.yml") -Name "Windows Release signing gate" -Text ".\scripts\validate-windows-signing.ps1 -RequireSigning" -Detail "Windows Release always requires a configured Windows signing provider before producing installer assets." -NextAction "Restore the required signing gate before building Windows release installers."
+Test-WorkflowOmitsText -Path (Join-Path $repoRoot ".github\workflows\release-desktop.yml") -Name "Windows Release unsigned input" -Text "require_signing:" -Detail "Windows Release no longer exposes a manual unsigned installer switch." -NextAction "Remove the require_signing workflow input from Windows Release."
+Test-WorkflowOmitsText -Path (Join-Path $repoRoot ".github\workflows\release-desktop.yml") -Name "Windows Release unsigned path" -Text "-AllowUnsigned" -Detail "Windows Release no longer invokes unsigned signing validation." -NextAction "Remove the unsigned validation path from Windows Release."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\release-desktop.yml") -Name "Windows Release portable ZIP" -Text "portable.zip" -Detail "Windows Release stages a portable ZIP containing the signed desktop app binaries." -NextAction "Restore portable ZIP staging in Windows Release."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\release-desktop.yml") -Name "Windows Release portable ZIP gate" -Text "windows-x64-portable\.zip$" -Detail "Windows Release publish gate requires the portable ZIP before public release." -NextAction "Restore the portable ZIP asset requirement before publishing Windows releases."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot "scripts\protect-windows-release-assets.ps1") -Name "Windows portable ZIP quarantine" -Text 'Contains("portable")' -Detail "Windows release quarantine treats portable ZIP files as protected Windows release assets." -NextAction "Restore portable ZIP detection in protect-windows-release-assets.ps1."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-store-package.yml") -Name "Windows Store signing gate" -Text ".\scripts\validate-windows-signing.ps1 -RequireSigning" -Detail "Windows Store EXE/MSI packages always require a configured Windows signing provider." -NextAction "Restore the required signing gate before generating Store EXE/MSI submission packages."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-store-package.yml") -Name "Windows Store signature manifest gate" -Text '$params.RequireValidSignature = $true' -Detail "Windows Store submission packages require valid Authenticode signatures in the generated package manifest." -NextAction "Restore RequireValidSignature for Store EXE/MSI submission package generation."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\release-desktop.yml") -Name "Windows release artifact retention" -Text "retention-days: 1" -Detail "Windows Release transfer artifacts are retained briefly to reduce accidental installer distribution through Actions artifacts." -NextAction "Set short retention on Windows Release installer transfer artifacts."

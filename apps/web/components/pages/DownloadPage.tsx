@@ -44,9 +44,9 @@ export const DownloadPage = () => {
 						{platform === "windows" && (
 							<div className="mt-4 max-w-md text-sm text-gray-8">
 								Windows downloads prefer Microsoft Store when available, then
-								verified GitHub Releases with checksums, SmartScreen audit
-								evidence, installer smoke test evidence, WinGet manifests, and
-								WDSI review material.
+								verified GitHub Releases with EXE, MSI, portable ZIP, checksums,
+								SmartScreen audit evidence, installer smoke test evidence,
+								WinGet manifests, and WDSI review material.
 							</div>
 						)}
 					</div>

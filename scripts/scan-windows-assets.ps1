@@ -1,7 +1,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [string[]]$Path,
-    [string[]]$Include = @("*.exe", "*.msi"),
+    [string[]]$Include = @("*.exe", "*.msi", "*.zip"),
     [switch]$RequireScanner
 )
 

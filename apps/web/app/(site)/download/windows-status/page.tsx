@@ -26,7 +26,11 @@ function WindowsIcon() {
 function isVerifiedWindowsRelease(release: Release) {
 	return (
 		hasVerifiedWindowsEvidence(release) &&
-		!!(release.downloads.windows || release.downloads["windows-msi"])
+		!!(
+			release.downloads.windows ||
+			release.downloads["windows-msi"] ||
+			release.downloads["windows-portable"]
+		)
 	);
 }
 
@@ -91,7 +95,7 @@ export default async function WindowsDownloadStatusPage() {
 				) : verifiedRelease ? (
 					<div className="space-y-4">
 						<p className="text-gray-10">
-							{`The latest verified Windows installer is v${verifiedRelease.version}.`}
+							{`The latest verified Windows package is v${verifiedRelease.version}.`}
 						</p>
 						<div className="flex flex-wrap gap-2">
 							{verifiedRelease.downloads.windows && (
@@ -110,6 +114,15 @@ export default async function WindowsDownloadStatusPage() {
 								>
 									<WindowsIcon />
 									Download MSI
+								</a>
+							)}
+							{verifiedRelease.downloads["windows-portable"] && (
+								<a
+									href="/download/windows-zip"
+									className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md bg-gray-3 text-gray-12 hover:bg-gray-4 transition-colors"
+								>
+									<WindowsIcon />
+									Download ZIP
 								</a>
 							)}
 						</div>
