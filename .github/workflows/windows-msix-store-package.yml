@@ -18,6 +18,16 @@ on:
         required: true
         default: "Lkkisme"
         type: string
+      publish_to_store:
+        description: "Publish the generated MSIX to Microsoft Store"
+        required: true
+        default: false
+        type: boolean
+      store_product_id:
+        description: "Microsoft Store product ID for msstore publish"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   actions: read
@@ -45,6 +55,28 @@ jobs:
         env:
           WINDOWS_PACKAGE_PUBLISHER: ${{ vars.WINDOWS_PACKAGE_PUBLISHER }}
         run: .\scripts\validate-windows-app-metadata.ps1
+
+      - name: Validate Microsoft Store publishing configuration
+        if: inputs.publish_to_store
+        shell: pwsh
+        env:
+          STORE_PRODUCT_ID: ${{ inputs.store_product_id }}
+          AZURE_AD_APPLICATION_CLIENT_ID: ${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}
+          AZURE_AD_APPLICATION_SECRET: ${{ secrets.AZURE_AD_APPLICATION_SECRET }}
+          AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          SELLER_ID: ${{ secrets.SELLER_ID }}
+        run: |
+          $required = @{
+            store_product_id = $env:STORE_PRODUCT_ID
+            AZURE_AD_APPLICATION_CLIENT_ID = $env:AZURE_AD_APPLICATION_CLIENT_ID
+            AZURE_AD_APPLICATION_SECRET = $env:AZURE_AD_APPLICATION_SECRET
+            AZURE_AD_TENANT_ID = $env:AZURE_AD_TENANT_ID
+            SELLER_ID = $env:SELLER_ID
+          }
+          $missing = @($required.GetEnumerator() | Where-Object { [string]::IsNullOrWhiteSpace($_.Value) } | ForEach-Object { $_.Key })
+          if ($missing.Count -gt 0) {
+            throw "Missing Microsoft Store publishing configuration: $($missing -join ', ')"
+          }
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -171,6 +203,37 @@ jobs:
         uses: actions/attest@v4
         with:
           subject-path: msix-assets/*
+
+      - name: Configure Microsoft Store CLI
+        if: inputs.publish_to_store
+        uses: microsoft/microsoft-store-apppublisher@v1.1
+
+      - name: Reconfigure Microsoft Store credentials
+        if: inputs.publish_to_store
+        shell: pwsh
+        env:
+          AZURE_AD_APPLICATION_CLIENT_ID: ${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}
+          AZURE_AD_APPLICATION_SECRET: ${{ secrets.AZURE_AD_APPLICATION_SECRET }}
+          AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          SELLER_ID: ${{ secrets.SELLER_ID }}
+        run: |
+          msstore reconfigure `
+            --tenantId $env:AZURE_AD_TENANT_ID `
+            --sellerId $env:SELLER_ID `
+            --clientId $env:AZURE_AD_APPLICATION_CLIENT_ID `
+            --clientSecret $env:AZURE_AD_APPLICATION_SECRET
+
+      - name: Publish MSIX to Microsoft Store
+        if: inputs.publish_to_store
+        shell: pwsh
+        env:
+          STORE_PRODUCT_ID: ${{ inputs.store_product_id }}
+        run: |
+          $package = Get-ChildItem -LiteralPath msix-assets -Filter *.msix -File | Select-Object -First 1
+          if (-not $package) {
+            throw "No MSIX package found in msix-assets."
+          }
+          msstore publish $package.FullName -id $env:STORE_PRODUCT_ID
 
       - name: Upload Microsoft Store MSIX package
         uses: actions/upload-artifact@v4
