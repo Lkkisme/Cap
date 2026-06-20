@@ -362,6 +362,7 @@ if (-not [string]::IsNullOrWhiteSpace($Repository)) {
             $safeTag = ($latestRelease.tag_name -replace '[^A-Za-z0-9._-]', '-').ToLowerInvariant()
             $hasExe = @($assetNames | Where-Object { $_ -match "windows.*\.exe$" }).Count -gt 0
             $hasMsi = @($assetNames | Where-Object { $_ -match "windows.*\.msi$" }).Count -gt 0
+            $hasPortableZip = @($assetNames | Where-Object { $_ -match "windows.*portable.*\.zip$" }).Count -gt 0
             $hasChecksums = $assetNames -contains "sha256sums.txt"
             $hasAuditReport = $assetNames -contains "windows-smartscreen-report-$safeTag.md"
             $hasAuditJson = $assetNames -contains "windows-release-assets-$safeTag.json"
@@ -375,6 +376,7 @@ if (-not [string]::IsNullOrWhiteSpace($Repository)) {
             $missingEvidence = @()
             if (-not $hasExe) { $missingEvidence += "Windows EXE" }
             if (-not $hasMsi) { $missingEvidence += "Windows MSI" }
+            if (-not $hasPortableZip) { $missingEvidence += "Windows portable ZIP" }
             if (-not $hasChecksums) { $missingEvidence += "SHA256SUMS.txt" }
             if (-not $hasAuditReport) { $missingEvidence += "SmartScreen report" }
             if (-not $hasAuditJson) { $missingEvidence += "release asset JSON" }
@@ -394,7 +396,7 @@ if (-not [string]::IsNullOrWhiteSpace($Repository)) {
             try {
                 $quarantineResult = Get-ReleaseQuarantineResult -Tag $latestRelease.tag_name -Repository $Repository -OutputRoot $outputFullPath
                 if ([bool]$quarantineResult.verifiedWindowsRelease) {
-                    Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence manifest" -Status "pass" -Detail "Release asset manifest confirms valid signature, timestamp, SignTool, checksum, attestation, and Defender status for each Windows installer."
+                    Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence manifest" -Status "pass" -Detail "Release asset manifest confirms valid signature, timestamp, SignTool, checksum, attestation, and Defender status for each Windows release package."
                 } else {
                     $manifestFailures = @($quarantineResult.manifestFailures)
                     if ($manifestFailures.Count -gt 0) {
