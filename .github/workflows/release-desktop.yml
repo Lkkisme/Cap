@@ -162,6 +162,7 @@ jobs:
             "appVersion=${{ needs.metadata.outputs.version }}",
             "VITE_ENVIRONMENT=production",
             "VITE_SERVER_URL=https://cap.so",
+            "VITE_DISABLE_UPDATER=true",
             "NEXT_PUBLIC_WEB_URL=https://cap.so"
           )
 

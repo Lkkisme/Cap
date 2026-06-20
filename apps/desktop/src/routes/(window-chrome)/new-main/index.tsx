@@ -34,6 +34,7 @@ import { authStore } from "~/store";
 import { createSignInMutation } from "~/utils/auth";
 import { createTauriEventListener } from "~/utils/createEventListener";
 import { createDevicesQuery } from "~/utils/devices";
+import { CAP_RELEASES_URL, UPDATER_DISABLED } from "~/utils/download-links";
 import {
 	createCameraMutation,
 	createCurrentRecordingQuery,
@@ -389,7 +390,7 @@ export default function () {
 
 let hasChecked = false;
 function createUpdateCheck() {
-	if (import.meta.env.DEV) return;
+	if (import.meta.env.DEV || UPDATER_DISABLED) return;
 
 	const navigate = useNavigate();
 
@@ -406,7 +407,7 @@ function createUpdateCheck() {
 		} catch (e) {
 			console.error("Failed to check for updates:", e);
 			await dialog.message(
-				"Unable to check for updates. Please download the latest version manually from cap.so/download. Your data will not be lost.\n\nIf this issue persists, please contact support.",
+				`Unable to check for updates. Please download the latest version manually from ${CAP_RELEASES_URL}. Your data will not be lost.\n\nIf this issue persists, please contact support.`,
 				{ title: "Update Error", kind: "error" },
 			);
 			return;

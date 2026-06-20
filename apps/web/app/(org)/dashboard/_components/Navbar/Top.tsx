@@ -49,7 +49,7 @@ import type { ReferIconHandle } from "../AnimatedIcons/Refer";
 const Top = () => {
 	const { activeSpace, anyNewNotifications } = useDashboardContext();
 	const [toggleNotifications, setToggleNotifications] = useState(false);
-	const bellRef = useRef<HTMLDivElement>(null);
+	const bellRef = useRef<HTMLButtonElement>(null);
 	const { theme, setThemeHandler } = useTheme();
 	const queryClient = useQueryClient();
 
@@ -117,7 +117,8 @@ const Top = () => {
 			</div>
 			<div className="flex gap-4 items-center">
 				{buildEnv.NEXT_PUBLIC_IS_CAP && <ReferButton />}
-				<div
+				<button
+					type="button"
 					data-state={toggleNotifications ? "open" : "closed"}
 					ref={bellRef}
 					onClick={() => {
@@ -135,13 +136,11 @@ const Top = () => {
 							setToggleNotifications(!toggleNotifications);
 						}
 					}}
-					tabIndex={0}
-					role="button"
 					aria-label={`Notifications${
 						anyNewNotifications ? " (new notifications available)" : ""
 					}`}
 					aria-expanded={toggleNotifications}
-					className="hidden relative justify-center data-[state=open]:hover:bg-gray-5 items-center bg-gray-3
+					className="hidden relative justify-center data-[state=open]:hover:bg-gray-5 items-center bg-gray-3 border-0 p-0
                 rounded-full transition-colors cursor-pointer lg:flex
                 hover:bg-gray-5 data-[state=open]:bg-gray-5
                 focus:outline-none
@@ -159,8 +158,10 @@ const Top = () => {
 					<AnimatePresence>
 						{toggleNotifications && <Notifications ref={notificationsRef} />}
 					</AnimatePresence>
-				</div>
-				<div
+				</button>
+				<button
+					type="button"
+					aria-label="Toggle theme"
 					onClick={() => {
 						if (document.startViewTransition) {
 							document.startViewTransition(() => {
@@ -170,10 +171,10 @@ const Top = () => {
 							setThemeHandler(theme === "light" ? "dark" : "light");
 						}
 					}}
-					className="hidden justify-center items-center rounded-full transition-colors cursor-pointer bg-gray-3 lg:flex hover:bg-gray-5 size-9"
+					className="hidden justify-center items-center rounded-full border-0 p-0 transition-colors cursor-pointer bg-gray-3 lg:flex hover:bg-gray-5 size-9"
 				>
 					<ThemeToggleIcon />
-				</div>
+				</button>
 				<User />
 			</div>
 		</div>
@@ -231,7 +232,8 @@ const User = () => {
 			{
 				name: "Download App",
 				icon: <DownloadIcon />,
-				onClick: () => window.open("https://cap.so/download", "_blank"),
+				onClick: () =>
+					window.open("/download", "_blank", "noopener,noreferrer"),
 				iconClassName: "text-gray-11 group-hover:text-gray-12",
 				showCondition: true,
 			},
@@ -349,7 +351,19 @@ const ReferButton = () => {
 		useDashboardContext();
 
 	return (
-		<Link href="/dashboard/refer" className="hidden relative lg:block">
+		<Link
+			href="/dashboard/refer"
+			onClick={() => {
+				setReferClickedStateHandler(true);
+			}}
+			onMouseEnter={() => {
+				iconRef.current?.startAnimation();
+			}}
+			onMouseLeave={() => {
+				iconRef.current?.stopAnimation();
+			}}
+			className="hidden relative justify-center items-center rounded-full transition-colors bg-gray-3 lg:flex hover:bg-gray-5 size-9"
+		>
 			{!referClickedState && (
 				<div className="absolute right-0 top-1 z-10">
 					<div className="relative">
@@ -359,23 +373,10 @@ const ReferButton = () => {
 				</div>
 			)}
 
-			<div
-				onClick={() => {
-					setReferClickedStateHandler(true);
-				}}
-				onMouseEnter={() => {
-					iconRef.current?.startAnimation();
-				}}
-				onMouseLeave={() => {
-					iconRef.current?.stopAnimation();
-				}}
-				className="flex justify-center items-center rounded-full transition-colors cursor-pointer bg-gray-3 hover:bg-gray-5 size-9"
-			>
-				{cloneElement(<ReferIcon />, {
-					ref: iconRef,
-					className: "text-gray-12 size-3.5",
-				})}
-			</div>
+			{cloneElement(<ReferIcon />, {
+				ref: iconRef,
+				className: "text-gray-12 size-3.5",
+			})}
 		</Link>
 	);
 };

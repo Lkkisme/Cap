@@ -21,10 +21,13 @@ function Assert-Value {
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $tauriConfigPath = Join-Path $repoRoot "apps\desktop\src-tauri\tauri.conf.json"
+$tauriProdConfigPath = Join-Path $repoRoot "apps\desktop\src-tauri\tauri.prod.conf.json"
 $tauriGithubReleaseConfigPath = Join-Path $repoRoot "apps\desktop\src-tauri\tauri.github-release.conf.json"
 $tauriStoreConfigPath = Join-Path $repoRoot "apps\desktop\src-tauri\tauri.microsoft-store.conf.json"
 $cargoTomlPath = Join-Path $repoRoot "apps\desktop\src-tauri\Cargo.toml"
 $tauriConfig = Get-Content -Raw -Encoding UTF8 -LiteralPath $tauriConfigPath | ConvertFrom-Json
+$tauriProdConfigRaw = Get-Content -Raw -Encoding UTF8 -LiteralPath $tauriProdConfigPath
+$tauriProdConfig = $tauriProdConfigRaw | ConvertFrom-Json
 $tauriGithubReleaseConfig = Get-Content -Raw -Encoding UTF8 -LiteralPath $tauriGithubReleaseConfigPath | ConvertFrom-Json
 $tauriStoreConfig = Get-Content -Raw -Encoding UTF8 -LiteralPath $tauriStoreConfigPath | ConvertFrom-Json
 $cargoToml = Get-Content -Raw -Encoding UTF8 -LiteralPath $cargoTomlPath
@@ -48,6 +51,8 @@ Assert-Value ($tauriConfig.bundle.windows.wix.language -eq "zh-CN") "bundle.wind
 Assert-Value (@($tauriConfig.bundle.windows.nsis.languages) -contains "SimpChinese") "bundle.windows.nsis.languages must include SimpChinese."
 Assert-Value ($tauriGithubReleaseConfig.bundle.windows.webviewInstallMode.type -eq "offlineInstaller") "tauri.github-release.conf.json must use offline WebView2 installation."
 Assert-Value ($tauriStoreConfig.bundle.windows.webviewInstallMode.type -eq "offlineInstaller") "tauri.microsoft-store.conf.json must use offline WebView2 installation."
+Assert-Value ($tauriProdConfig.plugins.updater.active -eq $false) "tauri.prod.conf.json updater must be disabled for forked Windows builds."
+Assert-Value ($tauriProdConfigRaw -notmatch "cdn\.crabnebula\.app/update") "tauri.prod.conf.json must not point to the upstream CrabNebula updater."
 
 Assert-Value ($cargoToml -match '(?m)^authors\s*=\s*\["Lkkisme"\]') "Cargo.toml authors must be ['Lkkisme']."
 Assert-Value ($cargoToml -notmatch '(?m)^authors\s*=\s*\["you"\]') "Cargo.toml authors must not use the placeholder 'you'."

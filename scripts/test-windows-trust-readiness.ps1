@@ -129,6 +129,27 @@ function Test-WorkflowFile {
     }
 }
 
+function Test-WorkflowContainsText {
+    param(
+        [string]$Path,
+        [string]$Name,
+        [string]$Text,
+        [string]$Detail,
+        [string]$NextAction
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return
+    }
+
+    $content = Get-Content -Raw -LiteralPath $Path
+    if ($content.Contains($Text)) {
+        Add-Check -Area "Update safety" -Item $Name -Status "pass" -Detail $Detail
+    } else {
+        Add-Check -Area "Update safety" -Item $Name -Status "fail" -Detail "$Path does not set $Text." -NextAction $NextAction
+    }
+}
+
 function Get-GitHubJson {
     param([string]$Uri)
 
@@ -199,6 +220,10 @@ Test-WorkflowFile -Path (Join-Path $repoRoot ".github\workflows\windows-msix-sto
 Test-WorkflowFile -Path (Join-Path $repoRoot ".github\workflows\windows-store-package.yml") -Name "Windows Store Package"
 Test-WorkflowFile -Path (Join-Path $repoRoot ".github\workflows\windows-winget-manifest.yml") -Name "Windows WinGet Manifest"
 Test-WorkflowFile -Path (Join-Path $repoRoot ".github\workflows\windows-wdsi-package.yml") -Name "Windows WDSI Package"
+
+Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\release-desktop.yml") -Name "Windows Release updater check" -Text "VITE_DISABLE_UPDATER=true" -Detail "Windows Release builds disable the desktop updater UI and use GitHub Releases for manual downloads." -NextAction "Restore VITE_DISABLE_UPDATER=true in the Windows Release build environment."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-store-package.yml") -Name "Windows Store updater check" -Text "VITE_DISABLE_UPDATER=true" -Detail "Windows Store EXE/MSI packages disable the desktop updater UI and rely on Store or verified release distribution." -NextAction "Restore VITE_DISABLE_UPDATER=true in the Windows Store Package build environment."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot ".github\workflows\windows-msix-store-package.yml") -Name "Windows MSIX updater check" -Text "VITE_DISABLE_UPDATER=true" -Detail "Windows MSIX packages disable the desktop updater UI and rely on Microsoft Store distribution." -NextAction "Restore VITE_DISABLE_UPDATER=true in the Windows MSIX Store Package build environment."
 
 $storeUrl = Get-ConfiguredStoreUrl
 if ($storeUrl) {
