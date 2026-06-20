@@ -218,7 +218,7 @@ jobs:
 
       - name: Configure Microsoft Store CLI
         if: inputs.publish_to_store
-        uses: microsoft/microsoft-store-apppublisher@v1.1
+        uses: microsoft/microsoft-store-apppublisher@v1.3
 
       - name: Reconfigure Microsoft Store credentials
         if: inputs.publish_to_store
@@ -245,7 +245,7 @@ jobs:
           if (-not $package) {
             throw "No MSIX package found in msix-assets."
           }
-          msstore publish $package.FullName -id $env:STORE_PRODUCT_ID
+          msstore publish "." --inputFile $package.FullName --appId $env:STORE_PRODUCT_ID
 
       - name: Upload Microsoft Store MSIX package
         uses: actions/upload-artifact@v4

@@ -88,7 +88,8 @@ Release workflow 已支持三种 Windows 签名方式：
 - `apps/desktop/src-tauri/Cargo.toml` 已移除 `authors = ["you"]` 占位值，改为稳定发布者元数据。
 - Store workflow 会生成适合 Microsoft Store 提交的 Windows 离线安装包。
 - Store EXE/MSI workflow 始终要求 Windows Authenticode 签名，并会校验提交清单里的每个安装包签名有效，不再产出 unsigned Store installer artifact。
-- Store workflow 会额外生成 `store-submission-package`，里面包含 Partner Center 可照填的安装包 URL、架构、语言、静默安装参数、SHA256、签名状态和发布者信息。
+- Store workflow 会额外生成 `store-submission-package`，里面包含 Partner Center 可照填的安装包 URL、架构、语言、静默安装参数、SHA256、签名状态和发布者信息，并生成 `microsoft-store-product-update.json` 供 `microsoft/store-submission` 自动更新 MSI/EXE 草稿包。
+- 如果 Store 的 EXE/MSI 产品已经在 Partner Center 创建并完成过首次提交，且签名安装包已上传到你自己的版本化 HTTPS CDN 或网站路径，可以把 `Windows Store Package` 的 `publish_to_store` 设为 `true`，填写 `store_product_id` 和 `package_url_base`，workflow 会直接更新并提交 Microsoft Store MSI/EXE 包。`package_url_base` 会拒绝 GitHub Releases、localhost 和上游 `cap.so`。
 - `Windows MSIX Store Package` 会用 Microsoft WinApp CLI 生成 MSIX layout、`Package.appxmanifest` 和 Store 用 `.msix` 包，作为 Microsoft Store 直接重新签名路线的优先尝试；配置 Partner Center secrets 后，也可以把生成的 MSIX 直接提交到 Microsoft Store。
 - `Windows MSIX Store Package` 会在打包前校验 MSIX layout、package identity、publisher、version、主程序、Store logo、tile logo、splash asset、protocol 和 `runFullTrust` capability，避免把缺图标或 manifest 不完整的包提交到 Store。
 - Release 和 Store 配置都使用离线 WebView2 安装模式，减少用户机器缺少 WebView2 时的安装问题。
@@ -170,12 +171,13 @@ Release workflow 已支持三种 Windows 签名方式：
    如果 Store 应用已经创建并且 GitHub secrets 已配置，可以把 `publish_to_store` 设为 `true`，填写 `store_product_id`，让 workflow 直接提交 MSIX。
 3. Store 上架后，把 `NEXT_PUBLIC_WINDOWS_STORE_URL`、`WINDOWS_STORE_URL` 或 `CAP_WINDOWS_STORE_URL` 配置为官方 Microsoft Store HTTPS 链接，让 `/download/windows` 默认跳 Store。
 4. 如果 MSIX 认证不适合当前 Tauri 构建，再创建 `EXE or MSI app`。
-5. 配置 Windows 签名后运行 `Windows Store Package` workflow；如果已经把签名安装包放到版本化 HTTPS 下载地址，可以填写 `package_url_base`。
+5. 配置 Windows 签名后运行 `Windows Store Package` workflow；如果已经把签名安装包放到你自己的版本化 HTTPS 下载地址，可以填写 `package_url_base`。
 6. 下载 workflow 生成的 `windows-store-package-<version>` artifact。
 7. 按 `store-submission-package` 里的 checklist、JSON 或 CSV 填写 Partner Center 包信息。
-8. 提交审核。
+8. 如果 EXE/MSI Store 产品已经创建并完成过首次提交，可以重新运行 `Windows Store Package`，把 `publish_to_store` 设为 `true`，填写 `store_product_id` 和 `package_url_base`，让 workflow 自动更新并提交 Store 草稿包。
+9. 提交审核。
 
-自动提交 MSIX 到 Store 需要这些 GitHub Secrets：`AZURE_AD_APPLICATION_CLIENT_ID`、`AZURE_AD_APPLICATION_SECRET`、`AZURE_AD_TENANT_ID`、`SELLER_ID`。
+自动提交 MSIX 或 MSI/EXE 到 Store 需要这些 GitHub Secrets：`AZURE_AD_APPLICATION_CLIENT_ID`、`AZURE_AD_APPLICATION_SECRET`、`AZURE_AD_TENANT_ID`、`SELLER_ID`。
 
 ### 方案 B：Azure Artifact Signing（formerly Trusted Signing）
 

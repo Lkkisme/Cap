@@ -55,6 +55,34 @@ function Get-PackageUrl {
     $BaseUrl.TrimEnd("/") + "/" + $escapedFileName
 }
 
+function ConvertTo-StoreArchitecture {
+    param([string]$Value)
+
+    switch ($Value.ToLowerInvariant()) {
+        "x64" { "X64" }
+        "x86" { "X86" }
+        "arm" { "Arm" }
+        "arm64" { "Arm64" }
+        "neutral" { "Neutral" }
+        default { throw "Unsupported Microsoft Store architecture '$Value'." }
+    }
+}
+
+function Test-HttpsUrl {
+    param([string]$Value)
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return $false
+    }
+
+    try {
+        $uri = [System.Uri]::new($Value)
+        return $uri.Scheme -eq "https"
+    } catch {
+        return $false
+    }
+}
+
 function Get-MsiProperty {
     param(
         [string]$InstallerPath,
@@ -102,6 +130,7 @@ New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 
 $resolvedProductName = Get-ProductName
 $packageRows = @()
+$storePackageRows = @()
 
 foreach ($installer in $installers) {
     $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $installer.FullName
@@ -123,6 +152,7 @@ foreach ($installer in $installers) {
     $appType = if ($installer.Extension -eq ".msi") { "MSI" } else { "EXE" }
     $storeInstallerParameters = if ($appType -eq "MSI") { "/qn" } else { "/S" }
     $localSmokeTestParameters = if ($appType -eq "MSI") { "/quiet /norestart" } else { "/S" }
+    $packageUrl = Get-PackageUrl -BaseUrl $PackageUrlBase -FileName $installer.Name
     $productCode = ""
     $upgradeCode = ""
 
@@ -140,7 +170,7 @@ foreach ($installer in $installers) {
         Publisher = $Publisher
         Repository = "https://github.com/$Repository"
         FileName = $installer.Name
-        PackageUrl = Get-PackageUrl -BaseUrl $PackageUrlBase -FileName $installer.Name
+        PackageUrl = $packageUrl
         AppType = $appType
         Architecture = $Architecture
         Language = $Language
@@ -159,6 +189,25 @@ foreach ($installer in $installers) {
         PrivacyPolicyUrl = $PrivacyPolicyUrl
         SupportContact = $SupportContact
     }
+
+    $storePackage = [ordered]@{
+        packageUrl = $packageUrl
+        languages = @($Language.ToLowerInvariant())
+        architectures = @((ConvertTo-StoreArchitecture -Value $Architecture))
+        isSilentInstall = $false
+        installerParameters = $storeInstallerParameters
+        packageType = $appType.ToLowerInvariant()
+    }
+
+    if ($appType -eq "EXE") {
+        if (Test-HttpsUrl -Value $WebsiteUrl) {
+            $storePackage.genericDocUrl = $WebsiteUrl
+        } else {
+            $storePackage.genericDocUrl = "https://github.com/$Repository"
+        }
+    }
+
+    $storePackageRows += [pscustomobject]$storePackage
 }
 
 $metadata = [pscustomobject]@{
@@ -178,9 +227,11 @@ $jsonPath = Join-Path $OutputDirectory "microsoft-store-submission.json"
 $csvPath = Join-Path $OutputDirectory "microsoft-store-packages.csv"
 $checklistPath = Join-Path $OutputDirectory "microsoft-store-submission-checklist.md"
 $notesPath = Join-Path $OutputDirectory "microsoft-store-package-notes.md"
+$productUpdatePath = Join-Path $OutputDirectory "microsoft-store-product-update.json"
 
 $metadata | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 -Path $jsonPath
 $packageRows | Export-Csv -NoTypeInformation -Encoding UTF8 -Path $csvPath
+@{ packages = $storePackageRows } | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 -Path $productUpdatePath
 
 $checklistLines = @(
     "# Microsoft Store MSI/EXE Submission Checklist",
@@ -201,7 +252,7 @@ $checklistLines = @(
     "9. Keep the publisher identity, file names, package URLs, and signing certificate stable across releases.",
     "10. Submit after the Windows Store Package workflow has passed signing, timestamp, SignTool, Defender scan, checksum, and attestation steps.",
     "",
-    "Package details are available in microsoft-store-submission.json and microsoft-store-packages.csv."
+    "Package details are available in microsoft-store-submission.json, microsoft-store-packages.csv, and microsoft-store-product-update.json."
 )
 
 if ([string]::IsNullOrWhiteSpace($PackageUrlBase)) {
