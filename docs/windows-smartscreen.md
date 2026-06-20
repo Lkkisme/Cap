@@ -105,6 +105,7 @@ Windows 安装包需要长期保持同一个应用身份，否则 SmartScreen、
 - 不要频繁改安装包文件名、发布者身份、下载域名。
 - 每个 Windows Release 都使用同一个已验证发布者签名。
 - 优先推广 GitHub Release 的同一个安装包链接，让同一文件 hash 积累下载声誉。
+- 已公开的 `cap-v*` Release 不要替换 EXE/MSI；如果需要重新发布安装包，创建新的 tag，让用户和微软都能看到清晰版本边界。
 - 保留源码、release notes、hash、签名信息，方便微软人工复核。
 - 发布后下载 Windows EXE/MSI，用 `Get-AuthenticodeSignature` 确认状态是 `Valid`。
 - 发布后等待自动触发的 `Windows Release Audit` workflow 通过，确认 Release 中的 Windows EXE/MSI 签名有效并且匹配 `SHA256SUMS.txt`。
