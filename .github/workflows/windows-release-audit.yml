@@ -1,6 +1,8 @@
 name: Windows Release Audit
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
@@ -16,9 +18,14 @@ on:
 permissions:
   contents: read
 
+env:
+  RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
+  EXPECTED_PUBLISHER_PATTERN: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_publisher_pattern || '' }}
+
 jobs:
   audit:
     name: Audit Windows release assets
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'cap-v')
     runs-on: windows-2022
     timeout-minutes: 60
     steps:
@@ -28,8 +35,6 @@ jobs:
       - name: Verify Windows release assets
         shell: pwsh
         env:
-          RELEASE_TAG: ${{ inputs.tag }}
-          EXPECTED_PUBLISHER_PATTERN: ${{ inputs.expected_publisher_pattern }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $params = @{
@@ -50,6 +55,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: windows-release-audit-${{ inputs.tag }}
+          name: windows-release-audit-${{ env.RELEASE_TAG }}
           path: windows-release-audit/*
           if-no-files-found: ignore

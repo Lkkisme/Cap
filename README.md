@@ -73,7 +73,7 @@ Release workflow 已支持三种 Windows 签名方式：
 
 - 新增 `.github/workflows/windows-release-audit.yml`。
 - 新增 `scripts/verify-windows-release.ps1`。
-- `Windows Release Audit` 可以对指定 Release tag 执行发布后审计。
+- `Windows Release Audit` 会在 `cap-v*` Release published 后自动审计，也可以手动对指定 Release tag 执行审计。
 - 脚本可以下载指定 GitHub Release 的 Windows EXE/MSI。
 - 脚本会计算 SHA256。
 - 脚本可以核对 Release 中的 `SHA256SUMS.txt`。
@@ -82,7 +82,16 @@ Release workflow 已支持三种 Windows 签名方式：
 - 脚本会生成 `.release-verification/<tag>/windows-smartscreen-report.md`。
 - 文档中加入了 Microsoft WDSI 提交说明和可复制的开发者说明模板。
 
-### 6. CI 和 Windows 构建稳定性
+### 6. WinGet 分发准备
+
+- 新增 `.github/workflows/windows-winget-manifest.yml`。
+- 新增 `scripts/generate-winget-manifest.ps1`。
+- `Windows WinGet Manifest` 会先审计 Release 签名和 SHA256，再生成 WinGet manifest。
+- 默认生成 `Lkkisme.CapCN` 的 Windows x64 MSI manifest。
+- 生成的文件位于 `packaging/winget/manifests/...`，可用于提交到 `microsoft/winget-pkgs`。
+- WinGet 不能替代代码签名或 Store，但它可以提供更标准的 Windows 包管理器安装入口。
+
+### 7. CI 和 Windows 构建稳定性
 
 - CI 的 Windows runner 固定为 `windows-2022`，避免 `windows-latest` 切换到更新系统镜像后带来的 FFmpeg/bindgen 不稳定问题。
 - Rust cache job 安装 `clippy` component，避免 macOS/Windows cache 流程在 Clippy 步骤缺组件。
@@ -91,7 +100,7 @@ Release workflow 已支持三种 Windows 签名方式：
 - 修复了当前语言 accessor 的调用方式。
 - 保留了仓库 workspace lints 的严格设置，不通过 `allow(dead_code)` 这类豁免绕过问题。
 
-### 7. SmartScreen 文档
+### 8. SmartScreen 文档
 
 - 新增 [docs/windows-smartscreen.md](docs/windows-smartscreen.md)。
 - 文档说明了 Microsoft Store、Azure Artifact Signing、SignPath、PFX/signtool、WDSI 的适用场景。
@@ -135,9 +144,10 @@ Release workflow 已支持三种 Windows 签名方式：
 1. 手动运行 `Windows Signing Check`。
 2. 确认通过。
 3. 手动运行 `Windows Release` 或创建新的 `cap-v*` tag；正式发布保持 `require_signing=true`，未签名测试只能作为 draft。
-4. 手动运行 `Windows Release Audit`，输入刚发布的 tag，确认签名和 SHA256 都通过。
-5. 下载 EXE/MSI，用 `Get-AuthenticodeSignature` 确认签名为 `Valid`。
-6. 如仍出现 SmartScreen 误拦截，提交到 Microsoft WDSI。
+4. 等待自动触发的 `Windows Release Audit` 通过，或手动输入刚发布的 tag 重新审计，确认签名和 SHA256 都通过。
+5. 如需 WinGet 分发，手动运行 `Windows WinGet Manifest`，下载生成的 manifest 并提交到 `microsoft/winget-pkgs`。
+6. 下载 EXE/MSI，用 `Get-AuthenticodeSignature` 确认签名为 `Valid`。
+7. 如仍出现 SmartScreen 误拦截，提交到 Microsoft WDSI。
 
 ### 方案 C：SignPath 或 PFX
 
