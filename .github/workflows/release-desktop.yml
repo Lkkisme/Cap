@@ -551,7 +551,7 @@ jobs:
 
             If Windows signing is configured, the EXE and MSI are Authenticode signed and verified before upload. New publishers or new files can still show SmartScreen warnings until Microsoft reputation builds.
 
-            SHA256SUMS.txt can be used to verify downloaded files.
+            SHA256SUMS.txt can be used to verify downloaded files. Verified public releases also include windows-smartscreen-report-<tag>.md and windows-release-assets-<tag>.json after the Windows release audit passes.
 
       - name: Run Windows release evidence workflows
         if: needs.metadata.outputs.draft != 'true' && needs.metadata.outputs.require_signing == 'true'
@@ -600,6 +600,42 @@ jobs:
             echo "Waiting for $workflow run $run_id."
             gh run watch "$run_id" --exit-status --interval 30
           done
+
+      - name: Verify release evidence assets
+        if: needs.metadata.outputs.draft != 'true' && needs.metadata.outputs.require_signing == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ needs.metadata.outputs.tag_name }}
+        run: |
+          set -euo pipefail
+          safe_tag="$(printf '%s' "$TAG_NAME" | sed -E 's/[^A-Za-z0-9._-]/-/g')"
+          asset_names="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG_NAME" --jq ".assets[].name")"
+
+          require_asset() {
+            local name="$1"
+            if ! printf '%s\n' "$asset_names" | grep -Fxq "$name"; then
+              echo "Missing release asset: $name" >&2
+              printf '%s\n' "$asset_names" >&2
+              exit 1
+            fi
+          }
+
+          require_pattern() {
+            local pattern="$1"
+            local label="$2"
+            if ! printf '%s\n' "$asset_names" | grep -Eiq "$pattern"; then
+              echo "Missing release asset matching $label" >&2
+              printf '%s\n' "$asset_names" >&2
+              exit 1
+            fi
+          }
+
+          require_pattern '\.exe$' "Windows EXE installer"
+          require_pattern '\.msi$' "Windows MSI installer"
+          require_asset "SHA256SUMS.txt"
+          require_asset "windows-smartscreen-report-$safe_tag.md"
+          require_asset "windows-release-assets-$safe_tag.json"
 
       - name: Publish verified GitHub release
         if: needs.metadata.outputs.draft != 'true'
