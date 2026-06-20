@@ -122,7 +122,7 @@ jobs:
           RUST_TARGET_TRIPLE: ${{ env.TARGET }}
 
       - name: Build signed app without bundling
-        if: steps.signing.outputs.provider == 'azure-artifact-signing' || steps.signing.outputs.provider == 'pfx'
+        if: steps.signing.outputs.provider == 'azure-artifact-signing' || steps.signing.outputs.provider == 'pfx' || steps.signing.outputs.provider == 'signpath'
         working-directory: apps/desktop
         run: pnpm build:tauri --target ${{ env.TARGET }} --config src-tauri/tauri.microsoft-store.conf.json --no-bundle
         env:
@@ -130,7 +130,7 @@ jobs:
           RUST_TARGET_TRIPLE: ${{ env.TARGET }}
 
       - name: Build unsigned store installer
-        if: steps.signing.outputs.provider != 'azure-artifact-signing' && steps.signing.outputs.provider != 'pfx'
+        if: steps.signing.outputs.provider != 'azure-artifact-signing' && steps.signing.outputs.provider != 'pfx' && steps.signing.outputs.provider != 'signpath'
         working-directory: apps/desktop
         run: pnpm build:tauri --target ${{ env.TARGET }} --config src-tauri/tauri.microsoft-store.conf.json
         env:
@@ -205,8 +205,79 @@ jobs:
             }
           }
 
+      - name: Stage unsigned app binaries for SignPath
+        if: steps.signing.outputs.provider == 'signpath'
+        id: stage_signpath_app_binaries
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path signpath-app-binaries -Force | Out-Null
+          $files = Get-ChildItem -Path "target/${{ env.TARGET }}/release" -Include *.exe,*.dll -File -Recurse
+          if (-not $files) {
+            throw "No Windows app binaries found to sign."
+          }
+          foreach ($file in $files) {
+            Copy-Item -LiteralPath $file.FullName -Destination (Join-Path "signpath-app-binaries" $file.Name) -Force
+          }
+          Get-ChildItem -Path signpath-app-binaries
+
+      - name: Upload unsigned app binaries for SignPath
+        if: steps.signing.outputs.provider == 'signpath'
+        id: upload_signpath_app_binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: signpath-store-app-binaries
+          path: signpath-app-binaries/*
+          if-no-files-found: error
+
+      - name: Submit SignPath app binary signing request
+        if: steps.signing.outputs.provider == 'signpath'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ secrets.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.upload_signpath_app_binaries.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed-store-app-binaries
+
+      - name: Restore SignPath signed app binaries
+        if: steps.signing.outputs.provider == 'signpath'
+        shell: pwsh
+        run: |
+          $signedDir = "signed-store-app-binaries"
+          if (-not (Test-Path $signedDir)) {
+            throw "Signed app binary directory '$signedDir' not found."
+          }
+          $files = Get-ChildItem -Path $signedDir -Include *.exe,*.dll -File -Recurse
+          if (-not $files) {
+            throw "No signed Windows app binaries found in '$signedDir'."
+          }
+          foreach ($file in $files) {
+            Copy-Item -LiteralPath $file.FullName -Destination (Join-Path "target/${{ env.TARGET }}/release" $file.Name) -Force
+          }
+
+      - name: Verify app binary signatures
+        if: steps.signing.outputs.provider == 'azure-artifact-signing' || steps.signing.outputs.provider == 'pfx' || steps.signing.outputs.provider == 'signpath'
+        shell: pwsh
+        env:
+          WINDOWS_SIGNING_PUBLISHER_PATTERN: ${{ vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
+        run: |
+          $files = Get-ChildItem -Path "target/${{ env.TARGET }}/release" -Include *.exe,*.dll -File -Recurse
+          if (-not $files) {
+            throw "No Windows app binaries found to verify."
+          }
+          foreach ($file in $files) {
+            $result = .\scripts\test-windows-authenticode.ps1 -Path $file.FullName -RequireValidSignature -RequireTimestamp -RequireSignToolVerification -ExpectedPublisherPattern $env:WINDOWS_SIGNING_PUBLISHER_PATTERN
+            Write-Host "$($file.Name): $($result.SignatureStatus)"
+            Write-Host "$($file.Name) publisher: $($result.Publisher)"
+            Write-Host "$($file.Name) timestamp: $($result.TimestampAuthority)"
+            Write-Host "$($file.Name) signtool: $($result.SignToolStatus)"
+          }
+
       - name: Bundle signed store installer
-        if: steps.signing.outputs.provider == 'azure-artifact-signing' || steps.signing.outputs.provider == 'pfx'
+        if: steps.signing.outputs.provider == 'azure-artifact-signing' || steps.signing.outputs.provider == 'pfx' || steps.signing.outputs.provider == 'signpath'
         working-directory: apps/desktop
         run: pnpm exec dotenv -e ../../.env -- pnpm tauri bundle --target ${{ env.TARGET }} --config src-tauri/tauri.microsoft-store.conf.json
         env:
