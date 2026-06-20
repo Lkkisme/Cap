@@ -206,6 +206,22 @@ jobs:
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
 
+      - name: Verify Windows signatures
+        if: runner.os == 'Windows' && vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing'
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Path release-assets -Include *.exe,*.msi -File -Recurse
+          if (-not $files) {
+            throw "No Windows installers found to verify."
+          }
+          foreach ($file in $files) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $file.FullName
+            Write-Host "$($file.Name): $($signature.Status)"
+            if ($signature.Status -ne "Valid") {
+              throw "$($file.FullName) signature is $($signature.Status): $($signature.StatusMessage)"
+            }
+          }
+
       - name: Upload release assets
         uses: actions/upload-artifact@v4
         with:
@@ -229,6 +245,13 @@ jobs:
       - name: List release assets
         run: find release-assets -maxdepth 1 -type f -print
 
+      - name: Generate checksums
+        shell: bash
+        run: |
+          cd release-assets
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
@@ -246,3 +269,4 @@ jobs:
             Intel Mac 用户下载 `macos-x64.dmg`。
 
             Windows 包如果已经使用 Azure Artifact Signing 签名，会显示已验证发布者并逐步积累 SmartScreen 声誉。新发布者或新文件仍可能短期显示 SmartScreen 提示。
+            `SHA256SUMS.txt` 可用于校验下载文件是否与发布产物一致。
