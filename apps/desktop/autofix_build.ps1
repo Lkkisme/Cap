@@ -1,6 +1,12 @@
 ﻿Write-Host ">>> 正在自动修复构建环境（FFmpeg 依赖）..." -ForegroundColor Cyan
 
-# 定义安装路径 (使用用户目录以避免中文路径问题)
+if ($env:CAP_ALLOW_LOCAL_UNSIGNED_WINDOWS_BUILD -ne "1") {
+    Write-Host "[STOP] This local script can create unsigned Windows installers." -ForegroundColor Red
+    Write-Host "Use GitHub Actions Windows Release, Windows Store Package, or Windows MSIX Store Package for distributable Windows builds."
+    Write-Host "For local testing only, set CAP_ALLOW_LOCAL_UNSIGNED_WINDOWS_BUILD=1 and run this script again."
+    exit 1
+}
+
 $installDir = "$env:USERPROFILE\.cap_build_tools"
 $ffmpegDir = "$installDir\ffmpeg"
 $zipFile = "$installDir\ffmpeg.zip"

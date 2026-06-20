@@ -2,6 +2,14 @@
 setlocal
 chcp 65001 >nul
 
+if /I not "%CAP_ALLOW_LOCAL_UNSIGNED_WINDOWS_BUILD%"=="1" (
+    echo [STOP] This local script can create unsigned Windows installers.
+    echo Use GitHub Actions Windows Release, Windows Store Package, or Windows MSIX Store Package for distributable Windows builds.
+    echo For local testing only, set CAP_ALLOW_LOCAL_UNSIGNED_WINDOWS_BUILD=1 and run this script again.
+    pause
+    exit /b 1
+)
+
 echo ==========================================
 echo       Cap 构建环境检查与打包脚本
 echo ==========================================

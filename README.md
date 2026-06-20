@@ -229,6 +229,8 @@ pnpm dev:desktop
 pnpm tauri:build
 ```
 
+`pnpm tauri:build` 只建议用于本地开发验证。`build_package.bat`、`apps/desktop/build_installer.bat` 和 `apps/desktop/autofix_build.ps1` 这类本地打包脚本默认会拒绝继续生成 unsigned Windows 安装包；只有本机测试时显式设置 `CAP_ALLOW_LOCAL_UNSIGNED_WINDOWS_BUILD=1` 才会继续。给普通用户分发的 Windows EXE/MSI/portable ZIP 必须来自 GitHub Actions 的 `Windows Release`、`Windows Store Package` 或 `Windows MSIX Store Package` 流程。
+
 ## 技术栈
 
 - Tauri v2

@@ -88,6 +88,8 @@ PFX/signtool 需要这些 Secrets：
 
 旧的 `publish` workflow 已禁用。Windows 正式发布只使用 `Windows Release` workflow，避免绕过签名检查。
 
+`build_package.bat`、`apps/desktop/build_installer.bat` 和 `apps/desktop/autofix_build.ps1` 是本地开发辅助脚本，不作为普通用户分发入口。它们默认会拒绝继续生成 unsigned Windows 安装包；只有本机测试时显式设置 `CAP_ALLOW_LOCAL_UNSIGNED_WINDOWS_BUILD=1` 才会继续。可公开分发的 Windows EXE/MSI/portable ZIP 应来自 GitHub Actions 的 `Windows Release`、`Windows Store Package` 或 `Windows MSIX Store Package`，并满足签名、时间戳、checksum、attestation、Defender、安装器 smoke test、WinGet 和 WDSI 证据门禁。
+
 ## Windows 包身份元数据
 
 Windows 安装包需要长期保持同一个应用身份，否则 SmartScreen、WinGet、Add/Remove Programs 和升级路径都会更难积累信任。本仓库现在固定了：
