@@ -643,6 +643,31 @@ jobs:
           require_asset "windows-wdsi-submission-checklist-$safe_tag.md"
           require_asset "windows-wdsi-submission-text-$safe_tag.zip"
 
+      - name: Verify release evidence manifest
+        if: needs.metadata.outputs.draft != 'true' && needs.metadata.outputs.require_signing == 'true'
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ needs.metadata.outputs.tag_name }}
+        run: |
+          $params = @{
+            Repository = $env:GITHUB_REPOSITORY
+            Tag = $env:TAG_NAME
+            Mode = "report"
+            OutputDirectory = "windows-release-publish-gate"
+            FailOnUnsafe = $true
+          }
+
+          & (Join-Path $env:GITHUB_WORKSPACE "scripts/protect-windows-release-assets.ps1") @params
+
+      - name: Upload Windows publish gate report
+        if: always() && needs.metadata.outputs.draft != 'true' && needs.metadata.outputs.require_signing == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-publish-gate-${{ needs.metadata.outputs.tag_name }}
+          path: windows-release-publish-gate/*
+          if-no-files-found: ignore
+
       - name: Publish verified GitHub release
         if: needs.metadata.outputs.draft != 'true'
         shell: bash
