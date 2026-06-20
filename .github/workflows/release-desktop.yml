@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 env:
   APP_CARGO_TOML: apps/desktop/src-tauri/Cargo.toml
@@ -126,8 +127,46 @@ jobs:
           RUST_TARGET_TRIPLE: ${{ matrix.target }}
 
       - name: Build desktop app
+        if: runner.os != 'Windows' || vars.WINDOWS_SIGNING_PROVIDER != 'azure-artifact-signing'
         working-directory: apps/desktop
         run: pnpm build:tauri --target ${{ matrix.target }} --config src-tauri/tauri.github-release.conf.json
+        env:
+          CI: "false"
+          RUST_TARGET_TRIPLE: ${{ matrix.target }}
+
+      - name: Build Windows app without bundling
+        if: runner.os == 'Windows' && vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing'
+        working-directory: apps/desktop
+        run: pnpm build:tauri --target ${{ matrix.target }} --config src-tauri/tauri.github-release.conf.json --no-bundle
+        env:
+          CI: "false"
+          RUST_TARGET_TRIPLE: ${{ matrix.target }}
+
+      - name: Azure login for Windows signing
+        if: runner.os == 'Windows' && vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing'
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign Windows app binaries
+        if: runner.os == 'Windows' && vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing'
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME }}
+          files-folder: ${{ github.workspace }}\target\${{ matrix.target }}\release
+          files-folder-filter: exe,dll
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Bundle signed Windows app
+        if: runner.os == 'Windows' && vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing'
+        working-directory: apps/desktop
+        run: pnpm exec dotenv -e ../../.env -- pnpm tauri bundle --target ${{ matrix.target }} --config src-tauri/tauri.github-release.conf.json
         env:
           CI: "false"
           RUST_TARGET_TRIPLE: ${{ matrix.target }}
@@ -153,6 +192,19 @@ jobs:
             Copy-Item -LiteralPath $file.FullName -Destination "release-assets/$baseName-${{ matrix.slug }}$extension"
           }
           Get-ChildItem -Path release-assets
+
+      - name: Sign Windows installers
+        if: runner.os == 'Windows' && vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing'
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME }}
+          files-folder: ${{ github.workspace }}\release-assets
+          files-folder-filter: exe,msi
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
 
       - name: Upload release assets
         uses: actions/upload-artifact@v4
@@ -193,4 +245,4 @@ jobs:
             Apple Silicon Mac 用户下载 `macos-arm64.dmg`。
             Intel Mac 用户下载 `macos-x64.dmg`。
 
-            当前发布包未配置商业代码签名。Windows 可能出现 SmartScreen 提示，macOS 可能需要在系统设置中允许打开。
+            Windows 包如果已经使用 Azure Artifact Signing 签名，会显示已验证发布者并逐步积累 SmartScreen 声誉。新发布者或新文件仍可能短期显示 SmartScreen 提示。
