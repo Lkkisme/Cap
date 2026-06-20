@@ -1,5 +1,6 @@
 import { Octokit } from "@octokit/rest";
 import type { RouteContext } from "@/contracts/next";
+import { hasVerifiedWindowsReleaseAssetEvidence } from "@/utils/releases";
 
 const octokit = new Octokit();
 const owner = "Lkkisme";
@@ -11,41 +12,6 @@ type ReleaseAsset = {
 	name: string;
 	browser_download_url: string;
 };
-
-function assetNames(assets: ReleaseAsset[]) {
-	return assets.map((asset) => asset.name.toLowerCase());
-}
-
-function safeReleaseTag(tagName: string) {
-	return tagName.replace(/[^A-Za-z0-9._-]/g, "-").toLowerCase();
-}
-
-function hasAssetNamed(names: string[], name: string) {
-	return names.includes(name.toLowerCase());
-}
-
-function hasVerifiedWindowsEvidence(assets: ReleaseAsset[], tagName: string) {
-	const names = assetNames(assets);
-	const safeTag = safeReleaseTag(tagName);
-
-	return (
-		names.includes("sha256sums.txt") &&
-		hasAssetNamed(names, `windows-smartscreen-report-${safeTag}.md`) &&
-		hasAssetNamed(names, `windows-release-assets-${safeTag}.json`) &&
-		hasAssetNamed(
-			names,
-			`windows-installer-smoke-test-report-${safeTag}.md`,
-		) &&
-		hasAssetNamed(
-			names,
-			`windows-installer-smoke-test-results-${safeTag}.json`,
-		) &&
-		hasAssetNamed(names, `windows-winget-manifest-${safeTag}.zip`) &&
-		hasAssetNamed(names, `windows-winget-submission-${safeTag}.md`) &&
-		hasAssetNamed(names, `windows-wdsi-submission-checklist-${safeTag}.md`) &&
-		hasAssetNamed(names, `windows-wdsi-submission-text-${safeTag}.zip`)
-	);
-}
 
 function isWindowsTarget(target: string, arch: string) {
 	const value = `${target}-${arch}`.toLowerCase();
@@ -69,7 +35,9 @@ function isMatchingUpdateAsset(
 
 	if (isWindowsTarget(normalizedTarget, normalizedArch)) {
 		const matchesWindows =
-			name.includes("windows") || name.includes("win32") || name.includes("msvc");
+			name.includes("windows") ||
+			name.includes("win32") ||
+			name.includes("msvc");
 		const matchesArch =
 			!normalizedArch ||
 			name.includes(normalizedArch) ||
@@ -102,7 +70,7 @@ export async function GET(
 
 		if (
 			isWindowsTarget(target, arch) &&
-			!hasVerifiedWindowsEvidence(assets, release.tag_name)
+			!(await hasVerifiedWindowsReleaseAssetEvidence(assets, release.tag_name))
 		) {
 			return new Response(null, {
 				status: 204,

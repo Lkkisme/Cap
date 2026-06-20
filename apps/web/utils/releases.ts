@@ -30,9 +30,25 @@ interface GitHubRelease {
 	assets: GitHubReleaseAsset[];
 }
 
-interface GitHubReleaseAsset {
+export interface GitHubReleaseAsset {
 	name: string;
 	browser_download_url: string;
+}
+
+interface WindowsReleaseAssetEvidence {
+	File?: string;
+	SignatureStatus?: string;
+	TimestampStatus?: string;
+	SignToolStatus?: string;
+	ChecksumStatus?: string;
+	AttestationStatus?: string;
+	DefenderStatus?: string;
+}
+
+interface WindowsReleaseAssetManifest {
+	Repository?: string;
+	Tag?: string;
+	Assets?: WindowsReleaseAssetEvidence[];
 }
 
 function parseDownloadsFromBody(body: string): ReleaseDownloads {
@@ -164,15 +180,122 @@ function hasAssetNamed(assets: GitHubReleaseAsset[], name: string): boolean {
 	return names.includes(name.toLowerCase());
 }
 
-function hasWindowsAuditEvidence(
+function getAssetNamed(
+	assets: GitHubReleaseAsset[],
+	name: string,
+): GitHubReleaseAsset | null {
+	return (
+		assets.find((asset) => asset.name.toLowerCase() === name.toLowerCase()) ||
+		null
+	);
+}
+
+function getWindowsInstallerAssetNames(assets: GitHubReleaseAsset[]): string[] {
+	return assets
+		.filter((asset) => {
+			const name = asset.name.toLowerCase();
+			return (
+				name.includes("windows") &&
+				(name.endsWith(".exe") || name.endsWith(".msi"))
+			);
+		})
+		.map((asset) => asset.name);
+}
+
+async function fetchJsonAsset<T>(asset: GitHubReleaseAsset): Promise<T | null> {
+	try {
+		const response = await fetch(asset.browser_download_url, {
+			headers: {
+				Accept: "application/json,text/plain,*/*",
+				"User-Agent": "Cap-Web",
+			},
+			next: {
+				revalidate: 3600,
+			},
+		});
+
+		if (!response.ok) return null;
+		return (await response.json()) as T;
+	} catch {
+		return null;
+	}
+}
+
+async function hasWindowsAuditEvidence(
 	assets: GitHubReleaseAsset[],
 	tagName: string,
-): boolean {
+): Promise<boolean> {
 	const safeTag = safeReleaseTag(tagName);
-	return (
-		hasAssetNamed(assets, `windows-smartscreen-report-${safeTag}.md`) &&
-		hasAssetNamed(assets, `windows-release-assets-${safeTag}.json`)
+	const report = getAssetNamed(
+		assets,
+		`windows-smartscreen-report-${safeTag}.md`,
 	);
+	const manifestAsset = getAssetNamed(
+		assets,
+		`windows-release-assets-${safeTag}.json`,
+	);
+	if (!report || !manifestAsset) return false;
+
+	return hasValidWindowsReleaseAssetManifest(assets, tagName, manifestAsset);
+}
+
+export async function hasVerifiedWindowsReleaseAssetEvidence(
+	assets: GitHubReleaseAsset[],
+	tagName: string,
+): Promise<boolean> {
+	return (
+		hasAssetNamed(assets, "SHA256SUMS.txt") &&
+		(await hasWindowsAuditEvidence(assets, tagName)) &&
+		hasWindowsSmokeTestEvidence(assets, tagName) &&
+		hasWindowsWingetEvidence(assets, tagName) &&
+		hasWindowsWdsiEvidence(assets, tagName)
+	);
+}
+
+async function hasValidWindowsReleaseAssetManifest(
+	assets: GitHubReleaseAsset[],
+	tagName: string,
+	manifestAsset: GitHubReleaseAsset,
+): Promise<boolean> {
+	const windowsInstallerNames = getWindowsInstallerAssetNames(assets);
+	if (windowsInstallerNames.length === 0) return false;
+
+	const manifest =
+		await fetchJsonAsset<WindowsReleaseAssetManifest>(manifestAsset);
+	if (!manifest) return false;
+	if (manifest.Repository !== "Lkkisme/Cap") return false;
+	if (manifest.Tag !== tagName) return false;
+	if (!Array.isArray(manifest.Assets)) return false;
+
+	const manifestAssets = new Map(
+		manifest.Assets.map((asset) => [asset.File, asset]),
+	);
+	const requiredStatuses: Array<
+		[
+			keyof WindowsReleaseAssetEvidence,
+			NonNullable<
+				WindowsReleaseAssetEvidence[keyof WindowsReleaseAssetEvidence]
+			>,
+		]
+	> = [
+		["SignatureStatus", "Valid"],
+		["TimestampStatus", "Present"],
+		["SignToolStatus", "Valid"],
+		["ChecksumStatus", "Valid"],
+		["AttestationStatus", "Valid"],
+		["DefenderStatus", "Valid"],
+	];
+
+	for (const installerName of windowsInstallerNames) {
+		const evidence = manifestAssets.get(installerName);
+		if (!evidence) return false;
+
+		for (const [key, expected] of requiredStatuses) {
+			if (evidence[key] !== expected) return false;
+		}
+	}
+
+	return true;
 }
 
 function hasWindowsSmokeTestEvidence(
@@ -234,12 +357,15 @@ export async function getGitHubReleases(): Promise<Release[]> {
 
 	const data: GitHubRelease[] = await response.json();
 
-	return data
+	const releases = data
 		.filter((release) => !release.draft && !release.prerelease)
-		.filter((release) => release.tag_name.startsWith("cap-v"))
-		.map((release) => {
+		.filter((release) => release.tag_name.startsWith("cap-v"));
+
+	return Promise.all(
+		releases.map(async (release) => {
 			const assetDownloads = parseDownloadsFromAssets(release.assets || []);
 			const bodyDownloads = parseDownloadsFromBody(release.body || "");
+			const assets = release.assets || [];
 			return {
 				version: extractVersionFromTag(release.tag_name),
 				tagName: release.tag_name,
@@ -253,24 +379,25 @@ export async function getGitHubReleases(): Promise<Release[]> {
 				hasChecksums: (release.assets || []).some(
 					(asset) => asset.name === "SHA256SUMS.txt",
 				),
-				hasWindowsAuditEvidence: hasWindowsAuditEvidence(
-					release.assets || [],
+				hasWindowsAuditEvidence: await hasWindowsAuditEvidence(
+					assets,
 					release.tag_name,
 				),
 				hasWindowsSmokeTestEvidence: hasWindowsSmokeTestEvidence(
-					release.assets || [],
+					assets,
 					release.tag_name,
 				),
 				hasWindowsWingetEvidence: hasWindowsWingetEvidence(
-					release.assets || [],
+					assets,
 					release.tag_name,
 				),
 				hasWindowsWdsiEvidence: hasWindowsWdsiEvidence(
-					release.assets || [],
+					assets,
 					release.tag_name,
 				),
 			};
-		});
+		}),
+	);
 }
 
 export function hasDownloads(downloads: ReleaseDownloads): boolean {
