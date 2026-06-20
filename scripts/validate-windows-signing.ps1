@@ -10,21 +10,31 @@ if ($provider) {
     $provider = $provider.Trim().ToLowerInvariant()
 }
 
+$providerAliases = @{
+    "trusted-signing" = "azure-artifact-signing"
+    "azure-trusted-signing" = "azure-artifact-signing"
+}
+
+if ($providerAliases.ContainsKey($provider)) {
+    $provider = $providerAliases[$provider]
+}
+
 $allowedProviders = @("azure-artifact-signing", "signpath", "pfx")
+$acceptedProviderText = "azure-artifact-signing, trusted-signing, azure-trusted-signing, signpath, or pfx"
 
 if ([string]::IsNullOrWhiteSpace($provider)) {
     if ($env:GITHUB_OUTPUT) {
         "provider=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
     }
     if ($RequireSigning -or -not $AllowUnsigned) {
-        throw "WINDOWS_SIGNING_PROVIDER must be set to azure-artifact-signing, signpath, or pfx."
+        throw "WINDOWS_SIGNING_PROVIDER must be set to $acceptedProviderText."
     }
     Write-Host "WINDOWS_SIGNING_PROVIDER is empty. Windows installers will be unsigned."
     exit 0
 }
 
 if (-not $allowedProviders.Contains($provider)) {
-    throw "Unsupported WINDOWS_SIGNING_PROVIDER '$provider'. Use azure-artifact-signing, signpath, or pfx."
+    throw "Unsupported WINDOWS_SIGNING_PROVIDER '$provider'. Use $acceptedProviderText."
 }
 
 if ($env:GITHUB_OUTPUT) {

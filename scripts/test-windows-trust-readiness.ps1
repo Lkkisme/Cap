@@ -284,13 +284,22 @@ if ($provider) {
     $provider = $provider.Trim().ToLowerInvariant()
 }
 
+$providerAliases = @{
+    "trusted-signing" = "azure-artifact-signing"
+    "azure-trusted-signing" = "azure-artifact-signing"
+}
+
+if ($providerAliases.ContainsKey($provider)) {
+    $provider = $providerAliases[$provider]
+}
+
 $validProviders = @("azure-artifact-signing", "signpath", "pfx")
 if ([string]::IsNullOrWhiteSpace($provider)) {
-    Add-Check -Area "Code signing" -Item "Signing provider" -Status "warning" -Detail "WINDOWS_SIGNING_PROVIDER is not configured." -NextAction "Set WINDOWS_SIGNING_PROVIDER to azure-artifact-signing, signpath, or pfx, then run Windows Signing Check."
+    Add-Check -Area "Code signing" -Item "Signing provider" -Status "warning" -Detail "WINDOWS_SIGNING_PROVIDER is not configured." -NextAction "Set WINDOWS_SIGNING_PROVIDER to azure-artifact-signing, trusted-signing, signpath, or pfx, then run Windows Signing Check."
 } elseif ($validProviders -contains $provider) {
     Add-Check -Area "Code signing" -Item "Signing provider" -Status "pass" -Detail "WINDOWS_SIGNING_PROVIDER is '$provider'."
 } else {
-    Add-Check -Area "Code signing" -Item "Signing provider" -Status "fail" -Detail "Unsupported WINDOWS_SIGNING_PROVIDER '$provider'." -NextAction "Use azure-artifact-signing, signpath, or pfx."
+    Add-Check -Area "Code signing" -Item "Signing provider" -Status "fail" -Detail "Unsupported WINDOWS_SIGNING_PROVIDER '$provider'." -NextAction "Use azure-artifact-signing, trusted-signing, signpath, or pfx."
 }
 
 if (Test-RegexValue -Value $env:WINDOWS_SIGNING_PUBLISHER_PATTERN) {
