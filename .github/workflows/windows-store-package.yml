@@ -1,0 +1,329 @@
+name: Windows Store Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      require_signing:
+        description: "Fail if Windows code signing is not configured"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  actions: read
+  contents: read
+  id-token: write
+
+env:
+  APP_CARGO_TOML: apps/desktop/src-tauri/Cargo.toml
+  RUST_BACKTRACE: "1"
+  TURBO_TELEMETRY_DISABLED: "1"
+
+jobs:
+  build:
+    name: Build Microsoft Store offline installer
+    runs-on: windows-2022
+    timeout-minutes: 180
+    env:
+      TARGET: x86_64-pc-windows-msvc
+    steps:
+      - name: Validate signing configuration
+        shell: pwsh
+        run: |
+          $provider = "${{ vars.WINDOWS_SIGNING_PROVIDER }}"
+          $requireSigning = "${{ inputs.require_signing }}" -eq "true"
+          $allowedProviders = @("azure-artifact-signing", "signpath", "pfx")
+          if ($requireSigning -and -not $allowedProviders.Contains($provider)) {
+            throw "Microsoft Store submissions require signed Windows installers. Set WINDOWS_SIGNING_PROVIDER to azure-artifact-signing, signpath, or pfx, or rerun with require_signing=false for a dry run."
+          }
+          if ($provider -and -not $allowedProviders.Contains($provider)) {
+            throw "Unsupported WINDOWS_SIGNING_PROVIDER '$provider'."
+          }
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.5.2
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ env.TARGET }}
+
+      - name: Cache Rust dependencies
+        uses: swatinem/rust-cache@v2
+        with:
+          shared-key: windows-store-${{ env.TARGET }}
+
+      - name: Configure LLVM
+        shell: pwsh
+        run: |
+          $llvmBin = "C:\Program Files\LLVM\bin"
+          if (-not (Test-Path (Join-Path $llvmBin "libclang.dll"))) {
+            choco install llvm -y --no-progress
+          }
+          "LIBCLANG_PATH=$llvmBin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Read desktop version
+        id: version
+        shell: bash
+        run: |
+          version="$(grep -m1 '^version = ' "$APP_CARGO_TOML" | sed -E 's/version = "([^"]+)"/\1/')"
+          if [ -z "$version" ]; then
+            echo "Unable to read version from $APP_CARGO_TOML" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Create build environment
+        shell: pwsh
+        run: |
+          Set-Content -Path .env -Encoding utf8 -Value @(
+            "appVersion=${{ steps.version.outputs.version }}",
+            "VITE_ENVIRONMENT=production",
+            "VITE_SERVER_URL=https://cap.so",
+            "NEXT_PUBLIC_WEB_URL=https://cap.so"
+          )
+
+      - name: Prepare native dependencies
+        run: pnpm -w cap-setup
+        env:
+          RUST_TARGET_TRIPLE: ${{ env.TARGET }}
+
+      - name: Build signed app without bundling
+        if: vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing' || vars.WINDOWS_SIGNING_PROVIDER == 'pfx'
+        working-directory: apps/desktop
+        run: pnpm build:tauri --target ${{ env.TARGET }} --config src-tauri/tauri.microsoft-store.conf.json --no-bundle
+        env:
+          CI: "false"
+          RUST_TARGET_TRIPLE: ${{ env.TARGET }}
+
+      - name: Build unsigned store installer
+        if: vars.WINDOWS_SIGNING_PROVIDER != 'azure-artifact-signing' && vars.WINDOWS_SIGNING_PROVIDER != 'pfx'
+        working-directory: apps/desktop
+        run: pnpm build:tauri --target ${{ env.TARGET }} --config src-tauri/tauri.microsoft-store.conf.json
+        env:
+          CI: "false"
+          RUST_TARGET_TRIPLE: ${{ env.TARGET }}
+
+      - name: Azure login for Windows signing
+        if: vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing'
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Import PFX signing certificate
+        if: vars.WINDOWS_SIGNING_PROVIDER == 'pfx'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_PFX_BASE64 }}
+          WINDOWS_CERTIFICATE_PFX_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PFX_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PFX_BASE64)) {
+            throw "WINDOWS_CERTIFICATE_PFX_BASE64 is required when WINDOWS_SIGNING_PROVIDER is pfx."
+          }
+          $pfxPath = Join-Path $env:RUNNER_TEMP "windows-code-signing.pfx"
+          [System.IO.File]::WriteAllBytes($pfxPath, [System.Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_PFX_BASE64))
+          $password = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PFX_PASSWORD -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $password |
+            Where-Object { $_.HasPrivateKey } |
+            Select-Object -First 1
+          if (-not $cert.Thumbprint) {
+            throw "Failed to import PFX signing certificate."
+          }
+          "WINDOWS_CERTIFICATE_THUMBPRINT=$($cert.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Sign Windows app binaries
+        if: vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing'
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME }}
+          files-folder: ${{ github.workspace }}\target\${{ env.TARGET }}\release
+          files-folder-filter: exe,dll
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Sign Windows app binaries with PFX
+        if: vars.WINDOWS_SIGNING_PROVIDER == 'pfx'
+        shell: pwsh
+        run: |
+          $signTool = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter signtool.exe -Recurse |
+            Where-Object { $_.FullName -match "\\x64\\signtool\.exe$" } |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if (-not $signTool) {
+            throw "signtool.exe was not found on the Windows runner."
+          }
+          $timestampUrl = "${{ vars.WINDOWS_SIGNING_TIMESTAMP_URL }}"
+          if ([string]::IsNullOrWhiteSpace($timestampUrl)) {
+            $timestampUrl = "http://timestamp.digicert.com"
+          }
+          $files = Get-ChildItem -Path "target/${{ env.TARGET }}/release" -Include *.exe,*.dll -File -Recurse
+          if (-not $files) {
+            throw "No Windows binaries found to sign."
+          }
+          foreach ($file in $files) {
+            & $signTool.FullName sign /fd SHA256 /td SHA256 /tr $timestampUrl /sha1 $env:WINDOWS_CERTIFICATE_THUMBPRINT $file.FullName
+            if ($LASTEXITCODE -ne 0) {
+              throw "signtool failed for $($file.FullName)"
+            }
+          }
+
+      - name: Bundle signed store installer
+        if: vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing' || vars.WINDOWS_SIGNING_PROVIDER == 'pfx'
+        working-directory: apps/desktop
+        run: pnpm exec dotenv -e ../../.env -- pnpm tauri bundle --target ${{ env.TARGET }} --config src-tauri/tauri.microsoft-store.conf.json
+        env:
+          CI: "false"
+          RUST_TARGET_TRIPLE: ${{ env.TARGET }}
+
+      - name: Stage store assets
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path store-assets -Force | Out-Null
+          $patterns = @(
+            "target/${{ env.TARGET }}/release/bundle/nsis/*.exe",
+            "target/${{ env.TARGET }}/release/bundle/msi/*.msi"
+          )
+          $files = foreach ($pattern in $patterns) {
+            Get-ChildItem -Path $pattern -ErrorAction SilentlyContinue
+          }
+          if (-not $files) {
+            throw "No Windows Store assets were produced."
+          }
+          foreach ($file in $files) {
+            Copy-Item -LiteralPath $file.FullName -Destination (Join-Path "store-assets" $file.Name) -Force
+          }
+          Get-ChildItem -Path store-assets
+
+      - name: Sign store installers
+        if: vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing'
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME }}
+          files-folder: ${{ github.workspace }}\store-assets
+          files-folder-filter: exe,msi
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Sign store installers with PFX
+        if: vars.WINDOWS_SIGNING_PROVIDER == 'pfx'
+        shell: pwsh
+        run: |
+          $signTool = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter signtool.exe -Recurse |
+            Where-Object { $_.FullName -match "\\x64\\signtool\.exe$" } |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if (-not $signTool) {
+            throw "signtool.exe was not found on the Windows runner."
+          }
+          $timestampUrl = "${{ vars.WINDOWS_SIGNING_TIMESTAMP_URL }}"
+          if ([string]::IsNullOrWhiteSpace($timestampUrl)) {
+            $timestampUrl = "http://timestamp.digicert.com"
+          }
+          $files = Get-ChildItem -Path store-assets -Include *.exe,*.msi -File -Recurse
+          foreach ($file in $files) {
+            & $signTool.FullName sign /fd SHA256 /td SHA256 /tr $timestampUrl /sha1 $env:WINDOWS_CERTIFICATE_THUMBPRINT $file.FullName
+            if ($LASTEXITCODE -ne 0) {
+              throw "signtool failed for $($file.FullName)"
+            }
+          }
+
+      - name: Upload unsigned store installers for SignPath
+        if: vars.WINDOWS_SIGNING_PROVIDER == 'signpath'
+        id: upload_signpath_store_installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: signpath-store-installers
+          path: store-assets/*
+          if-no-files-found: error
+
+      - name: Submit SignPath signing request
+        if: vars.WINDOWS_SIGNING_PROVIDER == 'signpath'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ secrets.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.upload_signpath_store_installers.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed-store-installers
+
+      - name: Restore SignPath signed store installers
+        if: vars.WINDOWS_SIGNING_PROVIDER == 'signpath'
+        shell: pwsh
+        run: |
+          $signedDir = "signed-store-installers"
+          if (-not (Test-Path $signedDir)) {
+            throw "Signed artifact directory '$signedDir' not found."
+          }
+          $files = Get-ChildItem -Path $signedDir -Include *.exe,*.msi -File -Recurse
+          if (-not $files) {
+            throw "No signed Windows Store installers found in '$signedDir'."
+          }
+          foreach ($file in $files) {
+            Copy-Item -LiteralPath $file.FullName -Destination (Join-Path "store-assets" $file.Name) -Force
+          }
+
+      - name: Verify store signatures
+        if: vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing' || vars.WINDOWS_SIGNING_PROVIDER == 'pfx' || vars.WINDOWS_SIGNING_PROVIDER == 'signpath'
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Path store-assets -Include *.exe,*.msi -File -Recurse
+          if (-not $files) {
+            throw "No Windows Store installers found to verify."
+          }
+          foreach ($file in $files) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $file.FullName
+            Write-Host "$($file.Name): $($signature.Status)"
+            if ($signature.Status -ne "Valid") {
+              throw "$($file.FullName) signature is $($signature.Status): $($signature.StatusMessage)"
+            }
+          }
+
+      - name: Generate checksums
+        shell: pwsh
+        run: |
+          $lines = Get-ChildItem -Path store-assets -File | ForEach-Object {
+            $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName
+            "$($hash.Hash)  $($_.Name)"
+          }
+          $lines | Set-Content -Encoding UTF8 -Path "store-assets/SHA256SUMS.txt"
+          Get-Content -Path "store-assets/SHA256SUMS.txt"
+
+      - name: Remove imported PFX signing certificate
+        if: always() && vars.WINDOWS_SIGNING_PROVIDER == 'pfx'
+        shell: pwsh
+        run: |
+          if (-not [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_THUMBPRINT)) {
+            Remove-Item -LiteralPath "Cert:\CurrentUser\My\$env:WINDOWS_CERTIFICATE_THUMBPRINT" -Force -ErrorAction SilentlyContinue
+          }
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP "windows-code-signing.pfx") -Force -ErrorAction SilentlyContinue
+
+      - name: Upload Microsoft Store package assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-store-package-${{ steps.version.outputs.version }}
+          path: store-assets/*
+          if-no-files-found: error
