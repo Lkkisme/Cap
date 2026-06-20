@@ -1,0 +1,84 @@
+name: Windows Trust Readiness
+
+on:
+  workflow_dispatch:
+    inputs:
+      store_product_id:
+        description: "Optional Microsoft Store product ID"
+        required: false
+        default: ""
+        type: string
+      fail_on_missing:
+        description: "Fail when critical readiness checks are missing"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    name: Check Windows trust readiness
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate readiness report
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          WINDOWS_PACKAGE_PUBLISHER: ${{ vars.WINDOWS_PACKAGE_PUBLISHER }}
+          WINDOWS_SIGNING_PROVIDER: ${{ vars.WINDOWS_SIGNING_PROVIDER }}
+          WINDOWS_SIGNING_PUBLISHER_PATTERN: ${{ vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
+          AZURE_ARTIFACT_SIGNING_ENDPOINT: ${{ vars.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
+          AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME: ${{ vars.AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME }}
+          AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME: ${{ vars.AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME }}
+          NEXT_PUBLIC_WINDOWS_STORE_URL: ${{ vars.NEXT_PUBLIC_WINDOWS_STORE_URL }}
+          WINDOWS_STORE_URL: ${{ vars.WINDOWS_STORE_URL }}
+          CAP_WINDOWS_STORE_URL: ${{ vars.CAP_WINDOWS_STORE_URL }}
+          AZURE_CLIENT_ID_SET: ${{ secrets.AZURE_CLIENT_ID != '' }}
+          AZURE_TENANT_ID_SET: ${{ secrets.AZURE_TENANT_ID != '' }}
+          AZURE_SUBSCRIPTION_ID_SET: ${{ secrets.AZURE_SUBSCRIPTION_ID != '' }}
+          SIGNPATH_API_TOKEN_SET: ${{ secrets.SIGNPATH_API_TOKEN != '' }}
+          SIGNPATH_ORGANIZATION_ID_SET: ${{ secrets.SIGNPATH_ORGANIZATION_ID != '' }}
+          SIGNPATH_PROJECT_SLUG_SET: ${{ secrets.SIGNPATH_PROJECT_SLUG != '' }}
+          SIGNPATH_SIGNING_POLICY_SLUG_SET: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG != '' }}
+          SIGNPATH_ARTIFACT_CONFIGURATION_SLUG_SET: ${{ secrets.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG != '' }}
+          WINDOWS_CERTIFICATE_PFX_BASE64_SET: ${{ secrets.WINDOWS_CERTIFICATE_PFX_BASE64 != '' }}
+          WINDOWS_CERTIFICATE_PFX_PASSWORD_SET: ${{ secrets.WINDOWS_CERTIFICATE_PFX_PASSWORD != '' }}
+          AZURE_AD_APPLICATION_CLIENT_ID_SET: ${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID != '' }}
+          AZURE_AD_APPLICATION_SECRET_SET: ${{ secrets.AZURE_AD_APPLICATION_SECRET != '' }}
+          AZURE_AD_TENANT_ID_SET: ${{ secrets.AZURE_AD_TENANT_ID != '' }}
+          SELLER_ID_SET: ${{ secrets.SELLER_ID != '' }}
+        run: |
+          $params = @{
+            Repository = "${{ github.repository }}"
+            OutputDirectory = "windows-trust-readiness"
+            StoreProductId = "${{ inputs.store_product_id }}"
+          }
+
+          if ("${{ inputs.fail_on_missing }}" -eq "true") {
+            $params.FailOnMissing = $true
+          }
+
+          .\scripts\test-windows-trust-readiness.ps1 @params
+
+      - name: Add report to job summary
+        if: always()
+        shell: pwsh
+        run: |
+          $report = "windows-trust-readiness\windows-trust-readiness-report.md"
+          if (Test-Path -LiteralPath $report) {
+            Get-Content -LiteralPath $report | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          }
+
+      - name: Upload readiness report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-trust-readiness
+          path: windows-trust-readiness/*
+          if-no-files-found: ignore

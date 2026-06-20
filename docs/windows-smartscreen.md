@@ -84,7 +84,7 @@ PFX/signtool 需要这些 Secrets：
 | `WINDOWS_CERTIFICATE_PFX_BASE64` | Base64-encoded `.pfx` file |
 | `WINDOWS_CERTIFICATE_PFX_PASSWORD` | PFX password |
 
-配置好任一签名后端后，先手动运行 GitHub Actions 中的 `Windows Signing Check` workflow。它不会构建安装包，会检查 Windows 包元数据、`WINDOWS_SIGNING_PROVIDER`、`WINDOWS_SIGNING_PUBLISHER_PATTERN` 与对应 Variables/Secrets 是否齐全，并签名一个临时 Windows EXE 探针，验证 Authenticode 签名、可信时间戳、发布者匹配和 `signtool verify /pa /tw` 结果。检查通过后再创建新的 `cap-v*` tag 或手动运行 `Windows Release`。正式发布不要把 `require_signing` 改成 `false`；未签名测试只能作为 draft。
+配置好任一签名后端后，先手动运行 GitHub Actions 中的 `Windows Signing Check` workflow。它不会构建安装包，会检查 Windows 包元数据、`WINDOWS_SIGNING_PROVIDER`、`WINDOWS_SIGNING_PUBLISHER_PATTERN` 与对应 Variables/Secrets 是否齐全，并签名一个临时 Windows EXE 探针，验证 Authenticode 签名、可信时间戳、发布者匹配和 `signtool verify /pa /tw` 结果。接着运行 `Windows Trust Readiness` workflow，生成一份 readiness 报告，检查 Microsoft Store URL、Partner Center 自动提交凭据、Windows 签名 provider、发布者正则、Windows 发布 workflow、WinGet/WDSI workflow 和最新公开 Release 证据是否齐全；如果希望缺关键项时直接失败，把 `fail_on_missing` 设为 `true`。检查通过后再创建新的 `cap-v*` tag 或手动运行 `Windows Release`。正式发布不要把 `require_signing` 改成 `false`；未签名测试只能作为 draft。
 
 旧的 `publish` workflow 已禁用。Windows 正式发布只使用 `Windows Release` workflow，避免绕过签名检查。
 
@@ -130,6 +130,8 @@ Windows 安装包需要长期保持同一个应用身份，否则 SmartScreen、
 Defender 扫描不能代替代码签名、Store、WDSI 或 SmartScreen 声誉，但它能在公开发布前提前发现会被 Microsoft 安全栈直接拦截的安装包。这个检查通过后，再继续进行 checksum、attestation、Release 审计和 WDSI 流程。
 
 ## 发布后验证
+
+手动运行 GitHub Actions 中的 `Windows Trust Readiness` 可以在任何时候生成当前状态报告。它不会读取 secret 明文，只使用 GitHub Actions 传入的布尔状态判断相关 secret 是否已配置。报告会作为 workflow artifact 上传，也会写入 job summary。
 
 运行仓库脚本验证指定 Release 的 Windows 安装包：
 
