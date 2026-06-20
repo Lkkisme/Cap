@@ -13,9 +13,55 @@ on:
         required: true
         default: false
         type: boolean
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/release-desktop.yml"
+      - ".github/workflows/windows-*.yml"
+      - "apps/desktop/src-tauri/Cargo.toml"
+      - "apps/desktop/src-tauri/tauri*.json"
+      - "apps/web/app/(site)/download/**"
+      - "apps/web/components/pages/DownloadPage.tsx"
+      - "apps/web/utils/releases.ts"
+      - "docs/windows-smartscreen.md"
+      - "README.md"
+      - "scripts/*windows*.ps1"
+      - "scripts/generate-winget-manifest.ps1"
+      - "scripts/new-wdsi-submission-package.ps1"
+      - "scripts/test-windows-authenticode.ps1"
+      - "scripts/test-windows-installers.ps1"
+      - "scripts/test-windows-msix-layout.ps1"
+      - "scripts/test-windows-trust-readiness.ps1"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/release-desktop.yml"
+      - ".github/workflows/windows-*.yml"
+      - "apps/desktop/src-tauri/Cargo.toml"
+      - "apps/desktop/src-tauri/tauri*.json"
+      - "apps/web/app/(site)/download/**"
+      - "apps/web/components/pages/DownloadPage.tsx"
+      - "apps/web/utils/releases.ts"
+      - "docs/windows-smartscreen.md"
+      - "README.md"
+      - "scripts/*windows*.ps1"
+      - "scripts/generate-winget-manifest.ps1"
+      - "scripts/new-wdsi-submission-package.ps1"
+      - "scripts/test-windows-authenticode.ps1"
+      - "scripts/test-windows-installers.ps1"
+      - "scripts/test-windows-msix-layout.ps1"
+      - "scripts/test-windows-trust-readiness.ps1"
+  schedule:
+    - cron: "17 9 * * 1"
 
 permissions:
   contents: read
+
+concurrency:
+  group: windows-trust-readiness-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   readiness:
@@ -57,10 +103,10 @@ jobs:
           $params = @{
             Repository = "${{ github.repository }}"
             OutputDirectory = "windows-trust-readiness"
-            StoreProductId = "${{ inputs.store_product_id }}"
+            StoreProductId = "${{ github.event_name == 'workflow_dispatch' && inputs.store_product_id || '' }}"
           }
 
-          if ("${{ inputs.fail_on_missing }}" -eq "true") {
+          if ("${{ github.event_name == 'workflow_dispatch' && inputs.fail_on_missing || false }}" -eq "true") {
             $params.FailOnMissing = $true
           }
 
