@@ -1,11 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server";
 import {
-	GITHUB_RELEASES_URL,
 	getLatestWindowsDownload,
 	getWindowsStoreDownloadUrl,
 } from "@/utils/releases";
 
 export const runtime = "edge";
+
+function windowsStatusUrl(request: NextRequest) {
+	return new URL("/download/windows-status", request.url);
+}
 
 export async function GET(
 	request: NextRequest,
@@ -19,22 +22,22 @@ export async function GET(
 		if (storeUrl) return NextResponse.redirect(storeUrl);
 
 		const downloadUrl = await getLatestWindowsDownload("exe").catch(() => null);
-		return NextResponse.redirect(downloadUrl || GITHUB_RELEASES_URL);
+		return NextResponse.redirect(downloadUrl || windowsStatusUrl(request));
 	}
 
 	if (platform === "windows-store" || platform === "win-store") {
 		const storeUrl = getWindowsStoreDownloadUrl();
-		return NextResponse.redirect(storeUrl || GITHUB_RELEASES_URL);
+		return NextResponse.redirect(storeUrl || windowsStatusUrl(request));
 	}
 
 	if (platform === "windows-exe" || platform === "win-exe") {
 		const downloadUrl = await getLatestWindowsDownload("exe").catch(() => null);
-		return NextResponse.redirect(downloadUrl || GITHUB_RELEASES_URL);
+		return NextResponse.redirect(downloadUrl || windowsStatusUrl(request));
 	}
 
 	if (platform === "windows-msi" || platform === "win-msi") {
 		const downloadUrl = await getLatestWindowsDownload("msi").catch(() => null);
-		return NextResponse.redirect(downloadUrl || GITHUB_RELEASES_URL);
+		return NextResponse.redirect(downloadUrl || windowsStatusUrl(request));
 	}
 
 	const downloadUrls: Record<string, string> = {

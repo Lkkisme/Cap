@@ -55,10 +55,13 @@ function DownloadLinks({
 						{hasWindowsStoreUrl ? "Windows Store" : "Windows"}
 					</a>
 				) : (
-					<span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-2 text-gray-9">
+					<Link
+						href="/download/windows-status"
+						className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-2 text-gray-9 hover:bg-gray-3 transition-colors"
+					>
 						<WindowsIcon />
 						Windows pending verification
-					</span>
+					</Link>
 				)}
 				{hasVerifiedWindowsDownloads && (
 					<>
@@ -125,10 +128,13 @@ function DownloadLinks({
 				</a>
 			)}
 			{hasWindowsDownloads && !hasVerifiedWindowsDownloads && (
-				<span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-2 text-gray-9">
+				<Link
+					href="/download/windows-status"
+					className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md bg-gray-2 text-gray-9 hover:bg-gray-3 transition-colors"
+				>
 					<WindowsIcon />
 					Windows pending verification
-				</span>
+				</Link>
 			)}
 		</div>
 	);

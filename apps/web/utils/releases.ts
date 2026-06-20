@@ -19,8 +19,6 @@ export interface Release {
 	hasWindowsWdsiEvidence: boolean;
 }
 
-export const GITHUB_RELEASES_URL = "https://github.com/Lkkisme/Cap/releases";
-
 const MICROSOFT_STORE_HOSTS = new Set([
 	"apps.microsoft.com",
 	"www.microsoft.com",
