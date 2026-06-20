@@ -28,21 +28,32 @@ jobs:
     env:
       TARGET: x86_64-pc-windows-msvc
     steps:
-      - name: Validate signing configuration
-        shell: pwsh
-        run: |
-          $provider = "${{ vars.WINDOWS_SIGNING_PROVIDER }}"
-          $requireSigning = "${{ inputs.require_signing }}" -eq "true"
-          $allowedProviders = @("azure-artifact-signing", "signpath", "pfx")
-          if ($requireSigning -and -not $allowedProviders.Contains($provider)) {
-            throw "Microsoft Store submissions require signed Windows installers. Set WINDOWS_SIGNING_PROVIDER to azure-artifact-signing, signpath, or pfx, or rerun with require_signing=false for a dry run."
-          }
-          if ($provider -and -not $allowedProviders.Contains($provider)) {
-            throw "Unsupported WINDOWS_SIGNING_PROVIDER '$provider'."
-          }
-
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Validate signing configuration
+        shell: pwsh
+        env:
+          WINDOWS_SIGNING_PROVIDER: ${{ vars.WINDOWS_SIGNING_PROVIDER }}
+          AZURE_ARTIFACT_SIGNING_ENDPOINT: ${{ vars.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
+          AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME: ${{ vars.AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME }}
+          AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME: ${{ vars.AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
+          SIGNPATH_ORGANIZATION_ID: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          SIGNPATH_PROJECT_SLUG: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
+          SIGNPATH_SIGNING_POLICY_SLUG: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
+          SIGNPATH_ARTIFACT_CONFIGURATION_SLUG: ${{ secrets.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
+          WINDOWS_CERTIFICATE_PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_PFX_BASE64 }}
+          WINDOWS_CERTIFICATE_PFX_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PFX_PASSWORD }}
+        run: |
+          if ("${{ inputs.require_signing }}" -eq "true") {
+            & .\scripts\validate-windows-signing.ps1 -RequireSigning
+          } else {
+            & .\scripts\validate-windows-signing.ps1 -AllowUnsigned
+          }
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
