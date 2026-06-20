@@ -151,6 +151,16 @@ foreach ($asset in $assets) {
 $checksumPath = Join-Path $OutputDirectory "SHA256SUMS.txt"
 $rows | ForEach-Object { "$($_.Sha256)  $($_.File)" } | Set-Content -Encoding UTF8 -Path $checksumPath
 
+$assetJsonPath = Join-Path $OutputDirectory "windows-release-assets.json"
+$assetJson = [pscustomobject]@{
+    Repository = $Repository
+    ReleaseUrl = $release.html_url
+    Tag = $Tag
+    Generated = (Get-Date).ToUniversalTime().ToString("u")
+    Assets = $rows
+}
+$assetJson | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 -Path $assetJsonPath
+
 $reportPath = Join-Path $OutputDirectory "windows-smartscreen-report.md"
 $lines = @()
 $lines += "# Windows SmartScreen Verification Report"
@@ -242,4 +252,5 @@ if ($releaseChecksumPath) {
     Write-Output "Release checksums: $releaseChecksumPath"
 }
 Write-Output "Checksums: $checksumPath"
+Write-Output "Asset metadata: $assetJsonPath"
 Write-Output "Report: $reportPath"
