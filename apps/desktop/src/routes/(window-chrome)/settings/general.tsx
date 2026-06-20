@@ -1048,7 +1048,7 @@ function LanguageSelector() {
 		<For each={languages}>
 			{(language) => (
 				<Button
-					variant={currentLanguage === language.code ? "primary" : "gray"}
+					variant={currentLanguage() === language.code ? "primary" : "gray"}
 					size="sm"
 					class="text-xs"
 					onClick={() => changeLanguage(language.code)}
