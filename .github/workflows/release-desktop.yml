@@ -8,6 +8,9 @@ on:
         required: true
         default: true
         type: boolean
+  push:
+    tags:
+      - "cap-v*"
 
 permissions:
   contents: write
@@ -25,6 +28,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
       tag_name: ${{ steps.version.outputs.tag_name }}
       release_name: ${{ steps.version.outputs.release_name }}
+      draft: ${{ steps.version.outputs.draft }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,9 +42,15 @@ jobs:
             echo "Unable to read version from $APP_CARGO_TOML" >&2
             exit 1
           fi
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            tag_name="$GITHUB_REF_NAME"
+          else
+            tag_name="cap-v$version"
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "tag_name=cap-v$version" >> "$GITHUB_OUTPUT"
+          echo "tag_name=$tag_name" >> "$GITHUB_OUTPUT"
           echo "release_name=Cap 中文版 $version" >> "$GITHUB_OUTPUT"
+          echo "draft=${{ github.event_name == 'workflow_dispatch' && inputs.draft || false }}" >> "$GITHUB_OUTPUT"
 
   build:
     name: Build ${{ matrix.name }}
@@ -172,7 +182,7 @@ jobs:
         with:
           tag_name: ${{ needs.metadata.outputs.tag_name }}
           name: ${{ needs.metadata.outputs.release_name }}
-          draft: ${{ inputs.draft }}
+          draft: ${{ needs.metadata.outputs.draft }}
           prerelease: false
           fail_on_unmatched_files: true
           files: release-assets/*
