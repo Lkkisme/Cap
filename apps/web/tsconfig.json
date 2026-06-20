@@ -30,6 +30,7 @@
 			"@/pages/*": ["components/pages/*"],
 			"@/utils/*": ["utils/*"],
 			"@/lib/*": ["lib/*"],
+			"@/contracts/*": ["contracts/*"],
 			"@/actions/*": ["actions/*"],
 			"@/data/*": ["data/*"],
 			"@/services": ["services"],
