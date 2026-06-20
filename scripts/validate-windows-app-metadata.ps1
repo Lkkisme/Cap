@@ -21,8 +21,12 @@ function Assert-Value {
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $tauriConfigPath = Join-Path $repoRoot "apps\desktop\src-tauri\tauri.conf.json"
+$tauriGithubReleaseConfigPath = Join-Path $repoRoot "apps\desktop\src-tauri\tauri.github-release.conf.json"
+$tauriStoreConfigPath = Join-Path $repoRoot "apps\desktop\src-tauri\tauri.microsoft-store.conf.json"
 $cargoTomlPath = Join-Path $repoRoot "apps\desktop\src-tauri\Cargo.toml"
 $tauriConfig = Get-Content -Raw -Encoding UTF8 -LiteralPath $tauriConfigPath | ConvertFrom-Json
+$tauriGithubReleaseConfig = Get-Content -Raw -Encoding UTF8 -LiteralPath $tauriGithubReleaseConfigPath | ConvertFrom-Json
+$tauriStoreConfig = Get-Content -Raw -Encoding UTF8 -LiteralPath $tauriStoreConfigPath | ConvertFrom-Json
 $cargoToml = Get-Content -Raw -Encoding UTF8 -LiteralPath $cargoTomlPath
 $expectedProductName = "Cap $([char]0x4E2D)$([char]0x6587)$([char]0x7248)"
 
@@ -42,6 +46,8 @@ Assert-Value (Test-Path -LiteralPath $licensePath) "bundle.licenseFile must reso
 Assert-Value ($tauriConfig.bundle.windows.wix.upgradeCode -match "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$") "bundle.windows.wix.upgradeCode must be a stable GUID."
 Assert-Value ($tauriConfig.bundle.windows.wix.language -eq "zh-CN") "bundle.windows.wix.language must be zh-CN."
 Assert-Value (@($tauriConfig.bundle.windows.nsis.languages) -contains "SimpChinese") "bundle.windows.nsis.languages must include SimpChinese."
+Assert-Value ($tauriGithubReleaseConfig.bundle.windows.webviewInstallMode.type -eq "offlineInstaller") "tauri.github-release.conf.json must use offline WebView2 installation."
+Assert-Value ($tauriStoreConfig.bundle.windows.webviewInstallMode.type -eq "offlineInstaller") "tauri.microsoft-store.conf.json must use offline WebView2 installation."
 
 Assert-Value ($cargoToml -match '(?m)^authors\s*=\s*\["Lkkisme"\]') "Cargo.toml authors must be ['Lkkisme']."
 Assert-Value ($cargoToml -notmatch '(?m)^authors\s*=\s*\["you"\]') "Cargo.toml authors must not use the placeholder 'you'."

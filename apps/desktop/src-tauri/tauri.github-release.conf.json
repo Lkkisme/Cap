@@ -6,6 +6,11 @@
 		}
 	},
 	"bundle": {
-		"createUpdaterArtifacts": false
+		"createUpdaterArtifacts": false,
+		"windows": {
+			"webviewInstallMode": {
+				"type": "offlineInstaller"
+			}
+		}
 	}
 }
