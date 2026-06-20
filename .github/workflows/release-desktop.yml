@@ -1,4 +1,4 @@
-name: Desktop Release
+name: Windows Release
 
 on:
   workflow_dispatch:
@@ -52,7 +52,7 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "tag_name=$tag_name" >> "$GITHUB_OUTPUT"
-          echo "release_name=Cap 中文版 $version" >> "$GITHUB_OUTPUT"
+          echo "release_name=Cap Windows $version" >> "$GITHUB_OUTPUT"
           echo "draft=${{ github.event_name == 'workflow_dispatch' && inputs.draft || false }}" >> "$GITHUB_OUTPUT"
 
   build:
@@ -68,14 +68,6 @@ jobs:
             runner: windows-2022
             target: x86_64-pc-windows-msvc
             slug: windows-x64
-          - name: macOS Apple Silicon
-            runner: macos-15
-            target: aarch64-apple-darwin
-            slug: macos-arm64
-          - name: macOS Intel
-            runner: macos-15-intel
-            target: x86_64-apple-darwin
-            slug: macos-x64
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -252,8 +244,7 @@ jobs:
           New-Item -ItemType Directory -Path release-assets -Force | Out-Null
           $patterns = @(
             "target/${{ matrix.target }}/release/bundle/nsis/*.exe",
-            "target/${{ matrix.target }}/release/bundle/msi/*.msi",
-            "target/${{ matrix.target }}/release/bundle/dmg/*.dmg"
+            "target/${{ matrix.target }}/release/bundle/msi/*.msi"
           )
           $files = foreach ($pattern in $patterns) {
             Get-ChildItem -Path $pattern -ErrorAction SilentlyContinue
@@ -416,11 +407,8 @@ jobs:
           fail_on_unmatched_files: true
           files: release-assets/*
           body: |
-            下载与电脑匹配的安装包即可使用，无需安装 Node.js、Rust、pnpm 或开发环境。
+            Download the Windows x64 EXE or MSI installer. Users do not need Node.js, Rust, pnpm, or a development environment.
 
-            Windows 用户下载 `windows-x64.exe` 或 `windows-x64.msi`。
-            Apple Silicon Mac 用户下载 `macos-arm64.dmg`。
-            Intel Mac 用户下载 `macos-x64.dmg`。
+            If Windows signing is configured, the EXE and MSI are Authenticode signed and verified before upload. New publishers or new files can still show SmartScreen warnings until Microsoft reputation builds.
 
-            Windows 包如果已经使用 Azure Artifact Signing 签名，会显示已验证发布者并逐步积累 SmartScreen 声誉。新发布者或新文件仍可能短期显示 SmartScreen 提示。
-            `SHA256SUMS.txt` 可用于校验下载文件是否与发布产物一致。
+            SHA256SUMS.txt can be used to verify downloaded files.
