@@ -2,11 +2,28 @@ name: Windows Signing Check
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/signpath/**"
+      - ".github/workflows/windows-signing-check.yml"
+      - "apps/desktop/src-tauri/Cargo.toml"
+      - "apps/desktop/src-tauri/tauri*.json"
+      - "scripts/test-windows-authenticode.ps1"
+      - "scripts/validate-windows-app-metadata.ps1"
+      - "scripts/validate-windows-signing.ps1"
+  schedule:
+    - cron: "43 9 * * 1"
 
 permissions:
   actions: read
   contents: read
   id-token: write
+
+concurrency:
+  group: windows-signing-check-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
@@ -41,9 +58,15 @@ jobs:
           SIGNPATH_ARTIFACT_CONFIGURATION_SLUG: ${{ secrets.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
           WINDOWS_CERTIFICATE_PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_PFX_BASE64 }}
           WINDOWS_CERTIFICATE_PFX_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PFX_PASSWORD }}
-        run: .\scripts\validate-windows-signing.ps1 -RequireSigning
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            .\scripts\validate-windows-signing.ps1 -RequireSigning
+          } else {
+            .\scripts\validate-windows-signing.ps1 -AllowUnsigned
+          }
 
       - name: Build signing probe
+        if: steps.signing.outputs.provider != ''
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path signing-probe -Force | Out-Null
@@ -143,6 +166,7 @@ jobs:
           Copy-Item -LiteralPath $signedFile.FullName -Destination signing-probe\CapSigningProbe.exe -Force
 
       - name: Verify signing probe
+        if: steps.signing.outputs.provider != ''
         shell: pwsh
         env:
           WINDOWS_SIGNING_PUBLISHER_PATTERN: ${{ vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
