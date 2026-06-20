@@ -4,5 +4,8 @@
     <pe-file path="*.exe" max-matches="unbounded">
       <authenticode-sign />
     </pe-file>
+    <msi-file path="*.msi" max-matches="unbounded">
+      <authenticode-sign />
+    </msi-file>
   </zip-file>
 </artifact-configuration>

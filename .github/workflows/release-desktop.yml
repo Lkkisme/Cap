@@ -13,6 +13,7 @@ on:
       - "cap-v*"
 
 permissions:
+  actions: read
   contents: write
   id-token: write
 
@@ -127,7 +128,7 @@ jobs:
           RUST_TARGET_TRIPLE: ${{ matrix.target }}
 
       - name: Build desktop app
-        if: runner.os != 'Windows' || vars.WINDOWS_SIGNING_PROVIDER != 'azure-artifact-signing'
+        if: runner.os != 'Windows' || (vars.WINDOWS_SIGNING_PROVIDER != 'azure-artifact-signing' && vars.WINDOWS_SIGNING_PROVIDER != 'pfx')
         working-directory: apps/desktop
         run: pnpm build:tauri --target ${{ matrix.target }} --config src-tauri/tauri.github-release.conf.json
         env:
@@ -135,7 +136,7 @@ jobs:
           RUST_TARGET_TRIPLE: ${{ matrix.target }}
 
       - name: Build Windows app without bundling
-        if: runner.os == 'Windows' && vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing'
+        if: runner.os == 'Windows' && (vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing' || vars.WINDOWS_SIGNING_PROVIDER == 'pfx')
         working-directory: apps/desktop
         run: pnpm build:tauri --target ${{ matrix.target }} --config src-tauri/tauri.github-release.conf.json --no-bundle
         env:
@@ -150,6 +151,27 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Import PFX signing certificate
+        if: runner.os == 'Windows' && vars.WINDOWS_SIGNING_PROVIDER == 'pfx'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_PFX_BASE64 }}
+          WINDOWS_CERTIFICATE_PFX_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PFX_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PFX_BASE64)) {
+            throw "WINDOWS_CERTIFICATE_PFX_BASE64 is required when WINDOWS_SIGNING_PROVIDER is pfx."
+          }
+          $pfxPath = Join-Path $env:RUNNER_TEMP "windows-code-signing.pfx"
+          [System.IO.File]::WriteAllBytes($pfxPath, [System.Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_PFX_BASE64))
+          $password = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PFX_PASSWORD -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $password |
+            Where-Object { $_.HasPrivateKey } |
+            Select-Object -First 1
+          if (-not $cert.Thumbprint) {
+            throw "Failed to import PFX signing certificate."
+          }
+          "WINDOWS_CERTIFICATE_THUMBPRINT=$($cert.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
       - name: Sign Windows app binaries
         if: runner.os == 'Windows' && vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing'
         uses: azure/artifact-signing-action@v2
@@ -163,8 +185,34 @@ jobs:
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
 
+      - name: Sign Windows app binaries with PFX
+        if: runner.os == 'Windows' && vars.WINDOWS_SIGNING_PROVIDER == 'pfx'
+        shell: pwsh
+        run: |
+          $signTool = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter signtool.exe -Recurse |
+            Where-Object { $_.FullName -match "\\x64\\signtool\.exe$" } |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if (-not $signTool) {
+            throw "signtool.exe was not found on the Windows runner."
+          }
+          $timestampUrl = "${{ vars.WINDOWS_SIGNING_TIMESTAMP_URL }}"
+          if ([string]::IsNullOrWhiteSpace($timestampUrl)) {
+            $timestampUrl = "http://timestamp.digicert.com"
+          }
+          $files = Get-ChildItem -Path "target/${{ matrix.target }}/release" -Include *.exe,*.dll -File -Recurse
+          if (-not $files) {
+            throw "No Windows binaries found to sign."
+          }
+          foreach ($file in $files) {
+            & $signTool.FullName sign /fd SHA256 /td SHA256 /tr $timestampUrl /sha1 $env:WINDOWS_CERTIFICATE_THUMBPRINT $file.FullName
+            if ($LASTEXITCODE -ne 0) {
+              throw "signtool failed for $($file.FullName)"
+            }
+          }
+
       - name: Bundle signed Windows app
-        if: runner.os == 'Windows' && vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing'
+        if: runner.os == 'Windows' && (vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing' || vars.WINDOWS_SIGNING_PROVIDER == 'pfx')
         working-directory: apps/desktop
         run: pnpm exec dotenv -e ../../.env -- pnpm tauri bundle --target ${{ matrix.target }} --config src-tauri/tauri.github-release.conf.json
         env:
@@ -206,8 +254,73 @@ jobs:
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
 
+      - name: Sign Windows installers with PFX
+        if: runner.os == 'Windows' && vars.WINDOWS_SIGNING_PROVIDER == 'pfx'
+        shell: pwsh
+        run: |
+          $signTool = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter signtool.exe -Recurse |
+            Where-Object { $_.FullName -match "\\x64\\signtool\.exe$" } |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if (-not $signTool) {
+            throw "signtool.exe was not found on the Windows runner."
+          }
+          $timestampUrl = "${{ vars.WINDOWS_SIGNING_TIMESTAMP_URL }}"
+          if ([string]::IsNullOrWhiteSpace($timestampUrl)) {
+            $timestampUrl = "http://timestamp.digicert.com"
+          }
+          $files = Get-ChildItem -Path release-assets -Include *.exe,*.msi -File -Recurse
+          if (-not $files) {
+            throw "No Windows installers found to sign."
+          }
+          foreach ($file in $files) {
+            & $signTool.FullName sign /fd SHA256 /td SHA256 /tr $timestampUrl /sha1 $env:WINDOWS_CERTIFICATE_THUMBPRINT $file.FullName
+            if ($LASTEXITCODE -ne 0) {
+              throw "signtool failed for $($file.FullName)"
+            }
+          }
+
+      - name: Upload unsigned Windows installers for SignPath
+        if: runner.os == 'Windows' && vars.WINDOWS_SIGNING_PROVIDER == 'signpath'
+        id: upload_signpath_windows_installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: signpath-windows-installers-${{ matrix.slug }}
+          path: release-assets/*
+          if-no-files-found: error
+
+      - name: Submit SignPath signing request
+        if: runner.os == 'Windows' && vars.WINDOWS_SIGNING_PROVIDER == 'signpath'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ secrets.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.upload_signpath_windows_installers.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed-windows-installers
+
+      - name: Restore SignPath signed installers
+        if: runner.os == 'Windows' && vars.WINDOWS_SIGNING_PROVIDER == 'signpath'
+        shell: pwsh
+        run: |
+          $signedDir = "signed-windows-installers"
+          if (-not (Test-Path $signedDir)) {
+            throw "Signed artifact directory '$signedDir' not found."
+          }
+          $files = Get-ChildItem -Path $signedDir -Include *.exe,*.msi -File -Recurse
+          if (-not $files) {
+            throw "No signed Windows installers found in '$signedDir'."
+          }
+          foreach ($file in $files) {
+            Copy-Item -LiteralPath $file.FullName -Destination (Join-Path "release-assets" $file.Name) -Force
+          }
+          Get-ChildItem -Path release-assets
+
       - name: Verify Windows signatures
-        if: runner.os == 'Windows' && vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing'
+        if: runner.os == 'Windows' && (vars.WINDOWS_SIGNING_PROVIDER == 'azure-artifact-signing' || vars.WINDOWS_SIGNING_PROVIDER == 'pfx' || vars.WINDOWS_SIGNING_PROVIDER == 'signpath')
         shell: pwsh
         run: |
           $files = Get-ChildItem -Path release-assets -Include *.exe,*.msi -File -Recurse
@@ -221,6 +334,15 @@ jobs:
               throw "$($file.FullName) signature is $($signature.Status): $($signature.StatusMessage)"
             }
           }
+
+      - name: Remove imported PFX signing certificate
+        if: always() && runner.os == 'Windows' && vars.WINDOWS_SIGNING_PROVIDER == 'pfx'
+        shell: pwsh
+        run: |
+          if (-not [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_THUMBPRINT)) {
+            Remove-Item -LiteralPath "Cert:\CurrentUser\My\$env:WINDOWS_CERTIFICATE_THUMBPRINT" -Force -ErrorAction SilentlyContinue
+          }
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP "windows-code-signing.pfx") -Force -ErrorAction SilentlyContinue
 
       - name: Upload release assets
         uses: actions/upload-artifact@v4
