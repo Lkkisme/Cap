@@ -5,6 +5,7 @@ param(
     [string]$OutputDirectory = "",
     [switch]$RequireValidSignatures,
     [switch]$VerifyChecksums,
+    [switch]$VerifyAttestations,
     [string]$ExpectedPublisherPattern = "",
     [string]$GitHubToken = $env:GITHUB_TOKEN
 )
@@ -61,6 +62,18 @@ if ($VerifyChecksums -and $expectedHashes.Count -eq 0) {
     throw "Release tag '$Tag' has no parseable SHA256 entries."
 }
 
+$ghCommand = $null
+if ($VerifyAttestations) {
+    $ghCommand = Get-Command gh -ErrorAction SilentlyContinue
+    if (-not $ghCommand) {
+        throw "GitHub CLI 'gh' is required when -VerifyAttestations is used."
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($GitHubToken) -and [string]::IsNullOrWhiteSpace($env:GITHUB_TOKEN)) {
+        $env:GITHUB_TOKEN = $GitHubToken
+    }
+}
+
 $rows = @()
 
 foreach ($asset in $assets) {
@@ -83,6 +96,8 @@ foreach ($asset in $assets) {
         $notBefore = $signature.SignerCertificate.NotBefore.ToString("u")
         $notAfter = $signature.SignerCertificate.NotAfter.ToString("u")
     }
+
+    $attestationStatus = if ($VerifyAttestations) { "NotVerified" } else { "NotRequested" }
 
     $checksumStatus = "NoReleaseChecksum"
     if ($expectedHashes.Count -gt 0) {
@@ -109,10 +124,19 @@ foreach ($asset in $assets) {
         throw "$($asset.name) publisher '$publisher' does not match expected pattern '$ExpectedPublisherPattern'."
     }
 
+    if ($VerifyAttestations) {
+        & $ghCommand.Source attestation verify $filePath --repo $Repository
+        if ($LASTEXITCODE -ne 0) {
+            throw "$($asset.name) GitHub artifact attestation verification failed."
+        }
+        $attestationStatus = "Valid"
+    }
+
     $rows += [pscustomobject]@{
         File = $asset.name
         Sha256 = $hash.Hash
         ChecksumStatus = $checksumStatus
+        AttestationStatus = $attestationStatus
         SignatureStatus = $signature.Status.ToString()
         SignatureMessage = $signature.StatusMessage
         Publisher = $publisher
@@ -138,11 +162,11 @@ $lines += "Generated: $((Get-Date).ToUniversalTime().ToString("u"))"
 $lines += ""
 $lines += "## Assets"
 $lines += ""
-$lines += "| File | SHA256 | Release checksum | Signature | Publisher |"
-$lines += "| --- | --- | --- | --- | --- |"
+$lines += "| File | SHA256 | Release checksum | Attestation | Signature | Publisher |"
+$lines += "| --- | --- | --- | --- | --- | --- |"
 
 foreach ($row in $rows) {
-    $lines += '| `{0}` | `{1}` | `{2}` | `{3}` | {4} |' -f $row.File, $row.Sha256, $row.ChecksumStatus, $row.SignatureStatus, $row.Publisher
+    $lines += '| `{0}` | `{1}` | `{2}` | `{3}` | `{4}` | {5} |' -f $row.File, $row.Sha256, $row.ChecksumStatus, $row.AttestationStatus, $row.SignatureStatus, $row.Publisher
 }
 
 $lines += ""
@@ -151,6 +175,7 @@ $lines += ""
 
 $invalidSignatures = @($rows | Where-Object { $_.SignatureStatus -ne "Valid" })
 $invalidChecksums = @($rows | Where-Object { $_.ChecksumStatus -ne "Valid" })
+$invalidAttestations = @($rows | Where-Object { $_.AttestationStatus -notin @("Valid", "NotRequested") })
 
 if ($invalidSignatures.Count -eq 0) {
     $lines += "All Windows installers have valid Authenticode signatures."
@@ -166,6 +191,16 @@ if ($checksumAsset) {
     }
 } else {
     $lines += "The release does not include SHA256SUMS.txt, so published checksums could not be verified."
+}
+
+if ($VerifyAttestations) {
+    if ($invalidAttestations.Count -eq 0) {
+        $lines += "All Windows installers have valid GitHub artifact attestations for this repository."
+    } else {
+        $lines += "One or more Windows installers failed GitHub artifact attestation verification."
+    }
+} else {
+    $lines += "GitHub artifact attestations were not verified in this run."
 }
 
 if (-not [string]::IsNullOrWhiteSpace($ExpectedPublisherPattern)) {
@@ -202,7 +237,7 @@ foreach ($row in $rows) {
 
 $lines | Set-Content -Encoding UTF8 -Path $reportPath
 
-$rows | Format-Table File, Sha256, ChecksumStatus, SignatureStatus, Publisher -AutoSize
+$rows | Format-Table File, Sha256, ChecksumStatus, AttestationStatus, SignatureStatus, Publisher -AutoSize
 if ($releaseChecksumPath) {
     Write-Output "Release checksums: $releaseChecksumPath"
 }

@@ -108,7 +108,7 @@ Windows 安装包需要长期保持同一个应用身份，否则 SmartScreen、
 - 已公开的 `cap-v*` Release 不要替换 EXE/MSI；如果需要重新发布安装包，创建新的 tag，让用户和微软都能看到清晰版本边界。
 - 保留源码、release notes、hash、签名信息，方便微软人工复核。
 - 发布后下载 Windows EXE/MSI，用 `Get-AuthenticodeSignature` 确认状态是 `Valid`。
-- 发布后等待自动触发的 `Windows Release Audit` workflow 通过，确认 Release 中的 Windows EXE/MSI 签名有效并且匹配 `SHA256SUMS.txt`。
+- 发布后等待自动触发的 `Windows Release Audit` workflow 通过，确认 Release 中的 Windows EXE/MSI 签名有效、匹配 `SHA256SUMS.txt`，并且通过 GitHub artifact attestation 验证。
 - 需要 WinGet 分发时，在审计通过后运行 `Windows WinGet Manifest` workflow，并把生成的 manifest 提交到 `microsoft/winget-pkgs`。
 - 如果 Windows 包开始被拦截，提交签名后的 EXE/MSI 到 https://www.microsoft.com/en-us/wdsi/filesubmission。
 
@@ -138,10 +138,18 @@ powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag
 powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag cap-v0.4.3-cn -RequireValidSignatures -VerifyChecksums
 ```
 
+要求签名、Release checksum 和 GitHub artifact attestation 都必须有效时：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag cap-v0.4.3-cn -RequireValidSignatures -VerifyChecksums -VerifyAttestations
+```
+
+本地使用 `-VerifyAttestations` 时需要安装 GitHub CLI `gh`，并确保它可以访问该仓库的 attestations。GitHub Actions runner 已内置 `gh`，workflow 会使用 `GITHUB_TOKEN`。
+
 如果要同时确认发布者名称，可以加上 `-ExpectedPublisherPattern`：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag cap-v0.4.3-cn -RequireValidSignatures -VerifyChecksums -ExpectedPublisherPattern "CN=Your Publisher Name"
+powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag cap-v0.4.3-cn -RequireValidSignatures -VerifyChecksums -VerifyAttestations -ExpectedPublisherPattern "CN=Your Publisher Name"
 ```
 
 脚本会下载 Release 中的 Windows EXE/MSI，生成：
@@ -149,7 +157,7 @@ powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag
 - `.release-verification/<tag>/SHA256SUMS.txt`
 - `.release-verification/<tag>/windows-smartscreen-report.md`
 
-`cap-v*` Release published 后会自动触发 `Windows Release Audit`。也可以在 GitHub Actions 里手动运行它并输入 Release tag。该 workflow 会用同一个脚本审计公开 Release，要求 Windows 安装包签名有效并且匹配 Release 中的 `SHA256SUMS.txt`。只有这个审计通过后，才建议把 GitHub Release 链接发给普通用户或用于 WDSI 提交。
+`cap-v*` Release published 后会自动触发 `Windows Release Audit`。也可以在 GitHub Actions 里手动运行它并输入 Release tag。该 workflow 会用同一个脚本审计公开 Release，要求 Windows 安装包签名有效、匹配 Release 中的 `SHA256SUMS.txt`，并且通过 GitHub artifact attestation 验证。只有这个审计通过后，才建议把 GitHub Release 链接发给普通用户或用于 WDSI 提交。
 
 当前 `cap-v0.4.3-cn` 的 Windows EXE/MSI 验证结果是 `NotSigned`。启用任一签名后端并重新发布后，应重新运行该脚本并确认状态为 `Valid`。
 
@@ -157,7 +165,7 @@ powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag
 
 1. 完成 Windows 签名配置。
 2. 运行 `Windows Release` 生成签名后的公开 Release。
-3. 等待自动触发的 `Windows Release Audit` 通过，确认签名和 `SHA256SUMS.txt` 都通过。
+3. 等待自动触发的 `Windows Release Audit` 通过，确认签名、`SHA256SUMS.txt` 和 GitHub artifact attestation 都通过。
 4. 运行 `Windows WinGet Manifest`，输入刚发布的 tag。
 5. 下载 workflow artifact `winget-manifest-<tag>`。
 6. 在本地或 `microsoft/winget-pkgs` fork 中运行 `winget validate <manifest-folder>`。
@@ -211,6 +219,7 @@ This is an open-source screen recording application distributed from the officia
 - SignPath GitHub integration: https://docs.signpath.io/trusted-build-systems/github
 - SignPath artifact configuration: https://docs.signpath.io/artifact-configuration/examples
 - Microsoft file submission: https://www.microsoft.com/en-us/wdsi/filesubmission
+- GitHub CLI attestation verify: https://cli.github.com/manual/gh_attestation_verify
 - Windows Package Manager manifest: https://learn.microsoft.com/en-us/windows/package-manager/package/manifest
 - Windows Package Manager submission: https://learn.microsoft.com/en-us/windows/package-manager/package/repository
 - Tauri Windows signing: https://v2.tauri.app/distribute/sign/windows/

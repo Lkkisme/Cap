@@ -43,6 +43,7 @@ jobs:
             OutputDirectory = "windows-release-audit"
             RequireValidSignatures = $true
             VerifyChecksums = $true
+            VerifyAttestations = $true
           }
 
           if (-not [string]::IsNullOrWhiteSpace($env:EXPECTED_PUBLISHER_PATTERN)) {
