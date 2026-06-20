@@ -173,6 +173,17 @@ jobs:
         shell: pwsh
         run: winapp manifest update-assets apps\desktop\src-tauri\icons\icon.png --manifest msix-layout\Package.appxmanifest
 
+      - name: Verify MSIX layout
+        shell: pwsh
+        run: |
+          .\scripts\test-windows-msix-layout.ps1 `
+            -Path msix-layout `
+            -ExpectedPackageName "${{ inputs.package_name }}" `
+            -ExpectedPublisherName "${{ inputs.publisher_name }}" `
+            -ExpectedPublisherDisplayName "${{ inputs.publisher_display_name }}" `
+            -ExpectedVersion "${{ steps.version.outputs.msix_version }}" `
+            -ExpectedExecutable "Cap-CN.exe"
+
       - name: Pack MSIX
         shell: pwsh
         run: |

@@ -77,11 +77,13 @@ Release workflow 已支持三种 Windows 签名方式：
 - 新增 `apps/desktop/src-tauri/tauri.microsoft-store.conf.json`。
 - 新增 `scripts/new-windows-store-submission-package.ps1`。
 - 新增 `scripts/new-windows-msix-layout.ps1`。
+- 新增 `scripts/test-windows-msix-layout.ps1`。
 - `apps/desktop/src-tauri/tauri.conf.json` 已固定 `bundle.publisher`、homepage、license、description 和稳定 MSI `upgradeCode`。
 - `apps/desktop/src-tauri/Cargo.toml` 已移除 `authors = ["you"]` 占位值，改为稳定发布者元数据。
 - Store workflow 会生成适合 Microsoft Store 提交的 Windows 离线安装包。
 - Store workflow 会额外生成 `store-submission-package`，里面包含 Partner Center 可照填的安装包 URL、架构、语言、静默安装参数、SHA256、签名状态和发布者信息。
 - `Windows MSIX Store Package` 会用 Microsoft WinApp CLI 生成 MSIX layout、`Package.appxmanifest` 和 Store 用 `.msix` 包，作为 Microsoft Store 直接重新签名路线的优先尝试；配置 Partner Center secrets 后，也可以把生成的 MSIX 直接提交到 Microsoft Store。
+- `Windows MSIX Store Package` 会在打包前校验 MSIX layout、package identity、publisher、version、主程序、Store logo、tile logo、splash asset、protocol 和 `runFullTrust` capability，避免把缺图标或 manifest 不完整的包提交到 Store。
 - Release 和 Store 配置都使用离线 WebView2 安装模式，减少用户机器缺少 WebView2 时的安装问题。
 - Store 产物同样支持签名、可信时间戳验证、SHA256 和 artifact attestation。
 
