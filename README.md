@@ -105,6 +105,7 @@ Release workflow 已支持三种 Windows 签名方式：
 - 新增 `scripts/generate-winget-manifest.ps1`。
 - `Windows WinGet Manifest` 会先审计 Release 签名、可信时间戳、SignTool 复核和 SHA256，再生成 WinGet manifest。
 - 默认生成 `Lkkisme.CapCN` 的 Windows x64 MSI manifest。
+- 生成器会下载安装包并按 `SHA256SUMS.txt` 复核 hash；MSI manifest 会写入静默安装参数、`ProductCode`、固定 `UpgradeCode` 和 Add/Remove Programs 升级身份，EXE manifest 会写入 NSIS 静默安装参数。
 - 生成的文件位于 `packaging/winget/manifests/...`，可用于提交到 `microsoft/winget-pkgs`。
 - WinGet 不能替代代码签名或 Store，但它可以提供更标准的 Windows 包管理器安装入口。
 
@@ -165,7 +166,7 @@ Release workflow 已支持三种 Windows 签名方式：
 3. 手动运行 `Windows Release` 或创建新的 `cap-v*` tag；正式发布保持 `require_signing=true`，未签名测试只能作为 draft。
 4. 等待自动触发的 `Windows Release Audit` 通过，或手动输入刚发布的 tag 重新审计，确认签名发布者、可信时间戳、SignTool 复核、SHA256 和 artifact attestation 都通过。
 5. 手动运行 `Windows Installer Smoke Test`，确认 EXE/MSI 可以静默安装和卸载。
-6. 如需 WinGet 分发，手动运行 `Windows WinGet Manifest`，下载生成的 manifest 并提交到 `microsoft/winget-pkgs`。
+6. 如需 WinGet 分发，手动运行 `Windows WinGet Manifest`，下载生成的 manifest，运行 `winget validate`，再提交到 `microsoft/winget-pkgs`。
 7. 下载 EXE/MSI，用 `Get-AuthenticodeSignature` 确认签名为 `Valid`，并确认存在 `TimeStamperCertificate`。
 8. 如仍出现 SmartScreen 误拦截，运行 `Windows WDSI Package`，再把安装包和生成的说明文本提交到 Microsoft WDSI。
 
