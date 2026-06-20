@@ -71,9 +71,11 @@ Release workflow 已支持三种 Windows 签名方式：
 
 - 新增 `.github/workflows/windows-store-package.yml`。
 - 新增 `apps/desktop/src-tauri/tauri.microsoft-store.conf.json`。
+- 新增 `scripts/new-windows-store-submission-package.ps1`。
 - `apps/desktop/src-tauri/tauri.conf.json` 已固定 `bundle.publisher`、homepage、license、description 和稳定 MSI `upgradeCode`。
 - `apps/desktop/src-tauri/Cargo.toml` 已移除 `authors = ["you"]` 占位值，改为稳定发布者元数据。
 - Store workflow 会生成适合 Microsoft Store 提交的 Windows 离线安装包。
+- Store workflow 会额外生成 `store-submission-package`，里面包含 Partner Center 可照填的安装包 URL、架构、语言、静默安装参数、SHA256、签名状态和发布者信息。
 - Release 和 Store 配置都使用离线 WebView2 安装模式，减少用户机器缺少 WebView2 时的安装问题。
 - Store 产物同样支持签名、可信时间戳验证、SHA256 和 artifact attestation。
 
@@ -138,9 +140,10 @@ Release workflow 已支持三种 Windows 签名方式：
 
 1. 注册 Microsoft Partner Center。
 2. 创建 `EXE or MSI app`。
-3. 运行 `Windows Store Package` workflow。
-4. 上传 workflow 生成的 Windows 安装包。
-5. 提交审核。
+3. 运行 `Windows Store Package` workflow；如果已经把签名安装包放到版本化 HTTPS 下载地址，可以填写 `package_url_base`。
+4. 下载 workflow 生成的 `windows-store-package-<version>` artifact。
+5. 按 `store-submission-package` 里的 checklist、JSON 或 CSV 填写 Partner Center 包信息。
+6. 提交审核。
 
 ### 方案 B：Azure Artifact Signing
 

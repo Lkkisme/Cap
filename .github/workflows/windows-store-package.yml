@@ -8,6 +8,26 @@ on:
         required: true
         default: true
         type: boolean
+      package_url_base:
+        description: "Optional versioned HTTPS URL prefix for Partner Center package URLs"
+        required: false
+        default: ""
+        type: string
+      privacy_policy_url:
+        description: "Optional privacy policy URL for Partner Center"
+        required: false
+        default: ""
+        type: string
+      website_url:
+        description: "Website URL for Partner Center metadata"
+        required: false
+        default: "https://github.com/Lkkisme/Cap"
+        type: string
+      support_contact:
+        description: "Optional support contact for Partner Center"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   actions: read
@@ -409,6 +429,29 @@ jobs:
           $lines | Set-Content -Encoding UTF8 -Path "store-assets/SHA256SUMS.txt"
           Get-Content -Path "store-assets/SHA256SUMS.txt"
 
+      - name: Generate Microsoft Store submission package
+        shell: pwsh
+        env:
+          WINDOWS_PACKAGE_PUBLISHER: ${{ vars.WINDOWS_PACKAGE_PUBLISHER || 'Lkkisme' }}
+          WINDOWS_SIGNING_PUBLISHER_PATTERN: ${{ vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
+        run: |
+          $params = @{
+            Path = "store-assets"
+            OutputDirectory = "store-submission-package"
+            Version = "${{ steps.version.outputs.version }}"
+            Repository = "${{ github.repository }}"
+            Publisher = $env:WINDOWS_PACKAGE_PUBLISHER
+            PackageUrlBase = "${{ inputs.package_url_base }}"
+            WebsiteUrl = "${{ inputs.website_url }}"
+            PrivacyPolicyUrl = "${{ inputs.privacy_policy_url }}"
+            SupportContact = "${{ inputs.support_contact }}"
+            ExpectedPublisherPattern = $env:WINDOWS_SIGNING_PUBLISHER_PATTERN
+          }
+          if ("${{ inputs.require_signing }}" -eq "true") {
+            $params.RequireValidSignature = $true
+          }
+          .\scripts\new-windows-store-submission-package.ps1 @params
+
       - name: Generate artifact attestations
         uses: actions/attest@v4
         with:
@@ -427,5 +470,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: windows-store-package-${{ steps.version.outputs.version }}
-          path: store-assets/*
+          path: |
+            store-assets/*
+            store-submission-package/*
           if-no-files-found: error
