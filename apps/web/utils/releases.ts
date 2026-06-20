@@ -77,6 +77,7 @@ function parseDownloadsFromBody(body: string): ReleaseDownloads {
 
 function parseDownloadsFromAssets(
 	assets: GitHubReleaseAsset[],
+	tagName: string,
 ): ReleaseDownloads {
 	const downloads: ReleaseDownloads = {};
 	const windowsExe = assets.find(
@@ -112,10 +113,18 @@ function parseDownloadsFromAssets(
 		);
 	});
 
-	if (windowsExe) downloads.windows = windowsExe.browser_download_url;
-	if (windowsMsi) downloads["windows-msi"] = windowsMsi.browser_download_url;
+	if (windowsExe)
+		downloads.windows = getWindowsReleaseAssetDownloadUrl(windowsExe, tagName);
+	if (windowsMsi)
+		downloads["windows-msi"] = getWindowsReleaseAssetDownloadUrl(
+			windowsMsi,
+			tagName,
+		);
 	if (windowsPortable)
-		downloads["windows-portable"] = windowsPortable.browser_download_url;
+		downloads["windows-portable"] = getWindowsReleaseAssetDownloadUrl(
+			windowsPortable,
+			tagName,
+		);
 	if (macosArm64) downloads["macos-arm64"] = macosArm64.browser_download_url;
 	if (macosX64) downloads["macos-x64"] = macosX64.browser_download_url;
 
@@ -187,6 +196,78 @@ export function getWindowsStoreDownloadUrl(): string | null {
 	}
 
 	return null;
+}
+
+function normalizeWindowsAssetBaseUrl(
+	value: string | undefined,
+): string | null {
+	if (!value) return null;
+
+	const trimmed = value.trim();
+	const validationValue = trimmed
+		.replaceAll("{tag}", "cap-v0.0.0")
+		.replaceAll("{filename}", "Cap-CN.exe");
+
+	try {
+		const url = new URL(validationValue);
+		if (url.protocol !== "https:") return null;
+		const hostname = url.hostname.toLowerCase();
+		if (
+			hostname === "localhost" ||
+			hostname === "127.0.0.1" ||
+			hostname === "::1" ||
+			hostname === "[::1]"
+		)
+			return null;
+
+		if (
+			hostname === "cap.so" ||
+			hostname === "www.cap.so" ||
+			hostname === "github.com" ||
+			hostname.endsWith(".github.com") ||
+			hostname === "githubusercontent.com" ||
+			hostname.endsWith(".githubusercontent.com")
+		)
+			return null;
+
+		return trimmed;
+	} catch {
+		return null;
+	}
+}
+
+function getWindowsReleaseAssetBaseUrl(): string | null {
+	const candidates = [
+		process.env.WINDOWS_RELEASE_ASSET_BASE_URL,
+		process.env.CAP_WINDOWS_RELEASE_ASSET_BASE_URL,
+		process.env.NEXT_PUBLIC_WINDOWS_RELEASE_ASSET_BASE_URL,
+	];
+
+	for (const candidate of candidates) {
+		const url = normalizeWindowsAssetBaseUrl(candidate);
+		if (url) return url;
+	}
+
+	return null;
+}
+
+function getWindowsReleaseAssetDownloadUrl(
+	asset: GitHubReleaseAsset,
+	tagName: string,
+): string {
+	const baseUrl = getWindowsReleaseAssetBaseUrl();
+	if (!baseUrl) return asset.browser_download_url;
+
+	const encodedTag = encodeURIComponent(tagName);
+	const encodedFileName = encodeURIComponent(asset.name);
+
+	if (baseUrl.includes("{tag}") || baseUrl.includes("{filename}")) {
+		return baseUrl
+			.replaceAll("{tag}", encodedTag)
+			.replaceAll("{filename}", encodedFileName);
+	}
+
+	return `${baseUrl.replace(/\/$/, "")}/${encodedTag}/${encodedFileName}`;
 }
 
 function hasAssetNamed(assets: GitHubReleaseAsset[], name: string): boolean {
@@ -398,7 +479,10 @@ export async function getGitHubReleases(): Promise<Release[]> {
 
 	return Promise.all(
 		releases.map(async (release) => {
-			const assetDownloads = parseDownloadsFromAssets(release.assets || []);
+			const assetDownloads = parseDownloadsFromAssets(
+				release.assets || [],
+				release.tag_name,
+			);
 			const bodyDownloads = parseDownloadsFromBody(release.body || "");
 			const assets = release.assets || [];
 			return {

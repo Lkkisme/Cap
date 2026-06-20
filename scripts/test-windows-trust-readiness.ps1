@@ -129,6 +129,47 @@ function Test-TrustedWindowsDownloadUrl {
     }
 }
 
+function Test-TrustedWindowsAssetBaseUrl {
+    param([string]$Value)
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return $false
+    }
+
+    try {
+        $normalized = $Value.Trim().Replace("{tag}", "cap-v0.0.0").Replace("{filename}", "Cap-CN.exe")
+        $uri = [System.Uri]::new($normalized)
+        if ($uri.Scheme -ne "https") {
+            return $false
+        }
+
+        $hostName = $uri.Host.ToLowerInvariant()
+        if ($uri.IsLoopback -or $hostName -eq "cap.so" -or $hostName -eq "www.cap.so" -or $hostName -eq "github.com" -or $hostName.EndsWith(".github.com") -or $hostName -eq "githubusercontent.com" -or $hostName.EndsWith(".githubusercontent.com")) {
+            return $false
+        }
+
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+function Get-ConfiguredWindowsAssetBaseUrl {
+    $candidates = @(
+        $env:WINDOWS_RELEASE_ASSET_BASE_URL,
+        $env:CAP_WINDOWS_RELEASE_ASSET_BASE_URL,
+        $env:NEXT_PUBLIC_WINDOWS_RELEASE_ASSET_BASE_URL
+    )
+
+    foreach ($candidate in $candidates) {
+        if (-not [string]::IsNullOrWhiteSpace($candidate)) {
+            return $candidate.Trim()
+        }
+    }
+
+    $null
+}
+
 function Test-RegexValue {
     param([string]$Value)
 
@@ -306,6 +347,9 @@ Test-WorkflowContainsText -Path (Join-Path $repoRoot "apps\web\app\(site)\downlo
 Test-WorkflowContainsText -Path (Join-Path $repoRoot "apps\web\utils\releases.ts") -Name "Windows complete package set check" -Text "function hasWindowsPackageSet" -Detail "Web release verification models the required Windows EXE, MSI, and portable ZIP package set." -NextAction "Restore hasWindowsPackageSet in apps/web/utils/releases.ts."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot "apps\web\utils\releases.ts") -Name "Windows release evidence package gate" -Text "hasWindowsPackageSet(assets) &&" -Detail "Web release evidence rejects Windows downloads unless EXE, MSI, and portable ZIP are all present." -NextAction "Require hasWindowsPackageSet before returning verified Windows release asset evidence."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot "apps\web\utils\releases.ts") -Name "Windows release object package gate" -Text "release.hasWindowsPackageSet &&" -Detail "Web release objects require the complete Windows package set before exposing verified Windows downloads." -NextAction "Require release.hasWindowsPackageSet in hasVerifiedWindowsEvidence."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot "apps\web\utils\releases.ts") -Name "Windows release asset mirror" -Text "WINDOWS_RELEASE_ASSET_BASE_URL" -Detail "Verified Windows downloads can be routed through a project-controlled HTTPS release asset mirror." -NextAction "Restore WINDOWS_RELEASE_ASSET_BASE_URL support in apps/web/utils/releases.ts."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot "apps\web\utils\releases.ts") -Name "Windows release asset mirror GitHub rejection" -Text 'hostname.endsWith(".github.com")' -Detail "The Windows release asset mirror rejects GitHub URLs so the mirror is not just a disguised GitHub Release redirect." -NextAction "Reject GitHub hostnames in Windows release asset mirror validation."
+Test-WorkflowContainsText -Path (Join-Path $repoRoot "apps\web\__tests__\unit\releases.test.ts") -Name "Windows release asset mirror tests" -Text "uses the configured Windows release asset base URL" -Detail "Web tests cover trusted Windows asset mirror URL generation." -NextAction "Restore unit coverage for Windows release asset mirror behavior."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot "apps\web\app\api\releases\tauri\[version]\[target]\[arch]\route.ts") -Name "Windows updater release gate" -Text "hasVerifiedWindowsReleaseAssetEvidence(assets, release.tag_name)" -Detail "Windows auto-update metadata is withheld until release assets satisfy the Windows verification gate." -NextAction "Restore the Windows hasVerifiedWindowsReleaseAssetEvidence guard in the Tauri updater API."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot "apps\web\app\(site)\download\windows-status\page.tsx") -Name "Windows status verification gate" -Text "hasVerifiedWindowsEvidence(release)" -Detail "The Windows status page only promotes releases that satisfy the full verification gate." -NextAction "Restore hasVerifiedWindowsEvidence on the Windows status page."
 Test-WorkflowContainsText -Path (Join-Path $repoRoot "apps\web\app\(site)\download\versions\page.tsx") -Name "Windows versions verification gate" -Text "hasVerifiedWindowsEvidence(release)" -Detail "The versions page only exposes Windows release assets after the full verification gate passes." -NextAction "Restore hasVerifiedWindowsEvidence before linking Windows assets on the versions page."
@@ -331,6 +375,15 @@ if (Test-TrustedWindowsDownloadUrl -Value $windowsDownloadUrl) {
     Add-Check -Area "Distribution path" -Item "Windows download URL" -Status "pass" -Detail "WINDOWS_DOWNLOAD_URL points to a trusted Windows download surface."
 } else {
     Add-Check -Area "Distribution path" -Item "Windows download URL" -Status "fail" -Detail "WINDOWS_DOWNLOAD_URL is missing or does not point to Microsoft Store or an HTTPS /download page controlled by this project." -NextAction "Set the GitHub variable WINDOWS_DOWNLOAD_URL to the approved Microsoft Store URL or to the deployed site /download/windows route before building Windows packages."
+}
+
+$windowsAssetBaseUrl = Get-ConfiguredWindowsAssetBaseUrl
+if (Test-TrustedWindowsAssetBaseUrl -Value $windowsAssetBaseUrl) {
+    Add-Check -Area "Distribution path" -Item "Windows release asset mirror" -Status "pass" -Detail "Windows release asset downloads are configured to use a trusted project-controlled HTTPS base URL."
+} elseif (-not [string]::IsNullOrWhiteSpace($windowsAssetBaseUrl)) {
+    Add-Check -Area "Distribution path" -Item "Windows release asset mirror" -Status "fail" -Detail "Windows release asset mirror URL is not a trusted public HTTPS base URL." -NextAction "Set WINDOWS_RELEASE_ASSET_BASE_URL to your own versioned CDN or deployed website URL, not GitHub Releases, localhost, or upstream cap.so."
+} else {
+    Add-Check -Area "Distribution path" -Item "Windows release asset mirror" -Status "warning" -Detail "No project-controlled Windows release asset mirror is configured." -NextAction "Set WINDOWS_RELEASE_ASSET_BASE_URL after publishing signed release assets to your own versioned HTTPS CDN or website path."
 }
 
 $storeCredentialNames = @(
