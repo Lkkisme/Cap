@@ -293,7 +293,7 @@ $providerAliases = @{
     "azure-trusted-signing" = "azure-artifact-signing"
 }
 
-if ($providerAliases.ContainsKey($provider)) {
+if (-not [string]::IsNullOrWhiteSpace($provider) -and $providerAliases.ContainsKey($provider)) {
     $provider = $providerAliases[$provider]
 }
 
