@@ -62,7 +62,7 @@ Release workflow 已支持三种 Windows 签名方式：
 - 新增 `.github/workflows/windows-signing-check.yml`。
 - 新增 `scripts/validate-windows-signing.ps1`。
 - 新增 `scripts/validate-windows-app-metadata.ps1`。
-- 配置签名前可以先手动运行 `Windows Signing Check`，它会检查 GitHub Variables 和 Secrets 是否齐全。
+- 配置签名前可以先手动运行 `Windows Signing Check`，它会检查 GitHub Variables 和 Secrets 是否齐全，并签名一个临时 Windows EXE 探针，验证 Authenticode 签名、可信时间戳、发布者匹配和 SignTool 结果。
 - `Windows Signing Check`、`Windows Release` 和 `Windows Store Package` 都会检查 Windows 包元数据、签名证书发布者模式和离线 WebView2 配置，避免公开安装包带着占位 publisher、错误签名身份、`authors = ["you"]` 或依赖在线 WebView2 bootstrapper。
 - `Windows Release` 默认要求 Windows Authenticode 签名；通过 `cap-v*` tag 触发的正式发布不能关闭签名要求。
 - 手动运行 `Windows Release` 时，只有把 `require_signing` 显式设置为 `false`，才会允许生成未签名草稿测试包；未签名构建不能创建公开 Release。
@@ -166,7 +166,7 @@ Release workflow 已支持三种 Windows 签名方式：
 配置完成后：
 
 1. 手动运行 `Windows Signing Check`。
-2. 确认通过。
+2. 确认配置检查和临时 EXE 签名探针都通过。
 3. 手动运行 `Windows Release` 或创建新的 `cap-v*` tag；正式发布保持 `require_signing=true`，未签名测试只能作为 draft。
 4. 等待自动触发的 `Windows Release Audit` 通过，或手动输入刚发布的 tag 重新审计，确认签名发布者、可信时间戳、SignTool 复核、SHA256 和 artifact attestation 都通过。
 5. 等待自动触发的 `Windows Installer Smoke Test` 通过，确认 EXE/MSI 可以静默安装和卸载。

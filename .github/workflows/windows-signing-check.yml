@@ -4,7 +4,9 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
+  id-token: write
 
 jobs:
   check:
@@ -21,6 +23,7 @@ jobs:
         run: .\scripts\validate-windows-app-metadata.ps1
 
       - name: Validate Windows signing configuration
+        id: signing
         shell: pwsh
         env:
           WINDOWS_SIGNING_PROVIDER: ${{ vars.WINDOWS_SIGNING_PROVIDER }}
@@ -39,3 +42,122 @@ jobs:
           WINDOWS_CERTIFICATE_PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_PFX_BASE64 }}
           WINDOWS_CERTIFICATE_PFX_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PFX_PASSWORD }}
         run: .\scripts\validate-windows-signing.ps1 -RequireSigning
+
+      - name: Build signing probe
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path signing-probe -Force | Out-Null
+          $source = 'public static class Program { public static void Main() { System.Console.WriteLine("Cap signing probe"); } }'
+          Add-Type -TypeDefinition $source -OutputAssembly signing-probe\CapSigningProbe.exe -OutputType ConsoleApplication
+          Get-Item -LiteralPath signing-probe\CapSigningProbe.exe | Select-Object FullName, Length | Format-List
+
+      - name: Azure login for signing probe
+        if: steps.signing.outputs.provider == 'azure-artifact-signing'
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign probe with Azure Artifact Signing
+        if: steps.signing.outputs.provider == 'azure-artifact-signing'
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.AZURE_ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.AZURE_ARTIFACT_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_ARTIFACT_SIGNING_CERTIFICATE_PROFILE_NAME }}
+          files-folder: ${{ github.workspace }}\signing-probe
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+
+      - name: Import PFX signing certificate
+        if: steps.signing.outputs.provider == 'pfx'
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_PFX_BASE64 }}
+          WINDOWS_CERTIFICATE_PFX_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PFX_PASSWORD }}
+        run: |
+          $pfxPath = Join-Path $env:RUNNER_TEMP "windows-code-signing.pfx"
+          [System.IO.File]::WriteAllBytes($pfxPath, [System.Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_PFX_BASE64))
+          $password = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PFX_PASSWORD -AsPlainText -Force
+          $cert = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation Cert:\CurrentUser\My -Password $password |
+            Where-Object { $_.HasPrivateKey } |
+            Select-Object -First 1
+          if (-not $cert.Thumbprint) {
+            throw "Failed to import PFX signing certificate."
+          }
+          "WINDOWS_CERTIFICATE_THUMBPRINT=$($cert.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Sign probe with PFX
+        if: steps.signing.outputs.provider == 'pfx'
+        shell: pwsh
+        run: |
+          $signTool = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter signtool.exe -Recurse |
+            Where-Object { $_.FullName -match "\\x64\\signtool\.exe$" } |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+          if (-not $signTool) {
+            throw "signtool.exe was not found on the Windows runner."
+          }
+          $timestampUrl = "${{ vars.WINDOWS_SIGNING_TIMESTAMP_URL }}"
+          if ([string]::IsNullOrWhiteSpace($timestampUrl)) {
+            $timestampUrl = "http://timestamp.digicert.com"
+          }
+          & $signTool.FullName sign /fd SHA256 /td SHA256 /tr $timestampUrl /sha1 $env:WINDOWS_CERTIFICATE_THUMBPRINT signing-probe\CapSigningProbe.exe
+          if ($LASTEXITCODE -ne 0) {
+            throw "signtool failed for signing-probe\CapSigningProbe.exe"
+          }
+
+      - name: Upload signing probe for SignPath
+        if: steps.signing.outputs.provider == 'signpath'
+        id: upload_signpath_signing_probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: signpath-signing-probe
+          path: signing-probe/*
+          if-no-files-found: error
+
+      - name: Submit SignPath signing probe request
+        if: steps.signing.outputs.provider == 'signpath'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ secrets.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: ${{ secrets.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.upload_signpath_signing_probe.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed-signing-probe
+
+      - name: Restore SignPath signed probe
+        if: steps.signing.outputs.provider == 'signpath'
+        shell: pwsh
+        run: |
+          $signedFile = Get-ChildItem -Path signed-signing-probe -Filter CapSigningProbe.exe -File -Recurse | Select-Object -First 1
+          if (-not $signedFile) {
+            throw "Signed signing probe was not found."
+          }
+          Copy-Item -LiteralPath $signedFile.FullName -Destination signing-probe\CapSigningProbe.exe -Force
+
+      - name: Verify signing probe
+        shell: pwsh
+        env:
+          WINDOWS_SIGNING_PUBLISHER_PATTERN: ${{ vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
+        run: |
+          $result = .\scripts\test-windows-authenticode.ps1 -Path signing-probe\CapSigningProbe.exe -RequireValidSignature -RequireTimestamp -RequireSignToolVerification -ExpectedPublisherPattern $env:WINDOWS_SIGNING_PUBLISHER_PATTERN
+          Write-Host "CapSigningProbe.exe: $($result.SignatureStatus)"
+          Write-Host "CapSigningProbe.exe publisher: $($result.Publisher)"
+          Write-Host "CapSigningProbe.exe timestamp: $($result.TimestampAuthority)"
+          Write-Host "CapSigningProbe.exe signtool: $($result.SignToolStatus)"
+
+      - name: Remove imported PFX signing certificate
+        if: always() && steps.signing.outputs.provider == 'pfx'
+        shell: pwsh
+        run: |
+          if (-not [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_THUMBPRINT)) {
+            Remove-Item -LiteralPath "Cert:\CurrentUser\My\$env:WINDOWS_CERTIFICATE_THUMBPRINT" -Force -ErrorAction SilentlyContinue
+          }
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP "windows-code-signing.pfx") -Force -ErrorAction SilentlyContinue

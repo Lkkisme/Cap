@@ -82,7 +82,7 @@ PFX/signtool 需要这些 Secrets：
 | `WINDOWS_CERTIFICATE_PFX_BASE64` | Base64-encoded `.pfx` file |
 | `WINDOWS_CERTIFICATE_PFX_PASSWORD` | PFX password |
 
-配置好任一签名后端后，先手动运行 GitHub Actions 中的 `Windows Signing Check` workflow。它不会构建安装包，会检查 Windows 包元数据、`WINDOWS_SIGNING_PROVIDER`、`WINDOWS_SIGNING_PUBLISHER_PATTERN` 与对应 Variables/Secrets 是否齐全。检查通过后再创建新的 `cap-v*` tag 或手动运行 `Windows Release`。正式发布不要把 `require_signing` 改成 `false`；未签名测试只能作为 draft。
+配置好任一签名后端后，先手动运行 GitHub Actions 中的 `Windows Signing Check` workflow。它不会构建安装包，会检查 Windows 包元数据、`WINDOWS_SIGNING_PROVIDER`、`WINDOWS_SIGNING_PUBLISHER_PATTERN` 与对应 Variables/Secrets 是否齐全，并签名一个临时 Windows EXE 探针，验证 Authenticode 签名、可信时间戳、发布者匹配和 `signtool verify /pa /tw` 结果。检查通过后再创建新的 `cap-v*` tag 或手动运行 `Windows Release`。正式发布不要把 `require_signing` 改成 `false`；未签名测试只能作为 draft。
 
 旧的 `publish` workflow 已禁用。Windows 正式发布只使用 `Windows Release` workflow，避免绕过签名检查。
 
