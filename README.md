@@ -111,7 +111,7 @@ Release workflow 已支持三种 Windows 签名方式：
 - `Windows Release` 公开前会额外校验 Release 页面上已经带有 EXE、MSI、`SHA256SUMS.txt`、`windows-smartscreen-report-<tag>.md`、`windows-release-assets-<tag>.json`、`windows-installer-smoke-test-report-<tag>.md`、`windows-installer-smoke-test-results-<tag>.json`、`windows-winget-manifest-<tag>.zip`、`windows-winget-submission-<tag>.md`、`windows-wdsi-submission-checklist-<tag>.md` 和 `windows-wdsi-submission-text-<tag>.zip`。
 - `Windows Installer Smoke Test` 会在 `cap-v*` Release 发布后自动下载已签名 Release，审计签名/checksum/attestation 后测试 EXE/MSI 静默安装和卸载。
 - `Windows WDSI Package` 会在 `cap-v*` Release 发布后自动为已签名、已审计的 Release 生成微软复核材料包。
-- `Windows Release Quarantine` 会在 Release 发布或编辑时自动检查是否仍挂着未验证 Windows EXE/MSI 并让检查失败；手动运行时默认只生成报告，只有输入 `mark-prerelease:<tag>` 或 `delete-windows-assets:<tag>` 确认字符串时才会把旧 Release 标记为 prerelease 或删除 Windows 安装资产。
+- `Windows Release Quarantine` 会在 Release 发布或编辑时自动检查是否仍挂着未验证 Windows EXE/MSI，并会读取 `windows-release-assets-<tag>.json` 确认每个安装包的签名、时间戳、SignTool、checksum、attestation 和 Defender 状态都有效；手动运行时默认只生成报告，只有输入 `mark-prerelease:<tag>` 或 `delete-windows-assets:<tag>` 确认字符串时才会把旧 Release 标记为 prerelease 或删除 Windows 安装资产。
 - `Windows Release` 和 `Windows Store Package` 会在上传产物前用 Microsoft Defender 扫描 Windows EXE/MSI；`Windows Release Audit`、`Windows Installer Smoke Test`、`Windows WinGet Manifest` 和 `Windows WDSI Package` 会重新下载 Release 资产并再次扫描，避免被替换或误报的安装包进入公开证据链。
 - 脚本可以下载指定 GitHub Release 的 Windows EXE/MSI。
 - 脚本通过 GitHub Release Asset API 下载资产，正式 Release 还处于 draft 门禁阶段时也能验证安装包。

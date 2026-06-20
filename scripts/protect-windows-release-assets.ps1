@@ -63,6 +63,161 @@ function Test-EvidenceAsset {
   $Names -contains $AssetName.ToLowerInvariant()
 }
 
+function Read-ReleaseAssetText {
+  param([object]$Asset)
+
+  $downloadHeaders = @{}
+  foreach ($key in $headers.Keys) {
+    $downloadHeaders[$key] = $headers[$key]
+  }
+  $downloadHeaders.Accept = "application/octet-stream"
+
+  $request = [System.Net.HttpWebRequest]::Create($Asset.url)
+  $request.Method = "GET"
+  $request.AllowAutoRedirect = $false
+
+  foreach ($key in $downloadHeaders.Keys) {
+    if ($key -eq "Accept") {
+      $request.Accept = [string]$downloadHeaders[$key]
+    } elseif ($key -eq "User-Agent") {
+      $request.UserAgent = [string]$downloadHeaders[$key]
+    } else {
+      $request.Headers[$key] = [string]$downloadHeaders[$key]
+    }
+  }
+
+  $response = $null
+  try {
+    $response = $request.GetResponse()
+  } catch [System.Net.WebException] {
+    $response = $_.Exception.Response
+    if (-not $response) {
+      throw
+    }
+  }
+
+  if ([int]$response.StatusCode -in @(301, 302, 303, 307, 308)) {
+    $location = $response.Headers["Location"]
+    $response.Close()
+    if ([string]::IsNullOrWhiteSpace($location)) {
+      throw "$($Asset.name) download redirect did not include a Location header."
+    }
+    return (Invoke-WebRequest -Uri $location).Content
+  }
+
+  if ([int]$response.StatusCode -lt 200 -or [int]$response.StatusCode -ge 300) {
+    $statusCode = [int]$response.StatusCode
+    $statusDescription = $response.StatusDescription
+    $response.Close()
+    throw "$($Asset.name) download failed with HTTP $statusCode $statusDescription."
+  }
+
+  $reader = [System.IO.StreamReader]::new($response.GetResponseStream(), [System.Text.Encoding]::UTF8)
+  try {
+    $reader.ReadToEnd()
+  } finally {
+    $reader.Dispose()
+    $response.Close()
+  }
+}
+
+function Get-ObjectPropertyValue {
+  param(
+    [object]$InputObject,
+    [string]$Name
+  )
+
+  if ($null -eq $InputObject) {
+    return $null
+  }
+
+  $property = $InputObject.PSObject.Properties[$Name]
+  if ($null -eq $property) {
+    return $null
+  }
+
+  $property.Value
+}
+
+function Test-WindowsEvidenceManifest {
+  param(
+    [object[]]$WindowsAssets,
+    [object]$ManifestAsset,
+    [string]$ExpectedTag,
+    [string]$ExpectedRepository
+  )
+
+  if (-not $ManifestAsset) {
+    return [pscustomobject]@{
+      valid = $false
+      failures = @("Missing Windows release asset manifest.")
+      assets = @()
+    }
+  }
+
+  $failures = @()
+  $manifest = $null
+  try {
+    $manifest = Read-ReleaseAssetText -Asset $ManifestAsset | ConvertFrom-Json
+  } catch {
+    return [pscustomobject]@{
+      valid = $false
+      failures = @("Windows release asset manifest could not be read or parsed: $($_.Exception.Message)")
+      assets = @()
+    }
+  }
+
+  $manifestTag = Get-ObjectPropertyValue -InputObject $manifest -Name "Tag"
+  $manifestRepository = Get-ObjectPropertyValue -InputObject $manifest -Name "Repository"
+  $manifestAssets = @(Get-ObjectPropertyValue -InputObject $manifest -Name "Assets")
+
+  if ($manifestTag -ne $ExpectedTag) {
+    $failures += "Windows release asset manifest tag '$manifestTag' does not match '$ExpectedTag'."
+  }
+
+  if ($manifestRepository -ne $ExpectedRepository) {
+    $failures += "Windows release asset manifest repository '$manifestRepository' does not match '$ExpectedRepository'."
+  }
+
+  $manifestAssetNames = @($manifestAssets | ForEach-Object { Get-ObjectPropertyValue -InputObject $_ -Name "File" })
+  $windowsAssetNames = @($WindowsAssets | ForEach-Object { $_.name })
+
+  foreach ($assetName in $windowsAssetNames) {
+    if ($manifestAssetNames -notcontains $assetName) {
+      $failures += "Windows release asset manifest does not include '$assetName'."
+    }
+  }
+
+  foreach ($asset in $manifestAssets) {
+    $assetFile = Get-ObjectPropertyValue -InputObject $asset -Name "File"
+    if ($windowsAssetNames -notcontains $assetFile) {
+      continue
+    }
+
+    $requirements = [ordered]@{
+      SignatureStatus = "Valid"
+      TimestampStatus = "Present"
+      SignToolStatus = "Valid"
+      ChecksumStatus = "Valid"
+      AttestationStatus = "Valid"
+      DefenderStatus = "Valid"
+    }
+
+    foreach ($requirement in $requirements.GetEnumerator()) {
+      $actualValue = Get-ObjectPropertyValue -InputObject $asset -Name $requirement.Key
+      if ($actualValue -ne $requirement.Value) {
+        $failures += "$assetFile has $($requirement.Key) '$actualValue' instead of '$($requirement.Value)'."
+      }
+    }
+  }
+
+  [pscustomobject]@{
+    valid = $failures.Count -eq 0
+    failures = $failures
+    assets = $manifestAssets
+  }
+}
+
 function Assert-Confirmation {
   param([string]$Expected)
 
@@ -97,7 +252,13 @@ $evidence = [ordered]@{
   hasWdsiSubmissionText = Test-EvidenceAsset -Names $assetNames -AssetName "windows-wdsi-submission-text-$safeTag.zip"
 }
 
-$verifiedWindowsRelease = -not ($evidence.Values -contains $false)
+$manifestAsset = $assets |
+  Where-Object { $_.name.ToLowerInvariant() -eq "windows-release-assets-$safeTag.json" } |
+  Select-Object -First 1
+$manifestVerification = Test-WindowsEvidenceManifest -WindowsAssets $windowsAssets -ManifestAsset $manifestAsset -ExpectedTag $Tag -ExpectedRepository $Repository
+$evidence.hasValidWindowsAuditManifest = [bool]$manifestVerification.valid
+
+$verifiedWindowsRelease = -not ($evidence.Values -contains $false) -and [bool]$manifestVerification.valid
 $unsafeWindowsRelease = $windowsAssets.Count -gt 0 -and -not $verifiedWindowsRelease
 $actionTaken = "report_only"
 $deletedAssets = @()
@@ -128,6 +289,7 @@ $result = [ordered]@{
   windowsAssets = @($windowsAssets | ForEach-Object { $_.name })
   deletedAssets = $deletedAssets
   evidence = $evidence
+  manifestFailures = @($manifestVerification.failures)
   verifiedWindowsRelease = $verifiedWindowsRelease
   unsafeWindowsRelease = $unsafeWindowsRelease
   generatedAt = (Get-Date).ToUniversalTime().ToString("o")
@@ -167,6 +329,16 @@ $lines += @(
 foreach ($item in $evidence.GetEnumerator()) {
   $mark = if ($item.Value) { "x" } else { " " }
   $lines += "- [$mark] $($item.Key)"
+}
+
+if ($manifestVerification.failures.Count -gt 0) {
+  $lines += @(
+    "",
+    "## Manifest failures"
+  )
+  foreach ($failure in $manifestVerification.failures) {
+    $lines += "- $failure"
+  }
 }
 
 if ($deletedAssets.Count -gt 0) {
