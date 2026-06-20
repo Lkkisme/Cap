@@ -553,7 +553,7 @@ jobs:
 
             SHA256SUMS.txt can be used to verify downloaded files.
 
-      - name: Dispatch Windows release evidence workflows
+      - name: Run Windows release evidence workflows
         if: needs.metadata.outputs.draft != 'true' && needs.metadata.outputs.require_signing == 'true'
         shell: bash
         env:
@@ -564,7 +564,39 @@ jobs:
           PUBLISHER: ${{ vars.WINDOWS_PACKAGE_PUBLISHER || 'Lkkisme' }}
         run: |
           set -euo pipefail
-          gh workflow run "windows-release-audit.yml" --ref "$GITHUB_REF_NAME" -f tag="$TAG_NAME"
-          gh workflow run "windows-installer-smoke-test.yml" --ref "$GITHUB_REF_NAME" -f tag="$TAG_NAME" -f product_name="$PRODUCT_NAME"
-          gh workflow run "windows-winget-manifest.yml" --ref "$GITHUB_REF_NAME" -f tag="$TAG_NAME" -f package_identifier="$PACKAGE_IDENTIFIER" -f publisher="$PUBLISHER" -f package_name="$PRODUCT_NAME"
-          gh workflow run "windows-wdsi-package.yml" --ref "$GITHUB_REF_NAME" -f tag="$TAG_NAME"
+          dispatched_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          runs=()
+
+          dispatch_run() {
+            local workflow="$1"
+            shift
+            gh workflow run "$workflow" --ref "$GITHUB_REF_NAME" "$@"
+
+            local run_id=""
+            for attempt in {1..30}; do
+              run_id="$(gh run list --workflow "$workflow" --event workflow_dispatch --limit 20 --json databaseId,createdAt --jq ".[] | select(.createdAt >= \"$dispatched_at\") | .databaseId" | head -n 1)"
+              if [ -n "$run_id" ]; then
+                break
+              fi
+              sleep 5
+            done
+
+            if [ -z "$run_id" ]; then
+              echo "Unable to find dispatched run for $workflow."
+              exit 1
+            fi
+
+            runs+=("$workflow:$run_id")
+          }
+
+          dispatch_run "windows-release-audit.yml" -f tag="$TAG_NAME"
+          dispatch_run "windows-installer-smoke-test.yml" -f tag="$TAG_NAME" -f product_name="$PRODUCT_NAME"
+          dispatch_run "windows-winget-manifest.yml" -f tag="$TAG_NAME" -f package_identifier="$PACKAGE_IDENTIFIER" -f publisher="$PUBLISHER" -f package_name="$PRODUCT_NAME"
+          dispatch_run "windows-wdsi-package.yml" -f tag="$TAG_NAME"
+
+          for run in "${runs[@]}"; do
+            workflow="${run%%:*}"
+            run_id="${run##*:}"
+            echo "Waiting for $workflow run $run_id."
+            gh run watch "$run_id" --exit-status --interval 30
+          done
