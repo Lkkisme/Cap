@@ -69,6 +69,7 @@ Release workflow 已支持三种 Windows 签名方式：
 - 新增 `scripts/validate-windows-app-metadata.ps1`。
 - 新增 `scripts/test-windows-trust-readiness.ps1`。
 - 配置签名或 Store 前可以先手动运行 `Windows Trust Readiness`，它会生成一份报告，检查 Microsoft Store URL、Partner Center 自动提交凭据、Windows 签名 provider、发布者正则、Windows 发布 workflow、WinGet/WDSI workflow 和最新公开 Release 证据是否齐全；它也会在相关 Windows 信任链文件变更时自动运行，并每周定期检查一次。
+- `Windows Trust Readiness` 现在会复用 `scripts/protect-windows-release-assets.ps1` 对最新公开 `cap-v*` Release 的证据清单做内容验证；即使证据文件名都存在，如果 `windows-release-assets-<tag>.json` 里的仓库、tag、安装包文件名、签名、时间戳、SignTool、checksum、attestation 或 Defender 状态不匹配，readiness 报告也会标成 warning。
 - 配置签名前可以先手动运行 `Windows Signing Check`，它会检查 GitHub Variables 和 Secrets 是否齐全，并签名一个临时 Windows EXE 探针，验证 Authenticode 签名、可信时间戳、发布者匹配和 SignTool 结果；配置签名 provider 后，它也会在相关签名文件变更时自动运行，并每周定期签名探针，未配置 provider 时自动运行只做跳过式检查。
 - `Windows Signing Check`、`Windows Release` 和 `Windows Store Package` 都会检查 Windows 包元数据、签名证书发布者模式和离线 WebView2 配置，避免公开安装包带着占位 publisher、错误签名身份、`authors = ["you"]` 或依赖在线 WebView2 bootstrapper。
 - `Windows Release` 默认要求 Windows Authenticode 签名；通过 `cap-v*` tag 触发的正式发布不能关闭签名要求。

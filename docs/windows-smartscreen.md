@@ -136,6 +136,8 @@ Defender 扫描不能代替代码签名、Store、WDSI 或 SmartScreen 声誉，
 
 手动运行 GitHub Actions 中的 `Windows Trust Readiness` 可以在任何时候生成当前状态报告。它也会在相关 Windows 信任链文件变更时自动运行，并每周定期检查一次。它不会读取 secret 明文，只使用 GitHub Actions 传入的布尔状态判断相关 secret 是否已配置。报告会作为 workflow artifact 上传，也会写入 job summary。
 
+`Windows Trust Readiness` 会复用 `Windows Release Quarantine` 的清单校验逻辑检查最新公开 `cap-v*` Release：不只确认 `windows-release-assets-<tag>.json` 存在，还会读取清单内容，确认仓库、tag、安装包文件名、签名、时间戳、SignTool、checksum、artifact attestation 和 Defender 扫描状态都有效。当前公开 Release 如果仍是旧的未签名包、缺少清单或清单内容无效，readiness 报告会把它标成 warning。
+
 运行仓库脚本验证指定 Release 的 Windows 安装包：
 
 ```powershell

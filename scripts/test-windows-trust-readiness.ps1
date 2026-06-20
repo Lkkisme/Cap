@@ -145,6 +145,32 @@ function Get-GitHubJson {
     Invoke-RestMethod -Headers $headers -Uri $Uri
 }
 
+function Get-ReleaseQuarantineResult {
+    param(
+        [string]$Tag,
+        [string]$Repository,
+        [string]$OutputRoot
+    )
+
+    $safeTag = ($Tag -replace '[^A-Za-z0-9._-]', '-').ToLowerInvariant()
+    $quarantineDirectory = Join-Path $OutputRoot "latest-release-quarantine-$safeTag"
+    $params = @{
+        Repository = $Repository
+        Tag = $Tag
+        Mode = "report"
+        OutputDirectory = $quarantineDirectory
+    }
+
+    & (Join-Path $PSScriptRoot "protect-windows-release-assets.ps1") @params | Out-Null
+
+    $jsonPath = Join-Path $quarantineDirectory "windows-release-quarantine-report.json"
+    if (-not (Test-Path -LiteralPath $jsonPath)) {
+        throw "Windows release quarantine report was not generated."
+    }
+
+    Get-Content -Raw -LiteralPath $jsonPath | ConvertFrom-Json
+}
+
 $checks = @()
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
 $outputFullPath = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
@@ -303,9 +329,25 @@ if (-not [string]::IsNullOrWhiteSpace($Repository)) {
             if (-not $hasWdsiText) { $missingEvidence += "WDSI submission text" }
 
             if ($missingEvidence.Count -eq 0) {
-                Add-Check -Area "Latest release" -Item $latestRelease.tag_name -Status "pass" -Detail "Latest public Windows release has all download gate evidence."
+                Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence assets" -Status "pass" -Detail "Latest public Windows release has all download gate evidence assets."
             } else {
-                Add-Check -Area "Latest release" -Item $latestRelease.tag_name -Status "warning" -Detail "Missing evidence: $($missingEvidence -join ', ')." -NextAction "Publish a new signed Windows release through the Windows Release workflow."
+                Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence assets" -Status "warning" -Detail "Missing evidence: $($missingEvidence -join ', ')." -NextAction "Publish a new signed Windows release through the Windows Release workflow."
+            }
+
+            try {
+                $quarantineResult = Get-ReleaseQuarantineResult -Tag $latestRelease.tag_name -Repository $Repository -OutputRoot $outputFullPath
+                if ([bool]$quarantineResult.verifiedWindowsRelease) {
+                    Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence manifest" -Status "pass" -Detail "Release asset manifest confirms valid signature, timestamp, SignTool, checksum, attestation, and Defender status for each Windows installer."
+                } else {
+                    $manifestFailures = @($quarantineResult.manifestFailures)
+                    if ($manifestFailures.Count -gt 0) {
+                        Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence manifest" -Status "warning" -Detail "Release asset manifest is not valid: $($manifestFailures -join ' ')" -NextAction "Publish a new signed Windows release through the Windows Release workflow, then let Windows Release Audit regenerate the manifest."
+                    } else {
+                        Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence manifest" -Status "warning" -Detail "Release evidence is present but does not satisfy every verified Windows release gate." -NextAction "Review the generated quarantine report before promoting this Release."
+                    }
+                }
+            } catch {
+                Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence manifest" -Status "warning" -Detail "Release asset manifest could not be validated: $($_.Exception.Message)" -NextAction "Re-run with GITHUB_TOKEN available or inspect the Release evidence manifest manually."
             }
         } else {
             Add-Check -Area "Latest release" -Item "Public cap-v release" -Status "warning" -Detail "No public cap-v release was found." -NextAction "Publish a signed Windows release when signing or Store packaging is ready."
