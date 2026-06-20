@@ -551,7 +551,7 @@ jobs:
 
             If Windows signing is configured, the EXE and MSI are Authenticode signed and verified before upload. New publishers or new files can still show SmartScreen warnings until Microsoft reputation builds.
 
-            SHA256SUMS.txt can be used to verify downloaded files. Verified public releases also include windows-smartscreen-report-<tag>.md, windows-release-assets-<tag>.json, windows-installer-smoke-test-report-<tag>.md, and windows-installer-smoke-test-results-<tag>.json after the Windows release audit and installer smoke test pass.
+            SHA256SUMS.txt can be used to verify downloaded files. Verified public releases also include windows-smartscreen-report-<tag>.md, windows-release-assets-<tag>.json, windows-installer-smoke-test-report-<tag>.md, windows-installer-smoke-test-results-<tag>.json, windows-wdsi-submission-checklist-<tag>.md, and windows-wdsi-submission-text-<tag>.zip after the Windows release audit, installer smoke test, and WDSI package workflows pass.
 
       - name: Run Windows release evidence workflows
         if: needs.metadata.outputs.draft != 'true' && needs.metadata.outputs.require_signing == 'true'
@@ -592,7 +592,7 @@ jobs:
           dispatch_run "windows-release-audit.yml" -f tag="$TAG_NAME"
           dispatch_run "windows-installer-smoke-test.yml" -f tag="$TAG_NAME" -f product_name="$PRODUCT_NAME"
           dispatch_run "windows-winget-manifest.yml" -f tag="$TAG_NAME" -f package_identifier="$PACKAGE_IDENTIFIER" -f publisher="$PUBLISHER" -f package_name="$PRODUCT_NAME"
-          dispatch_run "windows-wdsi-package.yml" -f tag="$TAG_NAME"
+          dispatch_run "windows-wdsi-package.yml" -f tag="$TAG_NAME" -f product_name="$PRODUCT_NAME"
 
           for run in "${runs[@]}"; do
             workflow="${run%%:*}"
@@ -638,6 +638,8 @@ jobs:
           require_asset "windows-release-assets-$safe_tag.json"
           require_asset "windows-installer-smoke-test-report-$safe_tag.md"
           require_asset "windows-installer-smoke-test-results-$safe_tag.json"
+          require_asset "windows-wdsi-submission-checklist-$safe_tag.md"
+          require_asset "windows-wdsi-submission-text-$safe_tag.zip"
 
       - name: Publish verified GitHub release
         if: needs.metadata.outputs.draft != 'true'

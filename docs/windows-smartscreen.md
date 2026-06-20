@@ -114,7 +114,7 @@ Windows 安装包需要长期保持同一个应用身份，否则 SmartScreen、
 - 每个 Windows Release 都使用同一个已验证发布者签名，并带可信时间戳。
 - 每个正式构建都让 `WINDOWS_SIGNING_PUBLISHER_PATTERN` 匹配同一个 Authenticode subject，避免签名证书身份漂移导致声誉重新积累。
 - GitHub Release 和 Microsoft Store 包都使用离线 WebView2 安装模式，避免用户机器缺少 WebView2 时安装器还要联网下载依赖。
-- 优先推广 Microsoft Store 链接；Store 暂未可用时，再推广 GitHub Release 的同一个安装包链接，让同一文件 hash 积累下载声誉。Web 下载入口中的 `/download/windows` 会在配置 `NEXT_PUBLIC_WINDOWS_STORE_URL`、`WINDOWS_STORE_URL` 或 `CAP_WINDOWS_STORE_URL` 后优先跳到官方 Microsoft Store HTTPS 链接；未配置 Store 链接时，`/download/windows` 和 `/download/windows-msi` 只会直跳同时带 `SHA256SUMS.txt`、`windows-smartscreen-report-<tag>.md`、`windows-release-assets-<tag>.json`、`windows-installer-smoke-test-report-<tag>.md` 和 `windows-installer-smoke-test-results-<tag>.json` 的 Windows 资产；如果当前最新公开 Release 仍是未签名旧包、缺少审计证据或缺少安装器 smoke test 证据，则回到 Releases 页面而不是自动下载。`/download/windows-exe` 保留为直装 EXE 入口。
+- 优先推广 Microsoft Store 链接；Store 暂未可用时，再推广 GitHub Release 的同一个安装包链接，让同一文件 hash 积累下载声誉。Web 下载入口中的 `/download/windows` 会在配置 `NEXT_PUBLIC_WINDOWS_STORE_URL`、`WINDOWS_STORE_URL` 或 `CAP_WINDOWS_STORE_URL` 后优先跳到官方 Microsoft Store HTTPS 链接；未配置 Store 链接时，`/download/windows` 和 `/download/windows-msi` 只会直跳同时带 `SHA256SUMS.txt`、`windows-smartscreen-report-<tag>.md`、`windows-release-assets-<tag>.json`、`windows-installer-smoke-test-report-<tag>.md`、`windows-installer-smoke-test-results-<tag>.json`、`windows-wdsi-submission-checklist-<tag>.md` 和 `windows-wdsi-submission-text-<tag>.zip` 的 Windows 资产；如果当前最新公开 Release 仍是未签名旧包、缺少审计证据、缺少安装器 smoke test 证据或缺少 WDSI 复核材料，则回到 Releases 页面而不是自动下载。`/download/windows-exe` 保留为直装 EXE 入口。
 - 已公开的 `cap-v*` Release 不要替换 EXE/MSI；如果需要重新发布安装包，创建新的 tag，让用户和微软都能看到清晰版本边界。
 - 保留源码、release notes、hash、签名信息，方便微软人工复核。
 - 发布后下载 Windows EXE/MSI，用 `Get-AuthenticodeSignature` 确认状态是 `Valid`，确认存在 `TimeStamperCertificate`，并用 Windows SDK `signtool verify /pa /tw` 复核。
@@ -172,7 +172,7 @@ powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag
 
 在 GitHub Actions 中运行的 `Windows Release Audit` 会把审核通过后的报告和 Release 资产清单复制成 `windows-smartscreen-report-<tag>.md`、`windows-release-assets-<tag>.json` 并上传到同一个 GitHub Release。
 
-`cap-v*` Release published 后会自动触发 `Windows Release Audit`、`Windows Installer Smoke Test`、`Windows WinGet Manifest` 和 `Windows WDSI Package`。由 `Windows Release` workflow 创建正式签名 Release 时，会先创建 draft，再用 `workflow_dispatch` 主动触发并等待这些后续 workflow，避免 GitHub Actions 自己创建 Release 后没有继续触发证据链；触发时会传入父 run id，等待时只匹配同一个父 run id 的后续检查，避免并发手动重跑导致误判。任一后续 workflow 失败都会让 Release 保持 draft，全部通过后，父 workflow 还会重新读取 GitHub Release 资产，确认 EXE、MSI、`SHA256SUMS.txt`、`windows-smartscreen-report-<tag>.md`、`windows-release-assets-<tag>.json`、`windows-installer-smoke-test-report-<tag>.md` 和 `windows-installer-smoke-test-results-<tag>.json` 都已经存在，然后才会自动公开。也可以在 GitHub Actions 里手动运行它们并输入 Release tag。Release 审计和 WinGet 生成器通过 GitHub Release Asset API 下载资产，所以正式 Release 还处于 draft 门禁阶段时也能读取安装包。Release 审计会用同一个脚本检查 Release，要求 Windows 安装包签名有效、带可信时间戳、通过 `signtool verify /pa /tw`、匹配 Release 中的 `SHA256SUMS.txt`，并且通过 GitHub artifact attestation 验证。安装器 smoke test 会在干净 Windows runner 上静默安装和卸载 EXE/MSI。只有这些检查通过后，才建议把 GitHub Release 链接发给普通用户、提交 WinGet 或用于 WDSI 申诉。
+`cap-v*` Release published 后会自动触发 `Windows Release Audit`、`Windows Installer Smoke Test`、`Windows WinGet Manifest` 和 `Windows WDSI Package`。由 `Windows Release` workflow 创建正式签名 Release 时，会先创建 draft，再用 `workflow_dispatch` 主动触发并等待这些后续 workflow，避免 GitHub Actions 自己创建 Release 后没有继续触发证据链；触发时会传入父 run id，等待时只匹配同一个父 run id 的后续检查，避免并发手动重跑导致误判。任一后续 workflow 失败都会让 Release 保持 draft，全部通过后，父 workflow 还会重新读取 GitHub Release 资产，确认 EXE、MSI、`SHA256SUMS.txt`、`windows-smartscreen-report-<tag>.md`、`windows-release-assets-<tag>.json`、`windows-installer-smoke-test-report-<tag>.md`、`windows-installer-smoke-test-results-<tag>.json`、`windows-wdsi-submission-checklist-<tag>.md` 和 `windows-wdsi-submission-text-<tag>.zip` 都已经存在，然后才会自动公开。也可以在 GitHub Actions 里手动运行它们并输入 Release tag。Release 审计和 WinGet 生成器通过 GitHub Release Asset API 下载资产，所以正式 Release 还处于 draft 门禁阶段时也能读取安装包。Release 审计会用同一个脚本检查 Release，要求 Windows 安装包签名有效、带可信时间戳、通过 `signtool verify /pa /tw`、匹配 Release 中的 `SHA256SUMS.txt`，并且通过 GitHub artifact attestation 验证。安装器 smoke test 会在干净 Windows runner 上静默安装和卸载 EXE/MSI。只有这些检查通过后，才建议把 GitHub Release 链接发给普通用户、提交 WinGet 或用于 WDSI 申诉。
 
 当前 `cap-v0.4.3-cn` 的 Windows EXE/MSI 验证结果是 `NotSigned`。启用任一签名后端并重新发布后，应重新运行该脚本并确认状态为 `Valid`。
 
@@ -189,7 +189,7 @@ powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag
 
 ## WDSI 复核材料包
 
-如果签名后的安装包仍被 SmartScreen 或 Microsoft Defender 误拦截，可以下载 Release 发布后自动生成的 `windows-wdsi-package-<tag>` artifact，也可以手动运行 GitHub Actions 中的 `Windows WDSI Package` workflow 重跑。输入已通过 `Windows Release Audit` 的 Release tag 后，它会：
+如果签名后的安装包仍被 SmartScreen 或 Microsoft Defender 误拦截，可以下载 Release 发布后自动生成的 `windows-wdsi-package-<tag>` artifact，也可以直接从对应 GitHub Release 下载 `windows-wdsi-submission-checklist-<tag>.md` 和 `windows-wdsi-submission-text-<tag>.zip`。也可以手动运行 GitHub Actions 中的 `Windows WDSI Package` workflow 重跑。输入已通过 `Windows Release Audit` 的 Release tag 后，它会：
 
 1. 重新验证 Authenticode 签名
 2. 重新验证可信时间戳
@@ -199,7 +199,7 @@ powershell -ExecutionPolicy Bypass -File scripts\verify-windows-release.ps1 -Tag
 6. 为每个 EXE/MSI 生成一份 WDSI 提交说明文本
 7. 打包安装包、报告、hash、证据 JSON 和 checklist
 
-下载 artifact `windows-wdsi-package-<tag>` 后，在 https://www.microsoft.com/en-us/wdsi/filesubmission 选择 `Software developer`，上传 `installers` 目录中的对应安装包，并粘贴 `submission-text` 目录中同名文本。
+下载 artifact `windows-wdsi-package-<tag>` 后，在 https://www.microsoft.com/en-us/wdsi/filesubmission 选择 `Software developer`，上传 `installers` 目录中的对应安装包，并粘贴 `submission-text` 目录中同名文本。如果使用 Release 资产中的 WDSI 提交文本压缩包，则上传 Release 中同名 EXE/MSI，并粘贴压缩包里对应文件名的文本。
 
 ## WinGet 提交流程
 

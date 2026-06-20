@@ -16,6 +16,11 @@ on:
         required: false
         default: ""
         type: string
+      product_name:
+        description: "Product name shown in WDSI submission text"
+        required: true
+        default: "Cap 中文版"
+        type: string
       source_run_id:
         description: "Optional parent Windows Release run id"
         required: false
@@ -23,11 +28,12 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
   EXPECTED_PUBLISHER_PATTERN: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_publisher_pattern || vars.WINDOWS_SIGNING_PUBLISHER_PATTERN }}
+  PRODUCT_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.product_name || vars.WINDOWS_PACKAGE_NAME || 'Cap 中文版' }}
 
 jobs:
   package:
@@ -48,6 +54,7 @@ jobs:
             Tag = $env:RELEASE_TAG
             Repository = "${{ github.repository }}"
             OutputDirectory = "windows-wdsi-package"
+            ProductName = $env:PRODUCT_NAME
           }
 
           if (-not [string]::IsNullOrWhiteSpace($env:EXPECTED_PUBLISHER_PATTERN)) {
@@ -57,6 +64,31 @@ jobs:
           }
 
           & .\scripts\new-wdsi-submission-package.ps1 @params
+
+      - name: Attach WDSI evidence to release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $checklist = "windows-wdsi-package\wdsi-submission-package\wdsi-submission-checklist.md"
+          $submissionText = "windows-wdsi-package\wdsi-submission-package\submission-text"
+
+          if (-not (Test-Path -LiteralPath $checklist)) {
+            throw "Missing WDSI submission checklist."
+          }
+
+          if (-not (Test-Path -LiteralPath $submissionText)) {
+            throw "Missing WDSI submission text directory."
+          }
+
+          $safeTag = $env:RELEASE_TAG -replace "[^A-Za-z0-9._-]", "-"
+          $checklistUpload = "windows-wdsi-submission-checklist-$safeTag.md"
+          $submissionTextUpload = "windows-wdsi-submission-text-$safeTag.zip"
+
+          Copy-Item -LiteralPath $checklist -Destination $checklistUpload -Force
+          Compress-Archive -Path (Join-Path $submissionText "*") -DestinationPath $submissionTextUpload -Force
+
+          gh release upload $env:RELEASE_TAG $checklistUpload $submissionTextUpload --repo $env:GITHUB_REPOSITORY --clobber
 
       - name: Upload WDSI package
         if: always()

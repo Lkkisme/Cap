@@ -4,6 +4,7 @@ param(
     [string]$Repository = "Lkkisme/Cap",
     [string]$OutputDirectory = "",
     [string]$ExpectedPublisherPattern = "",
+    [string]$ProductName = "Cap $([char]0x4E2D)$([char]0x6587)$([char]0x7248)",
     [string]$GitHubToken = $env:GITHUB_TOKEN
 )
 
@@ -94,7 +95,7 @@ foreach ($asset in @($metadata.Assets)) {
     $safeName = Get-SafeFileName -Name $asset.File
     $submissionTextPath = Join-Path $textDir "$safeName.txt"
     @(
-        "Product: Cap CN",
+        "Product: $ProductName",
         "Publisher: $($asset.Publisher)",
         "Repository: https://github.com/$Repository",
         "Release: $($metadata.ReleaseUrl)",
@@ -109,13 +110,14 @@ foreach ($asset in @($metadata.Assets)) {
         "GitHub artifact attestation: $($asset.AttestationStatus)",
         "",
         "This is an open-source screen recording application distributed from the official GitHub repository. The submitted installer was built by GitHub Actions from the tagged release, is signed by the publisher with a trusted timestamp, has a matching release checksum, and has a valid GitHub artifact attestation for the official repository. Please review it as a false positive / SmartScreen reputation issue."
-    ) | Set-Content -Encoding UTF8 -Path $submissionTextPath
+    ) | Set-Content -Encoding UTF8 -LiteralPath $submissionTextPath
 }
 
 $checklistPath = Join-Path $packageRoot "wdsi-submission-checklist.md"
 @(
     "# WDSI Submission Checklist",
     "",
+    "Product: $ProductName",
     "Repository: https://github.com/$Repository",
     "Release: $($metadata.ReleaseUrl)",
     "Tag: $Tag",
@@ -127,7 +129,7 @@ $checklistPath = Join-Path $packageRoot "wdsi-submission-checklist.md"
     "5. Attach or reference the evidence files if Microsoft asks for more context.",
     "",
     "The installers in this package have valid Authenticode signatures, trusted Authenticode timestamps, passing signtool verify /pa /tw results, matching release checksums, and valid GitHub artifact attestations."
-) | Set-Content -Encoding UTF8 -Path $checklistPath
+) | Set-Content -Encoding UTF8 -LiteralPath $checklistPath
 
 $zipPath = Join-Path $OutputDirectory "wdsi-submission-package-$Tag.zip"
 Compress-Archive -Path (Join-Path $packageRoot "*") -DestinationPath $zipPath -Force

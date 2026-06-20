@@ -15,6 +15,7 @@ export interface Release {
 	hasChecksums: boolean;
 	hasWindowsAuditEvidence: boolean;
 	hasWindowsSmokeTestEvidence: boolean;
+	hasWindowsWdsiEvidence: boolean;
 }
 
 export const GITHUB_RELEASES_URL = "https://github.com/Lkkisme/Cap/releases";
@@ -162,6 +163,24 @@ function hasWindowsSmokeTestEvidence(assets: GitHubReleaseAsset[]): boolean {
 	return hasReport && hasResults;
 }
 
+function hasWindowsWdsiEvidence(assets: GitHubReleaseAsset[]): boolean {
+	const names = assets.map((asset) => asset.name.toLowerCase());
+	const hasChecklist = names.some(
+		(name) =>
+			name === "windows-wdsi-submission-checklist.md" ||
+			(name.startsWith("windows-wdsi-submission-checklist-") &&
+				name.endsWith(".md")),
+	);
+	const hasSubmissionText = names.some(
+		(name) =>
+			name === "windows-wdsi-submission-text.zip" ||
+			(name.startsWith("windows-wdsi-submission-text-") &&
+				name.endsWith(".zip")),
+	);
+
+	return hasChecklist && hasSubmissionText;
+}
+
 export async function getGitHubReleases(): Promise<Release[]> {
 	const response = await fetch(
 		"https://api.github.com/repos/Lkkisme/Cap/releases?per_page=100",
@@ -205,6 +224,7 @@ export async function getGitHubReleases(): Promise<Release[]> {
 				hasWindowsSmokeTestEvidence: hasWindowsSmokeTestEvidence(
 					release.assets || [],
 				),
+				hasWindowsWdsiEvidence: hasWindowsWdsiEvidence(release.assets || []),
 			};
 		});
 }
@@ -227,7 +247,8 @@ export async function getLatestWindowsDownload(
 		if (
 			!release.hasChecksums ||
 			!release.hasWindowsAuditEvidence ||
-			!release.hasWindowsSmokeTestEvidence
+			!release.hasWindowsSmokeTestEvidence ||
+			!release.hasWindowsWdsiEvidence
 		)
 			continue;
 

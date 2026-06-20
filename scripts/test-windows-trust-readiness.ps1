@@ -255,6 +255,8 @@ if (-not [string]::IsNullOrWhiteSpace($Repository)) {
             $hasAuditJson = @($assetNames | Where-Object { $_ -match "^windows-release-assets.*\.json$" }).Count -gt 0
             $hasSmokeReport = @($assetNames | Where-Object { $_ -match "^windows-installer-smoke-test-report.*\.md$" }).Count -gt 0
             $hasSmokeJson = @($assetNames | Where-Object { $_ -match "^windows-installer-smoke-test-results.*\.json$" }).Count -gt 0
+            $hasWdsiChecklist = @($assetNames | Where-Object { $_ -match "^windows-wdsi-submission-checklist.*\.md$" }).Count -gt 0
+            $hasWdsiText = @($assetNames | Where-Object { $_ -match "^windows-wdsi-submission-text.*\.zip$" }).Count -gt 0
 
             $missingEvidence = @()
             if (-not $hasExe) { $missingEvidence += "Windows EXE" }
@@ -264,6 +266,8 @@ if (-not [string]::IsNullOrWhiteSpace($Repository)) {
             if (-not $hasAuditJson) { $missingEvidence += "release asset JSON" }
             if (-not $hasSmokeReport) { $missingEvidence += "installer smoke report" }
             if (-not $hasSmokeJson) { $missingEvidence += "installer smoke JSON" }
+            if (-not $hasWdsiChecklist) { $missingEvidence += "WDSI checklist" }
+            if (-not $hasWdsiText) { $missingEvidence += "WDSI submission text" }
 
             if ($missingEvidence.Count -eq 0) {
                 Add-Check -Area "Latest release" -Item $latestRelease.tag_name -Status "pass" -Detail "Latest public Windows release has all download gate evidence."
