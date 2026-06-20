@@ -69,8 +69,8 @@ Release workflow 已支持三种 Windows 签名方式：
 - 新增 `scripts/validate-windows-signing.ps1`。
 - 新增 `scripts/validate-windows-app-metadata.ps1`。
 - 新增 `scripts/test-windows-trust-readiness.ps1`。
-- 配置签名或 Store 前可以先手动运行 `Windows Trust Readiness`，它会生成一份报告，检查 Microsoft Store URL、Partner Center 自动提交凭据、Windows 签名 provider、发布者正则、Windows 发布 workflow、WinGet/WDSI workflow 和最新公开 Release 证据是否齐全；它也会在相关 Windows 信任链文件变更时自动运行，并每周定期检查一次。
-- `Windows Trust Readiness` 现在会复用 `scripts/protect-windows-release-assets.ps1` 对最新公开 `cap-v*` Release 的证据清单做内容验证；即使证据文件名都存在，如果 `windows-release-assets-<tag>.json` 里的仓库、tag、安装包文件名、签名、时间戳、SignTool、checksum、attestation 或 Defender 状态不匹配，readiness 报告也会标成 warning。未配置 Microsoft Store URL 时，缺少已验证 Windows Release 会被标为 fail。
+- 配置签名或 Store 前可以先手动运行 `Windows Trust Readiness`，它会生成一份报告，检查 Microsoft Store URL、Partner Center 自动提交凭据、Windows 签名 provider、发布者正则、Windows 发布 workflow、WinGet/WDSI workflow 和最新公开 Release 证据是否齐全；它也会在相关 Windows 信任链文件变更时自动运行，并每周定期检查一次。push/PR 会严格检查 workflow 和脚本本身，但缺少外部 Store、证书、CDN 或已签名 Release 时只生成 warning，避免主分支因为还没完成账号侧配置一直失败。
+- `Windows Trust Readiness` 现在会复用 `scripts/protect-windows-release-assets.ps1` 对最新公开 `cap-v*` Release 的证据清单做内容验证；即使证据文件名都存在，如果 `windows-release-assets-<tag>.json` 里的仓库、tag、安装包文件名、签名、时间戳、SignTool、checksum、attestation 或 Defender 状态不匹配，readiness 报告也会标出。手动启用 `fail_on_missing` 或定时检查时，缺少已验证 Windows Release 仍会失败。
 - 配置签名前可以先手动运行 `Windows Signing Check`，它会检查 GitHub Variables 和 Secrets 是否齐全，并签名一个临时 Windows EXE 探针，验证 Authenticode 签名、可信时间戳、发布者匹配和 SignTool 结果；配置签名 provider 后，它也会在相关签名文件变更时自动运行，并每周定期签名探针，未配置 provider 时自动运行只做跳过式检查。
 - `Windows Signing Check`、`Windows Release` 和 `Windows Store Package` 都会检查 Windows 包元数据、签名证书发布者模式和离线 WebView2 配置，避免公开安装包带着占位 publisher、错误签名身份、`authors = ["you"]` 或依赖在线 WebView2 bootstrapper。
 - `Windows Release` 始终要求 Windows Authenticode 签名；通过 `cap-v*` tag 触发或手动运行都不能关闭签名要求。
@@ -209,7 +209,7 @@ Release workflow 已支持三种 Windows 签名方式：
 1. 手动运行 `Windows Signing Check`。
 2. 设置 `WINDOWS_DOWNLOAD_URL`，指向 Microsoft Store 链接或你部署的网站 `/download/windows`；不要指向 GitHub Releases、localhost 或上游 `cap.so`。
 3. 如果暂时不能上 Store，但会发布签名 GitHub Release，把同一批已签名 EXE/MSI/portable ZIP 同步到你自己的版本化 HTTPS CDN 或网站路径，并设置 `WINDOWS_RELEASE_ASSET_BASE_URL`，例如 `https://downloads.example.com/cap/{tag}/{filename}`。
-4. 手动运行 `Windows Trust Readiness`，确认主要信任链路没有缺关键配置；手动运行时如果希望缺关键项直接失败，把 `fail_on_missing` 设为 `true`。自动的 push、PR 和每周定时 readiness 检查会默认严格失败，直到配置 Microsoft Store URL，或配置真实 Windows 签名 provider 并发布证据齐全的签名 Windows Release。
+4. 手动运行 `Windows Trust Readiness`，确认主要信任链路没有缺关键配置；手动运行时如果希望缺关键项直接失败，把 `fail_on_missing` 设为 `true`。自动的 push/PR 会严格检查 Windows 信任链 workflow 和脚本是否完整，但缺少外部 Store、证书、CDN 或已签名 Release 时只生成 warning；每周定时 readiness 检查仍会严格失败，直到配置 Microsoft Store URL，或配置真实 Windows 签名 provider 并发布证据齐全的签名 Windows Release。
 5. 确认配置检查和临时 EXE 签名探针都通过。
 6. 手动运行 `Windows Release` 或创建新的 `cap-v*` tag；该 workflow 始终要求真实 Windows 签名配置。
 7. 等待自动触发的 `Windows Release Audit` 通过，或手动输入刚发布的 tag 重新审计，确认签名发布者、可信时间戳、SignTool 复核、SHA256 和 artifact attestation 都通过。

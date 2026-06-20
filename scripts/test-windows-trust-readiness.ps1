@@ -2,6 +2,7 @@ param(
     [string]$Repository = $env:GITHUB_REPOSITORY,
     [string]$OutputDirectory = "windows-trust-readiness",
     [string]$StoreProductId = "",
+    [switch]$AllowMissingExternalConfiguration,
     [switch]$FailOnMissing
 )
 
@@ -183,6 +184,14 @@ function Test-RegexValue {
     } catch {
         return $false
     }
+}
+
+function Get-MissingExternalConfigurationStatus {
+    if ($AllowMissingExternalConfiguration) {
+        return "warning"
+    }
+
+    "fail"
 }
 
 function Test-WorkflowFile {
@@ -379,6 +388,8 @@ if ($storeUrl) {
 $windowsDownloadUrl = $env:WINDOWS_DOWNLOAD_URL
 if (Test-TrustedWindowsDownloadUrl -Value $windowsDownloadUrl) {
     Add-Check -Area "Distribution path" -Item "Windows download URL" -Status "pass" -Detail "WINDOWS_DOWNLOAD_URL points to a trusted Windows download surface."
+} elseif ([string]::IsNullOrWhiteSpace($windowsDownloadUrl)) {
+    Add-Check -Area "Distribution path" -Item "Windows download URL" -Status (Get-MissingExternalConfigurationStatus) -Detail "WINDOWS_DOWNLOAD_URL is missing." -NextAction "Set the GitHub variable WINDOWS_DOWNLOAD_URL to the approved Microsoft Store URL or to the deployed site /download/windows route before building Windows packages."
 } else {
     Add-Check -Area "Distribution path" -Item "Windows download URL" -Status "fail" -Detail "WINDOWS_DOWNLOAD_URL is missing or does not point to Microsoft Store or an HTTPS /download page controlled by this project." -NextAction "Set the GitHub variable WINDOWS_DOWNLOAD_URL to the approved Microsoft Store URL or to the deployed site /download/windows route before building Windows packages."
 }
@@ -411,7 +422,7 @@ foreach ($name in $mirrorUploadInputNames) {
 if (Test-TrustedWindowsAssetBaseUrl -Value $windowsAssetBaseUrl -and $missingMirrorUploadInputs.Count -eq 0) {
     Add-Check -Area "Distribution path" -Item "Windows release asset mirror upload" -Status "pass" -Detail "Windows release asset mirror upload inputs are configured."
 } elseif (Test-TrustedWindowsAssetBaseUrl -Value $windowsAssetBaseUrl) {
-    Add-Check -Area "Distribution path" -Item "Windows release asset mirror upload" -Status "fail" -Detail "Missing Windows release asset mirror upload inputs: $($missingMirrorUploadInputs -join ', ')." -NextAction "Configure WINDOWS_RELEASE_ASSET_BUCKET and the Windows release asset AWS access key secrets before publishing mirrored downloads."
+    Add-Check -Area "Distribution path" -Item "Windows release asset mirror upload" -Status (Get-MissingExternalConfigurationStatus) -Detail "Missing Windows release asset mirror upload inputs: $($missingMirrorUploadInputs -join ', ')." -NextAction "Configure WINDOWS_RELEASE_ASSET_BUCKET and the Windows release asset AWS access key secrets before publishing mirrored downloads."
 } else {
     Add-Check -Area "Distribution path" -Item "Windows release asset mirror upload" -Status "warning" -Detail "Windows release asset mirror upload is not configured." -NextAction "Configure the mirror URL, bucket, and upload secrets before using Windows Release Asset Mirror."
 }
@@ -508,7 +519,7 @@ if ($validProviders -contains $provider) {
 if ($storeUrl -or $hasValidProvider) {
     Add-Check -Area "Distribution path" -Item "Primary trust path" -Status "pass" -Detail "A Store URL or code signing provider is configured."
 } else {
-    Add-Check -Area "Distribution path" -Item "Primary trust path" -Status "fail" -Detail "Neither Microsoft Store URL nor code signing provider is configured." -NextAction "Prioritize Microsoft Store approval or configure a Windows signing provider."
+    Add-Check -Area "Distribution path" -Item "Primary trust path" -Status (Get-MissingExternalConfigurationStatus) -Detail "Neither Microsoft Store URL nor code signing provider is configured." -NextAction "Prioritize Microsoft Store approval or configure a Windows signing provider."
 }
 
 if (-not [string]::IsNullOrWhiteSpace($Repository)) {
@@ -555,7 +566,7 @@ if (-not [string]::IsNullOrWhiteSpace($Repository)) {
             if ($missingEvidence.Count -eq 0) {
                 Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence assets" -Status "pass" -Detail "Latest public Windows release has all download gate evidence assets."
             } else {
-                $evidenceStatus = if ($storeUrl) { "warning" } else { "fail" }
+                $evidenceStatus = if ($storeUrl) { "warning" } else { Get-MissingExternalConfigurationStatus }
                 Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence assets" -Status $evidenceStatus -Detail "Missing evidence: $($missingEvidence -join ', ')." -NextAction "Publish a new signed Windows release through the Windows Release workflow, or configure the official Microsoft Store URL."
             }
 
@@ -564,7 +575,7 @@ if (-not [string]::IsNullOrWhiteSpace($Repository)) {
                 if ([bool]$quarantineResult.verifiedWindowsRelease) {
                     Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence manifest" -Status "pass" -Detail "Release asset manifest confirms valid signature, timestamp, SignTool, checksum, attestation, and Defender status for each Windows release package."
                 } else {
-                    $manifestStatus = if ($storeUrl) { "warning" } else { "fail" }
+                    $manifestStatus = if ($storeUrl) { "warning" } else { Get-MissingExternalConfigurationStatus }
                     $manifestFailures = @($quarantineResult.manifestFailures)
                     if ($manifestFailures.Count -gt 0) {
                         Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence manifest" -Status $manifestStatus -Detail "Release asset manifest is not valid: $($manifestFailures -join ' ')" -NextAction "Publish a new signed Windows release through the Windows Release workflow, then let Windows Release Audit regenerate the manifest."
@@ -573,11 +584,11 @@ if (-not [string]::IsNullOrWhiteSpace($Repository)) {
                     }
                 }
             } catch {
-                $manifestValidationStatus = if ($storeUrl) { "warning" } else { "fail" }
+                $manifestValidationStatus = if ($storeUrl) { "warning" } else { Get-MissingExternalConfigurationStatus }
                 Add-Check -Area "Latest release" -Item "$($latestRelease.tag_name) evidence manifest" -Status $manifestValidationStatus -Detail "Release asset manifest could not be validated: $($_.Exception.Message)" -NextAction "Re-run with GITHUB_TOKEN available or inspect the Release evidence manifest manually."
             }
         } else {
-            $releaseStatus = if ($storeUrl) { "warning" } else { "fail" }
+            $releaseStatus = if ($storeUrl) { "warning" } else { Get-MissingExternalConfigurationStatus }
             Add-Check -Area "Latest release" -Item "Public cap-v release" -Status $releaseStatus -Detail "No public cap-v release was found." -NextAction "Publish a signed Windows release, or configure the official Microsoft Store URL after Store approval."
         }
     } catch {
