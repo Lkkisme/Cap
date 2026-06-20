@@ -80,6 +80,77 @@ if (-not [string]::IsNullOrWhiteSpace($GitHubToken)) {
     $headers["Authorization"] = "Bearer $GitHubToken"
 }
 
+function Save-GitHubReleaseAsset {
+    param(
+        [object]$Asset,
+        [string]$Path,
+        [hashtable]$Headers
+    )
+
+    $downloadHeaders = @{}
+    foreach ($key in $Headers.Keys) {
+        $downloadHeaders[$key] = $Headers[$key]
+    }
+    $downloadHeaders["Accept"] = "application/octet-stream"
+
+    $assetUrl = if (-not [string]::IsNullOrWhiteSpace($Asset.url)) {
+        $Asset.url
+    } else {
+        $Asset.browser_download_url
+    }
+
+    $request = [System.Net.HttpWebRequest]::Create($assetUrl)
+    $request.Method = "GET"
+    $request.AllowAutoRedirect = $false
+
+    foreach ($key in $downloadHeaders.Keys) {
+        if ($key -eq "Accept") {
+            $request.Accept = [string]$downloadHeaders[$key]
+        } elseif ($key -eq "User-Agent") {
+            $request.UserAgent = [string]$downloadHeaders[$key]
+        } else {
+            $request.Headers[$key] = [string]$downloadHeaders[$key]
+        }
+    }
+
+    $response = $null
+    try {
+        $response = $request.GetResponse()
+    } catch [System.Net.WebException] {
+        $response = $_.Exception.Response
+        if (-not $response) {
+            throw
+        }
+    }
+
+    if ([int]$response.StatusCode -in @(301, 302, 303, 307, 308)) {
+        $location = $response.Headers["Location"]
+        $response.Close()
+        if ([string]::IsNullOrWhiteSpace($location)) {
+            throw "$($Asset.name) download redirect did not include a Location header."
+        }
+        Invoke-WebRequest -Uri $location -OutFile $Path
+        return
+    }
+
+    if ([int]$response.StatusCode -lt 200 -or [int]$response.StatusCode -ge 300) {
+        $statusCode = [int]$response.StatusCode
+        $statusDescription = $response.StatusDescription
+        $response.Close()
+        throw "$($Asset.name) download failed with HTTP $statusCode $statusDescription."
+    }
+
+    $inputStream = $response.GetResponseStream()
+    $outputStream = [System.IO.File]::Create($Path)
+    try {
+        $inputStream.CopyTo($outputStream)
+    } finally {
+        $outputStream.Dispose()
+        $inputStream.Dispose()
+        $response.Close()
+    }
+}
+
 $releaseUrl = "https://api.github.com/repos/$Repository/releases/tags/$Tag"
 $release = Invoke-RestMethod -Uri $releaseUrl -Headers $headers
 $windowsAssets = @($release.assets | Where-Object { $_.name -match "windows" -and $_.name -match "\.(exe|msi)$" })
@@ -103,7 +174,7 @@ if (-not $asset) {
 $tempDir = Join-Path $env:TEMP "cap-winget-$Tag"
 New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
 $checksumPath = Join-Path $tempDir "SHA256SUMS.txt"
-Invoke-WebRequest -Uri $checksumAsset.browser_download_url -Headers $headers -OutFile $checksumPath
+Save-GitHubReleaseAsset -Asset $checksumAsset -Path $checksumPath -Headers $headers
 
 $expectedHashes = @{}
 foreach ($line in Get-Content -LiteralPath $checksumPath) {
@@ -117,7 +188,7 @@ if (-not $expectedHashes.ContainsKey($asset.name)) {
 }
 
 $installerPathForInspection = Join-Path $tempDir $asset.name
-Invoke-WebRequest -Uri $asset.browser_download_url -Headers $headers -OutFile $installerPathForInspection
+Save-GitHubReleaseAsset -Asset $asset -Path $installerPathForInspection -Headers $headers
 $installerHash = Get-FileHash -Algorithm SHA256 -LiteralPath $installerPathForInspection
 if ($installerHash.Hash.ToUpperInvariant() -ne $expectedHashes[$asset.name]) {
     throw "$($asset.name) downloaded SHA256 does not match SHA256SUMS.txt."

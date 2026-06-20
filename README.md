@@ -91,6 +91,7 @@ Release workflow 已支持三种 Windows 签名方式：
 - `Windows WDSI Package` 会在 `cap-v*` Release 发布后自动为已签名、已审计的 Release 生成微软复核材料包。
 - `Windows Release` 和 `Windows Store Package` 会在上传产物前用 Microsoft Defender 扫描 Windows EXE/MSI。
 - 脚本可以下载指定 GitHub Release 的 Windows EXE/MSI。
+- 脚本通过 GitHub Release Asset API 下载资产，正式 Release 还处于 draft 门禁阶段时也能验证安装包。
 - 脚本会计算 SHA256。
 - 脚本可以核对 Release 中的 `SHA256SUMS.txt`。
 - 脚本可以用 GitHub CLI 验证 artifact attestation，确认安装包来自本仓库 GitHub Actions 构建。
