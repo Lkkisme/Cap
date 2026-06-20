@@ -50,11 +50,39 @@ function Test-OfficialMicrosoftStoreUrl {
             return $false
         }
 
-        $hosts = @("apps.microsoft.com", "www.microsoft.com", "microsoft.com")
-        return $hosts -contains $uri.Host.ToLowerInvariant()
+        $hostName = $uri.Host.ToLowerInvariant()
+        $path = Get-StorePathWithoutLocale -Path $uri.AbsolutePath.ToLowerInvariant()
+
+        if ($hostName -eq "apps.microsoft.com") {
+            return $path.StartsWith("/detail/") -or $path.StartsWith("/store/detail/") -or $path.StartsWith("/store/apps/")
+        }
+
+        if ($hostName -eq "www.microsoft.com" -or $hostName -eq "microsoft.com") {
+            return $path.StartsWith("/store/apps/") -or $path.StartsWith("/store/productid/") -or $path.StartsWith("/p/")
+        }
+
+        return $false
     } catch {
         return $false
     }
+}
+
+function Get-StorePathWithoutLocale {
+    param([string]$Path)
+
+    $segments = @($Path.Split("/", [System.StringSplitOptions]::RemoveEmptyEntries))
+    if ($segments.Count -gt 0 -and $segments[0] -match '^[a-z]{2}-[a-z]{2}$') {
+        if ($segments.Count -eq 1) {
+            return "/"
+        }
+        return "/" + ($segments[1..($segments.Count - 1)] -join "/")
+    }
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return "/"
+    }
+
+    $Path
 }
 
 function Get-ConfiguredStoreUrl {

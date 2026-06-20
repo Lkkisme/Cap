@@ -19,12 +19,6 @@ export interface Release {
 	hasWindowsWdsiEvidence: boolean;
 }
 
-const MICROSOFT_STORE_HOSTS = new Set([
-	"apps.microsoft.com",
-	"www.microsoft.com",
-	"microsoft.com",
-]);
-
 interface GitHubRelease {
 	tag_name: string;
 	name: string;
@@ -53,14 +47,17 @@ function parseDownloadsFromBody(body: string): ReleaseDownloads {
 				downloads["macos-arm64"] = parsed["macos-arm64"];
 			if (parsed["macos-x64"]) downloads["macos-x64"] = parsed["macos-x64"];
 			if (parsed.windows) downloads.windows = parsed.windows;
-			if (parsed["windows-msi"]) downloads["windows-msi"] = parsed["windows-msi"];
+			if (parsed["windows-msi"])
+				downloads["windows-msi"] = parsed["windows-msi"];
 		} catch {}
 	}
 
 	return downloads;
 }
 
-function parseDownloadsFromAssets(assets: GitHubReleaseAsset[]): ReleaseDownloads {
+function parseDownloadsFromAssets(
+	assets: GitHubReleaseAsset[],
+): ReleaseDownloads {
 	const downloads: ReleaseDownloads = {};
 	const windowsExe = assets.find(
 		(asset) =>
@@ -109,11 +106,42 @@ function normalizeMicrosoftStoreUrl(value: string | undefined): string | null {
 	try {
 		const url = new URL(value.trim());
 		if (url.protocol !== "https:") return null;
-		if (!MICROSOFT_STORE_HOSTS.has(url.hostname.toLowerCase())) return null;
-		return url.toString();
+		const hostname = url.hostname.toLowerCase();
+		const pathname = withoutLocalePrefix(url.pathname.toLowerCase());
+
+		if (hostname === "apps.microsoft.com") {
+			if (
+				pathname.startsWith("/detail/") ||
+				pathname.startsWith("/store/detail/") ||
+				pathname.startsWith("/store/apps/")
+			)
+				return url.toString();
+			return null;
+		}
+
+		if (hostname === "www.microsoft.com" || hostname === "microsoft.com") {
+			if (
+				pathname.startsWith("/store/apps/") ||
+				pathname.startsWith("/store/productid/") ||
+				pathname.startsWith("/p/")
+			)
+				return url.toString();
+			return null;
+		}
+
+		return null;
 	} catch {
 		return null;
 	}
+}
+
+function withoutLocalePrefix(pathname: string): string {
+	const segments = pathname.split("/").filter(Boolean);
+	if (segments[0] && /^[a-z]{2}-[a-z]{2}$/.test(segments[0])) {
+		return `/${segments.slice(1).join("/")}`;
+	}
+
+	return pathname || "/";
 }
 
 export function getWindowsStoreDownloadUrl(): string | null {
@@ -153,7 +181,10 @@ function hasWindowsSmokeTestEvidence(
 ): boolean {
 	const safeTag = safeReleaseTag(tagName);
 	return (
-		hasAssetNamed(assets, `windows-installer-smoke-test-report-${safeTag}.md`) &&
+		hasAssetNamed(
+			assets,
+			`windows-installer-smoke-test-report-${safeTag}.md`,
+		) &&
 		hasAssetNamed(
 			assets,
 			`windows-installer-smoke-test-results-${safeTag}.json`,
