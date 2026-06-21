@@ -263,7 +263,7 @@ jobs:
 
       - name: Submit SignPath app binary signing request
         if: runner.os == 'Windows' && steps.signing.outputs.provider == 'signpath'
-        uses: signpath/github-action-submit-signing-request@v1
+        uses: signpath/github-action-submit-signing-request@v2
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
@@ -271,6 +271,8 @@ jobs:
           signing-policy-slug: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
           artifact-configuration-slug: ${{ secrets.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
           github-artifact-id: ${{ steps.upload_signpath_windows_app_binaries.outputs.artifact-id }}
+          parameters: |
+            version: "${{ needs.metadata.outputs.version }}"
           wait-for-completion: true
           output-artifact-directory: signed-windows-app-binaries
 
@@ -388,7 +390,7 @@ jobs:
 
       - name: Submit SignPath signing request
         if: runner.os == 'Windows' && steps.signing.outputs.provider == 'signpath'
-        uses: signpath/github-action-submit-signing-request@v1
+        uses: signpath/github-action-submit-signing-request@v2
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
@@ -396,6 +398,8 @@ jobs:
           signing-policy-slug: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
           artifact-configuration-slug: ${{ secrets.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
           github-artifact-id: ${{ steps.upload_signpath_windows_installers.outputs.artifact-id }}
+          parameters: |
+            version: "${{ needs.metadata.outputs.version }}"
           wait-for-completion: true
           output-artifact-directory: signed-windows-installers
 

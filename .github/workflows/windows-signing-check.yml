@@ -33,6 +33,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Read desktop version
+        id: desktop_version
+        shell: pwsh
+        run: |
+          $cargoToml = Get-Content -Raw -Encoding UTF8 -LiteralPath apps/desktop/src-tauri/Cargo.toml
+          if ($cargoToml -notmatch '(?m)^version\s*=\s*"([^"]+)"') {
+            throw "Unable to read desktop version from apps/desktop/src-tauri/Cargo.toml."
+          }
+          "version=$($Matches[1])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
       - name: Validate Windows package metadata
         shell: pwsh
         env:
@@ -70,7 +80,21 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path signing-probe -Force | Out-Null
-          $source = 'public static class Program { public static void Main() { System.Console.WriteLine("Cap signing probe"); } }'
+          $version = "${{ steps.desktop_version.outputs.version }}"
+          $numericVersion = $version -replace "[^0-9.].*$", ""
+          $parts = @($numericVersion -split "\." | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+          while ($parts.Count -lt 4) {
+            $parts += "0"
+          }
+          $fileVersion = ($parts[0..3] -join ".")
+          $source = @"
+          using System.Reflection;
+          [assembly: AssemblyProduct("Cap 中文版")]
+          [assembly: AssemblyCompany("Lkkisme")]
+          [assembly: AssemblyInformationalVersion("$version")]
+          [assembly: AssemblyFileVersion("$fileVersion")]
+          public static class Program { public static void Main() { System.Console.WriteLine("Cap signing probe"); } }
+          "@
           Add-Type -TypeDefinition $source -OutputAssembly signing-probe\CapSigningProbe.exe -OutputType ConsoleApplication
           Get-Item -LiteralPath signing-probe\CapSigningProbe.exe | Select-Object FullName, Length | Format-List
 
@@ -144,7 +168,7 @@ jobs:
 
       - name: Submit SignPath signing probe request
         if: steps.signing.outputs.provider == 'signpath'
-        uses: signpath/github-action-submit-signing-request@v1
+        uses: signpath/github-action-submit-signing-request@v2
         with:
           api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
           organization-id: ${{ secrets.SIGNPATH_ORGANIZATION_ID }}
@@ -152,6 +176,8 @@ jobs:
           signing-policy-slug: ${{ secrets.SIGNPATH_SIGNING_POLICY_SLUG }}
           artifact-configuration-slug: ${{ secrets.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
           github-artifact-id: ${{ steps.upload_signpath_signing_probe.outputs.artifact-id }}
+          parameters: |
+            version: "${{ steps.desktop_version.outputs.version }}"
           wait-for-completion: true
           output-artifact-directory: signed-signing-probe
 

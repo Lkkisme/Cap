@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <parameters>
+    <parameter name="version" required="true" />
+  </parameters>
   <zip-file>
-    <pe-file path="*.exe" max-matches="unbounded">
-      <authenticode-sign />
-    </pe-file>
-    <pe-file path="*.dll" max-matches="unbounded">
-      <authenticode-sign />
-    </pe-file>
-    <msi-file path="*.msi" max-matches="unbounded">
+    <pe-file-set product-name="Cap 中文版" product-version="${version}" company-name="Lkkisme">
+      <include path="*.exe" min-matches="0" max-matches="unbounded" />
+      <include path="*.dll" min-matches="0" max-matches="unbounded" />
+      <for-each>
+        <authenticode-sign />
+      </for-each>
+    </pe-file-set>
+    <msi-file path="*.msi" min-matches="0" max-matches="unbounded" subject="Cap 中文版" author="Lkkisme">
       <authenticode-sign />
     </msi-file>
   </zip-file>
