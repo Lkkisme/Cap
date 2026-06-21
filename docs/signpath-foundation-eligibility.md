@@ -33,7 +33,7 @@ Owner-side actions still required before completion:
 | Privacy policy | Ready | `PRIVACY.md` describes local recording behavior, optional upload/share workflows, permissions, and network behavior. |
 | Installation and uninstallation | Ready | Windows release assets include NSIS EXE and MSI installers. `Windows Installer Smoke Test` verifies silent install and uninstall behavior for signed releases. |
 | Code signing policy on project home page | Ready | `README.md` links to `CODE_SIGNING_POLICY.md` using the required `Code signing policy` wording. |
-| Code signing policy on release/download page | In progress | The current GitHub Release body must be updated after these files are pushed so it links to `CODE_SIGNING_POLICY.md` and `PRIVACY.md`. |
+| Code signing policy on release/download page | Ready | The current GitHub Release body links to `CODE_SIGNING_POLICY.md`, `PRIVACY.md`, the application draft, and this checklist. |
 | Team roles | Ready | `CODE_SIGNING_POLICY.md` lists the current maintainer, committer, reviewer, and signing approver. |
 | MFA for repository and SignPath access | Owner action required | `CODE_SIGNING_POLICY.md` requires MFA, but the account owner must confirm that GitHub MFA is enabled and must enable SignPath MFA during onboarding. |
 | Manual signing approval | Ready for setup | `CODE_SIGNING_POLICY.md` requires manual approval for SignPath Foundation release signing requests. This must be configured in SignPath after approval. |
