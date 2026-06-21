@@ -11,6 +11,7 @@ Repository-side materials are prepared or being prepared in public.
 Owner-side actions still required before completion:
 
 - Confirm that the `Lkkisme` GitHub account uses multi-factor authentication.
+- Provide first name, last name, and email for the SignPath account.
 - Submit the SignPath Foundation application.
 - Complete any SignPath account, email, MFA, or approval steps requested by SignPath.
 - After approval, configure the SignPath project, signing policy, trusted GitHub build system, CI user token, and GitHub repository secrets.
@@ -34,6 +35,7 @@ Owner-side actions still required before completion:
 | Installation and uninstallation | Ready | Windows release assets include NSIS EXE and MSI installers. `Windows Installer Smoke Test` verifies silent install and uninstall behavior for signed releases. |
 | Code signing policy on project home page | Ready | `README.md` links to `CODE_SIGNING_POLICY.md` using the required `Code signing policy` wording. |
 | Code signing policy on release/download page | Ready | The current GitHub Release body links to `CODE_SIGNING_POLICY.md`, `PRIVACY.md`, the application draft, and this checklist. |
+| SignPath application form answers | Ready except owner contact fields | `docs/signpath-foundation-form-answers.md` maps current form fields to prepared answers and lists the required owner-provided contact fields. |
 | Team roles | Ready | `CODE_SIGNING_POLICY.md` lists the current maintainer, committer, reviewer, and signing approver. |
 | MFA for repository and SignPath access | Owner action required | `CODE_SIGNING_POLICY.md` requires MFA, but the account owner must confirm that GitHub MFA is enabled and must enable SignPath MFA during onboarding. |
 | Manual signing approval | Ready for setup | `CODE_SIGNING_POLICY.md` requires manual approval for SignPath Foundation release signing requests. This must be configured in SignPath after approval. |

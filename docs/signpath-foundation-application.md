@@ -78,6 +78,10 @@ https://github.com/Lkkisme/Cap/blob/main/PRIVACY.md
 
 https://github.com/Lkkisme/Cap/blob/main/docs/signpath-foundation-eligibility.md
 
+## Form Answers
+
+https://github.com/Lkkisme/Cap/blob/main/docs/signpath-foundation-form-answers.md
+
 ## Maintainer and Roles
 
 Current maintainer, committer, reviewer, and signing approver:
@@ -163,4 +167,5 @@ Before submitting the application, confirm:
 - The repository license is visible.
 - The code signing policy and privacy policy links are reachable.
 - The eligibility checklist link is reachable.
+- The form answers draft is reviewed and the owner has provided first name, last name, and email.
 - The release workflow builds from source and does not rely on manually uploaded local binaries for signed releases.
