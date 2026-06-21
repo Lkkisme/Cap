@@ -4,7 +4,9 @@ This document explains how `Lkkisme/Cap` relates to `CapSoftware/Cap`.
 
 ## Summary
 
-`Lkkisme/Cap` is a public, unofficial, Chinese Windows-focused fork of the upstream Cap project.
+`Lkkisme/Cap` is a public, unofficial, Chinese Windows-focused downstream fork of the upstream Cap project.
+
+GitHub may show an intermediate fork as the direct parent in the fork network. The canonical upstream project for attribution, sync review, and maintenance context is `CapSoftware/Cap`.
 
 Upstream project:
 

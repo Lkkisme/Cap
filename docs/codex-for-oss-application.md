@@ -18,7 +18,7 @@ Repository context: this application is for the public `Lkkisme/Cap` fork. The a
 | Role | Primary maintainer |
 | Interested in | API credits for my project. Codex assistance would be used for open source maintenance, code review, tests, CI, release automation, documentation, and security triage where available. |
 | OpenAI organization ID | HUMAN ONLY: paste the exact OpenAI organization ID from the owner's OpenAI platform account. |
-| Why this project qualifies, 500 chars or less | `I maintain Lkkisme/Cap, a public AGPLv3 downstream fork of the open source Cap screen recorder for Chinese-language Windows users. The fork is early, but the work is active public OSS maintenance: upstream sync, localization, Windows packaging, signing readiness, SmartScreen/WDSI evidence, CI, release automation, and user/developer docs.` |
+| Why this project qualifies, 500 chars or less | `I maintain Lkkisme/Cap, a public AGPLv3 downstream fork ultimately based on the open source Cap screen recorder, focused on Chinese-language Windows users. Its current public OSS work includes upstream sync, localization, Windows packaging, signing readiness, SmartScreen/WDSI evidence prep, CI, release automation, and user/developer docs.` |
 | How API credits would be used, 500 chars or less | `Credits would support public maintenance of Lkkisme/Cap: reviewing TypeScript/Rust/Tauri changes, explaining regressions, improving tests and CI, debugging Windows signing/release automation, drafting user/developer docs, localization, and preparing small PR-ready patches. Use would stay tied to this public repo, not proprietary or client work.` |
 | Anything else, 500 chars or less | `This application is for the public Lkkisme/Cap fork only. It is not submitted on behalf of CapSoftware/Cap or Cap Software, Inc. The repo documents license/upstream attribution, maintainer roles, security/privacy policies, release/signing status, and transparent early-adoption metrics. I will use any support only for this public OSS repo.` |
 
@@ -28,9 +28,9 @@ These versions are intentionally conservative and stay under 500 characters.
 
 ## Why This Project Qualifies
 
-Length: 339 characters.
+Length: 340 characters.
 
-`I maintain Lkkisme/Cap, a public AGPLv3 downstream fork of the open source Cap screen recorder for Chinese-language Windows users. The fork is early, but the work is active public OSS maintenance: upstream sync, localization, Windows packaging, signing readiness, SmartScreen/WDSI evidence, CI, release automation, and user/developer docs.`
+`I maintain Lkkisme/Cap, a public AGPLv3 downstream fork ultimately based on the open source Cap screen recorder, focused on Chinese-language Windows users. Its current public OSS work includes upstream sync, localization, Windows packaging, signing readiness, SmartScreen/WDSI evidence prep, CI, release automation, and user/developer docs.`
 
 ## How API Credits Would Be Used
 

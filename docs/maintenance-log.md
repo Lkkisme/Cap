@@ -22,3 +22,7 @@ It is not an adoption log and should not be used to inflate project usage. Adopt
 - Created public tracking issues for SignPath approval and signed Windows release, adoption evidence, upstream sync review, and OpenAI Codex for OSS application preparation.
 - Added Dependabot configuration for GitHub Actions, pnpm workspace manifests, and Cargo.
 - Updated GitHub repository description and topics to remove outdated or risky wording and clarify the fork's current focus.
+- Cleared the repository homepage field so the fork does not appear to use the upstream `cap.so` site as its own official landing page.
+- Disabled unused GitHub Wiki and Projects surfaces to keep the public repository interface focused on maintained entry points.
+- Rewrote the `cap-v0.4.3-cn` prerelease notes to remove mojibake, keep the release marked as prerelease, and state clearly that current Windows assets are unsigned and not recommended as company-wide builds.
+- Replaced `needs-triage` labels on the four public tracking issues with clearer status and topic labels.
