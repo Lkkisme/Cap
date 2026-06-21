@@ -27,6 +27,7 @@ Microsoft Store、Azure Artifact Signing 和 PFX 仍是技术备选，但不是�
    - [signpath-foundation-application.md](signpath-foundation-application.md)
    - [signpath-foundation-eligibility.md](signpath-foundation-eligibility.md)
    - [signpath-foundation-form-answers.md](signpath-foundation-form-answers.md)
+   - [signpath-foundation-status.md](signpath-foundation-status.md)
 
 2. Microsoft Store
 
