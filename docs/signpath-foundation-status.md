@@ -8,7 +8,7 @@ Obtain SignPath Foundation free open source code signing for the `Lkkisme/Cap` W
 
 ## Current State
 
-Status: ready for owner-assisted application submission.
+Status: submitted by the repository owner; waiting for SignPath Foundation review.
 
 Repository-side preparation is complete:
 
@@ -33,22 +33,20 @@ Detected form:
 
 The form includes reCAPTCHA and personal account fields. It cannot be fully submitted by automation without owner participation.
 
-## Owner Action Required
+## Submission Record
 
-The repository owner must provide or confirm:
+The repository owner submitted the SignPath Foundation application on 2026-06-21.
 
-- First name
-- Last name
-- Email address for the SignPath account
-- GitHub MFA is enabled
-- Agreement to the SignPath Foundation Code of Conduct
-- Agreement to SignPath storing and processing personal data for the application
-- reCAPTCHA completion
-- Final Submit click
+Owner action required while waiting:
+
+- Save any on-screen submission confirmation if available.
+- Watch the submitted email address for SignPath or SignPath.io messages.
+- Check spam, junk, promotions, and quarantine folders.
+- Reply to SignPath if they ask for project ownership, release process, or repository evidence.
 
 ## After Application Submission
 
-After the application is submitted, record the submission confirmation or SignPath email response here.
+When SignPath replies, record the confirmation or requested follow-up here.
 
 If approved, complete these steps:
 
