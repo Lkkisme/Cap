@@ -1,0 +1,112 @@
+name: Bug report
+description: Report a reproducible problem in the Chinese Windows fork of Cap.
+title: "[Bug]: "
+labels:
+  - bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Cap. Before submitting, remove secrets and personal data from logs. Do not report security vulnerabilities in a public issue.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checklist
+      options:
+        - label: I searched existing issues.
+          required: true
+        - label: I tested the latest available build or explained below why I cannot.
+          required: true
+        - label: I removed tokens, emails, account IDs, private paths, and other sensitive data from logs.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: Cap version
+      description: Include the app version, commit SHA, or release tag.
+      placeholder: "v0.0.0 or commit SHA"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows 11
+        - Windows 10
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: windows_build
+    attributes:
+      label: Windows build
+      description: Run winver and paste the version/build number.
+      placeholder: "Windows 11 24H2, build 26100.x"
+    validations:
+      required: false
+  - type: dropdown
+    id: install_source
+    attributes:
+      label: Install source
+      options:
+        - GitHub release
+        - Local development build
+        - CI artifact
+        - Microsoft Store
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+      placeholder: "Cap should..."
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead?
+      placeholder: "Cap actually..."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide a minimal sequence of actions.
+      placeholder: |
+        1. Open Cap
+        2. Click ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or error output
+      description: Paste relevant logs after redacting secrets and personal data.
+      render: text
+    validations:
+      required: false
+  - type: textarea
+    id: media
+    attributes:
+      label: Screenshots or recordings
+      description: Add screenshots or recordings if they help explain the issue.
+    validations:
+      required: false
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Who is affected, how often it happens, and whether there is a workaround.
+      placeholder: "This affects..."
+    validations:
+      required: false

@@ -14,13 +14,13 @@ License: AGPLv3, with MIT-licensed components as described in [LICENSE](LICENSE)
 
 ## Signing Provider
 
-This project is preparing to apply for open source code signing through SignPath.
+This project has submitted a SignPath Foundation application for open source code signing and is waiting for review.
 
 After approval, Windows release artifacts are expected to use:
 
 Free code signing provided by [SignPath.io](https://signpath.io/), certificate by [SignPath Foundation](https://signpath.org/).
 
-Current status: Windows artifacts in existing releases are not yet signed by SignPath Foundation.
+Current status: Windows artifacts in existing releases are not yet signed by SignPath Foundation. See `docs/signpath-foundation-status.md` for the current application state.
 
 The project home page, release pages, and download pages should link to this page using the term `Code signing policy`.
 

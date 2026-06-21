@@ -4,16 +4,14 @@ This checklist maps the public repository state to the SignPath Foundation open 
 
 ## Current Status
 
-Application preparation is in progress.
+The SignPath Foundation application was submitted by the repository owner on 2026-06-21.
 
-Repository-side materials are prepared or being prepared in public.
+Repository-side materials are prepared in public.
 
 Owner-side actions still required before completion:
 
-- Confirm that the `Lkkisme` GitHub account uses multi-factor authentication.
-- Provide first name, last name, and email for the SignPath account.
-- Submit the SignPath Foundation application.
-- Complete any SignPath account, email, MFA, or approval steps requested by SignPath.
+- Watch the submitted email address for SignPath or SignPath.io messages.
+- Complete any SignPath account, email, SignPath MFA, or approval steps requested by SignPath.
 - After approval, configure the SignPath project, signing policy, trusted GitHub build system, CI user token, and GitHub repository secrets.
 - Publish a new signed Windows release and verify the signatures.
 - Track the current state in `docs/signpath-foundation-status.md`.
@@ -28,7 +26,7 @@ Owner-side actions still required before completion:
 | OSI-approved open source license | Ready | `LICENSE`, `apps/desktop/src-tauri/Cargo.toml`, and `apps/desktop/src-tauri/tauri.conf.json` use AGPL-3.0-only for the app, with MIT components noted in the repository license file. |
 | No proprietary project code | Ready | The source, build scripts, and workflows are public in this repository. Signed releases must be built from this repository by GitHub Actions. |
 | Actively maintained | Ready | The repository has recent Windows release, signing, audit, and documentation work on `main`. |
-| Already released in the form to be signed | Ready | The current GitHub Release page includes Windows installer assets; those assets are explicitly marked as old unsigned assets and must be replaced by a new signed release after approval. |
+| Already released in the form to be signed | Ready | The current GitHub Release page includes Windows EXE, MSI, and portable ZIP assets; those assets are explicitly marked as old unsigned prerelease assets and must be replaced by a new signed release after approval. |
 | Documented functionality | Ready | `README.md` describes Cap Chinese Edition as a Windows-focused screen recording application. |
 | No malware or potentially unwanted behavior | Ready | The application is a screen recording tool. Windows release workflows include Microsoft Defender scans before publication. |
 | No hacking or security bypass features | Ready | The application records user-selected screen, audio, and camera input; it is not a vulnerability scanner, exploitation tool, or security-bypass tool. |
@@ -36,10 +34,10 @@ Owner-side actions still required before completion:
 | Installation and uninstallation | Ready | Windows release assets include NSIS EXE and MSI installers. `Windows Installer Smoke Test` verifies silent install and uninstall behavior for signed releases. |
 | Code signing policy on project home page | Ready | `README.md` links to `CODE_SIGNING_POLICY.md` using the required `Code signing policy` wording. |
 | Code signing policy on release/download page | Ready | The current GitHub Release body links to `CODE_SIGNING_POLICY.md`, `PRIVACY.md`, the application draft, and this checklist. |
-| SignPath application form answers | Ready except owner contact fields | `docs/signpath-foundation-form-answers.md` maps current form fields to prepared answers and lists the required owner-provided contact fields. |
+| SignPath application form answers | Submitted | The repository owner submitted the application on 2026-06-21. `docs/signpath-foundation-form-answers.md` remains as the public form-answer record. |
 | SignPath application status tracking | Ready | `docs/signpath-foundation-status.md` records the current application state, owner actions, and post-approval steps. |
 | Team roles | Ready | `CODE_SIGNING_POLICY.md` lists the current maintainer, committer, reviewer, and signing approver. |
-| MFA for repository and SignPath access | Owner action required | `CODE_SIGNING_POLICY.md` requires MFA, but the account owner must confirm that GitHub MFA is enabled and must enable SignPath MFA during onboarding. |
+| MFA for repository and SignPath access | GitHub MFA confirmed; SignPath onboarding pending | `CODE_SIGNING_POLICY.md` requires MFA. GitHub 2FA/MFA was confirmed enabled for `Lkkisme` on 2026-06-21; SignPath MFA must be enabled during onboarding if approval is granted. |
 | Manual signing approval | Ready for setup | `CODE_SIGNING_POLICY.md` requires manual approval for SignPath Foundation release signing requests. This must be configured in SignPath after approval. |
 | Own binaries only | Ready | `CODE_SIGNING_POLICY.md` prohibits signing unrelated third-party binaries as project binaries. The SignPath artifact configuration enforces project metadata for signed PE/MSI files. |
 | Artifact metadata restrictions | Ready | `.github/signpath/artifact-configuration.xml` requires the release version parameter and enforces Cap Chinese Edition product metadata for signed Windows files. |

@@ -4,7 +4,7 @@ Last updated: 2026-06-21
 
 ## Goal
 
-Obtain SignPath Foundation free open source code signing for the `Lkkisme/Cap` Windows fork, then publish a new Windows release containing SignPath Foundation signed EXE, MSI, and portable ZIP artifacts.
+Obtain SignPath Foundation free open source code signing for the `Lkkisme/Cap` Windows fork, then publish a new Windows release containing SignPath Foundation signed EXE, MSI, and a portable ZIP whose internal EXE/DLL files are signed.
 
 ## Current State
 
@@ -19,6 +19,8 @@ Repository-side preparation is complete:
 - Eligibility checklist: `https://github.com/Lkkisme/Cap/blob/main/docs/signpath-foundation-eligibility.md`
 - Application form answers: `https://github.com/Lkkisme/Cap/blob/main/docs/signpath-foundation-form-answers.md`
 - Release page links: current `cap-v0.4.3-cn` release body links the code signing policy, privacy policy, application draft, eligibility checklist, and form answers.
+
+Current public `cap-v0.4.3-cn` release is a prerelease. It includes Windows EXE, MSI, and portable ZIP assets, but those Windows assets are not SignPath Foundation signed and do not have the full release evidence set required for a recommended Windows download.
 
 ## Application Form
 

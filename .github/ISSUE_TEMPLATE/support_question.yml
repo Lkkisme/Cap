@@ -1,0 +1,50 @@
+name: Support question
+description: Ask a setup, usage, or troubleshooting question about this fork.
+title: "[Support]: "
+labels:
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for questions that are not confirmed bugs or feature requests. Do not share secrets, private recordings, signing credentials, or security vulnerabilities in a public issue.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checklist
+      options:
+        - label: I read SUPPORT.md.
+          required: true
+        - label: I searched existing issues.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Windows installation
+        - Windows release or download
+        - Local development setup
+        - Recording or export
+        - Account, upload, or sharing workflow
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Describe what you are trying to do and what is unclear.
+      placeholder: "I am trying to..."
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Include app version, Windows version, commands run, and redacted logs if relevant.
+    validations:
+      required: false

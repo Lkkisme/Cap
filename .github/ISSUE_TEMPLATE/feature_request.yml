@@ -1,0 +1,85 @@
+name: Feature request
+description: Suggest an improvement for the Chinese Windows fork of Cap.
+title: "[Feature]: "
+labels:
+  - enhancement
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement. Avoid sharing private data, credentials, unreleased signing details, or security-sensitive information.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checklist
+      options:
+        - label: I searched existing issues.
+          required: true
+        - label: This request is specific to this fork or clearly useful for Windows users.
+          required: true
+        - label: This does not disclose a security vulnerability.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user problem or workflow gap does this solve?
+      placeholder: "When using Cap on Windows, I need..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior, UI, command, or workflow you want.
+      placeholder: "Add..."
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What workarounds or other designs did you consider?
+    validations:
+      required: false
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Desktop app
+        - Web app
+        - CLI
+        - Recording
+        - Rendering or export
+        - Authentication
+        - Installer or updater
+        - Windows release
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: windows_impact
+    attributes:
+      label: Windows release impact
+      options:
+        - label: This may affect installer or updater behavior.
+        - label: This may affect code signing, SignPath, or release packaging.
+        - label: This may affect SmartScreen reputation or trust prompts.
+        - label: This should be tested on both Windows 10 and Windows 11.
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples or references
+      description: Link screenshots, comparable apps, upstream issues, or user reports.
+    validations:
+      required: false
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add anything else maintainers should know.
+    validations:
+      required: false

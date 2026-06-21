@@ -1,0 +1,133 @@
+name: Windows release problem
+description: Report installer, signing, SmartScreen, update, or release packaging problems.
+title: "[Windows Release]: "
+labels:
+  - windows
+  - release
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for Windows release problems, including installer failures, signing issues, SmartScreen warnings, update failures, and packaging regressions. Do not share private certificates, signing credentials, SignPath secrets, or security vulnerabilities in a public issue.
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight checklist
+      options:
+        - label: I included the exact source of the build, release, CI artifact, Store listing, WinGet package, mirror, or transferred installer.
+          required: true
+        - label: I removed tokens, emails, account IDs, private paths, and other sensitive data from logs.
+          required: true
+        - label: I did not include private signing, certificate, SignPath, or CI secrets.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
+  - type: input
+    id: release
+    attributes:
+      label: Release version or artifact
+      description: Include the release tag, artifact name, or commit SHA.
+      placeholder: "v0.0.0, artifact name, or commit SHA"
+    validations:
+      required: true
+  - type: dropdown
+    id: problem_type
+    attributes:
+      label: Problem type
+      options:
+        - Installer fails
+        - App fails to launch
+        - Updater fails
+        - SmartScreen warning
+        - Signature validation problem
+        - SignPath release problem
+        - Antivirus false positive
+        - Missing or broken artifact
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Windows version
+      options:
+        - Windows 11
+        - Windows 10
+        - Windows Server
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: windows_build
+    attributes:
+      label: Windows build
+      description: Run winver and paste the version/build number if the issue happens on a Windows machine.
+      placeholder: "Windows 11 24H2, build 26100.x"
+    validations:
+      required: false
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: Architecture
+      options:
+        - x64
+        - arm64
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the exact download, install, launch, update, or verification steps.
+      placeholder: |
+        1. Download ...
+        2. Run ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: "The installer should complete and the app should launch without unexpected warnings."
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      placeholder: "Windows shows..."
+    validations:
+      required: true
+  - type: textarea
+    id: smartscreen
+    attributes:
+      label: SmartScreen or trust prompt details
+      description: If relevant, describe the warning text, whether More info appears, and whether the publisher name is shown.
+    validations:
+      required: false
+  - type: textarea
+    id: signature
+    attributes:
+      label: Signature or SignPath details
+      description: Paste public verification output only. Do not include private signing credentials, tokens, or certificate secrets.
+      render: text
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Paste installer, updater, Event Viewer, or terminal logs after redacting sensitive data.
+      render: text
+    validations:
+      required: false
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround
+      description: Tell us whether retrying, reinstalling, using another artifact, or bypassing a warning changed the result.
+    validations:
+      required: false
