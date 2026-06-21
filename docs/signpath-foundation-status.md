@@ -37,6 +37,8 @@ The form includes reCAPTCHA and personal account fields. It cannot be fully subm
 
 The repository owner submitted the SignPath Foundation application on 2026-06-21.
 
+GitHub 2FA/MFA was confirmed enabled for the repository owner account on 2026-06-21.
+
 Owner action required while waiting:
 
 - Save any on-screen submission confirmation if available.
