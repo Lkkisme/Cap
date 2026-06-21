@@ -30,7 +30,7 @@ Checked on 2026-06-21 using the public GitHub API.
 | GitHub stars for this fork | 0 | `https://github.com/Lkkisme/Cap` | 2026-06-21 |
 | GitHub forks of this fork | 0 | `https://github.com/Lkkisme/Cap` | 2026-06-21 |
 | GitHub watchers for this fork | 0 | `https://github.com/Lkkisme/Cap` | 2026-06-21 |
-| Open issues for this fork | 0 | `https://github.com/Lkkisme/Cap/issues` | 2026-06-21 |
+| Open issues for this fork | 4 | `https://github.com/Lkkisme/Cap/issues` | 2026-06-21 |
 | Public releases for this fork | 1 | `https://github.com/Lkkisme/Cap/releases` | 2026-06-21 |
 | Latest fork release | `cap-v0.4.3-cn` | `https://github.com/Lkkisme/Cap/releases/tag/cap-v0.4.3-cn` | 2026-06-21 |
 | `Cap-CN-0.4.3-cn-windows-x64-portable.zip` downloads | 3 | GitHub release assets API | 2026-06-21 |
