@@ -2,7 +2,7 @@
 
 This document tracks adoption evidence for `Lkkisme/Cap` only.
 
-`Lkkisme/Cap` is a public Chinese Windows-focused fork of `CapSoftware/Cap`. The upstream project has substantial public visibility, including about 19.7k GitHub stars and 1.6k forks as background context checked on 2026-06-21. Those upstream numbers are not adoption metrics for this fork.
+`Lkkisme/Cap` is a public unofficial Chinese Windows-focused fork of `CapSoftware/Cap`. The upstream project has substantial public visibility, including about 19.7k GitHub stars and 1.6k forks as background context checked on 2026-06-21. Those upstream numbers are not adoption metrics for this fork.
 
 ## Current Status
 

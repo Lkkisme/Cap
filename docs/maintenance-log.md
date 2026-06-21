@@ -17,7 +17,7 @@ It is not an adoption log and should not be used to inflate project usage. Adopt
 - Added pull request template with test, privacy, and Windows release impact sections.
 - Added support question issue template and support policy.
 - Added triage labels for `needs-triage`, Windows release work, security, privacy, dependencies, upstream sync, reproduction, and priorities.
-- Enabled GitHub private vulnerability reporting for this repository.
+- Enabled GitHub private vulnerability reporting for this repository and confirmed it through the GitHub API.
 - Enabled GitHub Issues for this repository.
 - Created public tracking issues for SignPath approval and signed Windows release, adoption evidence, upstream sync review, and OpenAI Codex for OSS application preparation.
 - Added Dependabot configuration for GitHub Actions, pnpm workspace manifests, and Cargo.

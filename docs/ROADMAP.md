@@ -1,6 +1,6 @@
 # Roadmap
 
-This roadmap describes the intended direction for `Lkkisme/Cap`, a public Chinese Windows-focused fork of `CapSoftware/Cap`. It is written to make the fork's maintenance scope, priorities, and limits clear.
+This roadmap describes the intended direction for `Lkkisme/Cap`, a public unofficial Chinese Windows-focused fork of `CapSoftware/Cap`. It is written to make the fork's maintenance scope, priorities, and limits clear.
 
 The upstream Cap project has a large public footprint, including about 19.7k GitHub stars and 1.6k forks as background context checked on 2026-06-21. Those numbers belong to the upstream project and must not be presented as adoption evidence for this fork.
 

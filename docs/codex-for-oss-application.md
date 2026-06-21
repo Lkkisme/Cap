@@ -15,12 +15,12 @@ Repository context: this application is for the public `Lkkisme/Cap` fork. The a
 | Email | HUMAN ONLY: enter the email address the owner wants OpenAI to use. |
 | GitHub username, public | `Lkkisme` |
 | Public repository | `https://github.com/Lkkisme/Cap` |
-| Role | Primary maintainer of the public `Lkkisme/Cap` fork. Not a primary or core maintainer of upstream `CapSoftware/Cap`. |
+| Role | Primary maintainer |
 | Interested in | API credits for my project. Codex assistance would be used for open source maintenance, code review, tests, CI, release automation, documentation, and security triage where available. |
 | OpenAI organization ID | HUMAN ONLY: paste the exact OpenAI organization ID from the owner's OpenAI platform account. |
-| Why this project qualifies, 500 chars or less | `I maintain Lkkisme/Cap, a public AGPLv3 fork of the open source Cap screen recorder for Chinese-language Windows users. The work is practical OSS maintenance: localization, upstream sync, Windows packaging, signing/readiness checks, SmartScreen/WDSI evidence, CI, release automation, and user/developer docs.` |
+| Why this project qualifies, 500 chars or less | `I maintain Lkkisme/Cap, a public AGPLv3 downstream fork of the open source Cap screen recorder for Chinese-language Windows users. The fork is early, but the work is active public OSS maintenance: upstream sync, localization, Windows packaging, signing readiness, SmartScreen/WDSI evidence, CI, release automation, and user/developer docs.` |
 | How API credits would be used, 500 chars or less | `Credits would support public maintenance of Lkkisme/Cap: reviewing TypeScript/Rust/Tauri changes, explaining regressions, improving tests and CI, debugging Windows signing/release automation, drafting user/developer docs, localization, and preparing small PR-ready patches. Use would stay tied to this public repo, not proprietary or client work.` |
-| Anything else, 500 chars or less | `This application is scoped to the public Lkkisme/Cap fork. It preserves upstream attribution and license, documents maintainer roles, security/privacy policies, upstream relationship, release/signing status, and adoption evidence, and does not claim CapSoftware/Cap authority or metrics. Public evidence links are available if needed.` |
+| Anything else, 500 chars or less | `This application is for the public Lkkisme/Cap fork only. It is not submitted on behalf of CapSoftware/Cap or Cap Software, Inc. The repo documents license/upstream attribution, maintainer roles, security/privacy policies, release/signing status, and transparent early-adoption metrics. I will use any support only for this public OSS repo.` |
 
 ## 500-Character Safe Versions
 
@@ -28,9 +28,9 @@ These versions are intentionally conservative and stay under 500 characters.
 
 ## Why This Project Qualifies
 
-Length: 308 characters.
+Length: 339 characters.
 
-`I maintain Lkkisme/Cap, a public AGPLv3 fork of the open source Cap screen recorder for Chinese-language Windows users. The work is practical OSS maintenance: localization, upstream sync, Windows packaging, signing/readiness checks, SmartScreen/WDSI evidence, CI, release automation, and user/developer docs.`
+`I maintain Lkkisme/Cap, a public AGPLv3 downstream fork of the open source Cap screen recorder for Chinese-language Windows users. The fork is early, but the work is active public OSS maintenance: upstream sync, localization, Windows packaging, signing readiness, SmartScreen/WDSI evidence, CI, release automation, and user/developer docs.`
 
 ## How API Credits Would Be Used
 
@@ -40,9 +40,9 @@ Length: 346 characters.
 
 ## Anything Else
 
-Length: 334 characters.
+Length: 340 characters.
 
-`This application is scoped to the public Lkkisme/Cap fork. It preserves upstream attribution and license, documents maintainer roles, security/privacy policies, upstream relationship, release/signing status, and adoption evidence, and does not claim CapSoftware/Cap authority or metrics. Public evidence links are available if needed.`
+`This application is for the public Lkkisme/Cap fork only. It is not submitted on behalf of CapSoftware/Cap or Cap Software, Inc. The repo documents license/upstream attribution, maintainer roles, security/privacy policies, release/signing status, and transparent early-adoption metrics. I will use any support only for this public OSS repo.`
 
 ## Evidence Links
 
@@ -61,7 +61,7 @@ Use these links if the form asks for supporting context or if OpenAI follows up.
 | Code signing policy | `https://github.com/Lkkisme/Cap/blob/main/CODE_SIGNING_POLICY.md` |
 | Privacy policy | `https://github.com/Lkkisme/Cap/blob/main/PRIVACY.md` |
 | Roadmap | `https://github.com/Lkkisme/Cap/blob/main/docs/ROADMAP.md` |
-| Adoption evidence | `https://github.com/Lkkisme/Cap/blob/main/docs/adoption.md` |
+| Transparent early adoption/status evidence | `https://github.com/Lkkisme/Cap/blob/main/docs/adoption.md` |
 | Upstream relationship | `https://github.com/Lkkisme/Cap/blob/main/docs/upstream-relationship.md` |
 | SignPath application status | `https://github.com/Lkkisme/Cap/blob/main/docs/signpath-foundation-status.md` |
 | Windows SmartScreen and release trust plan | `https://github.com/Lkkisme/Cap/blob/main/docs/windows-smartscreen.md` |
